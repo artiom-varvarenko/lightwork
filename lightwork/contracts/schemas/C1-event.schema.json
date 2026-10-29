@@ -353,6 +353,18 @@
           "title": "Call Dir",
           "type": "string"
         },
+        "http_status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Http Status"
+        },
         "intent_id": {
           "title": "Intent Id",
           "type": "string"
@@ -369,6 +381,19 @@
           ],
           "title": "Status",
           "type": "string"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usage"
         }
       },
       "required": [

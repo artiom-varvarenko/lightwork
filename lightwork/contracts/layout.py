@@ -79,6 +79,7 @@ class Calibration(_M):
     residuals: Residuals
     mm: MmScale
     flat_field_sha: str | None = None
+    flat_field_crop_xywh: Annotated[list[int], Field(min_length=4, max_length=4)] | None = None
     measurement_mode: Literal["grey", "dark"]
     created: str
     H_plate_cam_to_page: H3 | None = None  # optional second homography at plate height (rig:C4 > 3 mm)

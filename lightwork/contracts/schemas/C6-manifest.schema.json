@@ -83,7 +83,8 @@
     "provenance": {
       "enum": [
         "meta",
-        "dev-standin"
+        "dev-standin",
+        "synthetic"
       ],
       "title": "Provenance",
       "type": "string"

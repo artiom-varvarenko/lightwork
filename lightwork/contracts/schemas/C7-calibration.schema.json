@@ -173,6 +173,23 @@
       "title": "Created",
       "type": "string"
     },
+    "flat_field_crop_xywh": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flat Field Crop Xywh"
+    },
     "flat_field_sha": {
       "anyOf": [
         {

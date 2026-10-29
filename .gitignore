@@ -26,6 +26,7 @@ raw-footage/
 
 # lightwork local state and outputs
 runs-dev/
+runs-synthetic/
 .lightwork/
 site/
 eval/cache/

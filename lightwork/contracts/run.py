@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 RUN_SIZE_TARGET = 10 * 1024 * 1024
 RUN_SIZE_LIMIT = 25 * 1024 * 1024
 UNHASHED_FILES = frozenset({"manifest.json", "verify.json"})
-Provenance = Literal["meta", "dev-standin"]
+Provenance = Literal["meta", "dev-standin", "synthetic"]
 
 
 class _M(BaseModel):

@@ -95,6 +95,8 @@ class ModelResult(Payload):
     call_dir: str  # relative to the run dir, e.g. "calls/0003-verdict-muse-spark-1.3-contributor"
     status: Literal["ok", "error", "timeout"]
     latency_ms: int
+    usage: dict[str, Any] | None = None  # billed usage across recorded attempts; None means final raw usage
+    http_status: int | None = None  # final HTTP status; rate-limit fallbacks are derived reducer intents
 
 
 class Tick(Payload):

@@ -100,14 +100,15 @@ def cell_stats(
     *,
     origin: tuple[float, float] = (0, 0),
     flat_field: np.ndarray | None = None,
+    flat_field_origin: tuple[float, float] = (0, 0),
     reject_ge: int = 250,
 ) -> dict[str, CellStats]:
     """Read every cell's ROI disc from ``img`` (BGR uint8, usually :func:`decode` of a keyframe crop).
 
     ``centres`` are camera px; ``origin`` is the camera-px position of ``img``'s top-left pixel (the keyframe's
     ``crop_xywh[:2]``). ``radius_px`` is the ROI radius (:func:`lightwork.measure.grid.roi_radius`).
-    ``flat_field`` is a BGR uint8 frame in camera px with its top-left at camera (0, 0) (a full camera frame, or the
-    same crop when ``origin`` is (0, 0)); pixels where it is clipped (``>= reject_ge``) or black are rejected.
+    ``flat_field`` is a BGR uint8 work-area crop; ``flat_field_origin`` locates its top-left in camera px.
+    Pixels where it is clipped (``>= reject_ge``) or black are rejected.
     """
     if channel not in CHANNELS:
         raise ValueError(f"channel must be one of {sorted(CHANNELS)}, got {channel!r}")
@@ -119,7 +120,9 @@ def cell_stats(
         if flat_field.ndim != 3 or flat_field.shape[2] != 3 or flat_field.dtype != np.uint8:
             raise ValueError("flat_field must be a BGR uint8 image")
         fh, fw = flat_field.shape[:2]
-        if oy < 0 or ox < 0 or oy + img.shape[0] > fh or ox + img.shape[1] > fw:
+        fx = ox - int(round(flat_field_origin[0]))
+        fy = oy - int(round(flat_field_origin[1]))
+        if fy < 0 or fx < 0 or fy + img.shape[0] > fh or fx + img.shape[1] > fw:
             raise ValueError("flat_field does not cover the image at origin")
         gain = _flat_gain(flat_field)
         if not (gain > 0).all():
@@ -131,7 +134,7 @@ def cell_stats(
         px = img[ys, xs]
         keep = (px < reject_ge).all(axis=1)
         if flat_field is not None:
-            fpx = flat_field[ys + oy, xs + ox]
+            fpx = flat_field[ys + fy, xs + fx]
             keep &= (fpx < reject_ge).all(axis=1) & (fpx > 0).all(axis=1)
             lin = SRGB_TO_LINEAR[px[keep]] / (SRGB_TO_LINEAR[fpx[keep]] / gain)
         else:
@@ -292,7 +295,8 @@ def transfer_ok(
     dye: the source loses half its OD and the target gains it. Returns ``(status, reason)`` with status ``pass``,
     ``fail`` or ``inconclusive`` (C1 check vocabulary), testing in this order:
 
-    1. ``od_src_before <= floor``: ``inconclusive`` (too dilute to read).
+    1. ``od_src_before < max(floor, 3 * min_delta)``: ``inconclusive``. Below that the expected change
+       (``od_src_before / 2``) is under 1.5 x ``min_delta``, so a correct transfer could not be told from noise.
     2. Target darker: ``od_tgt_after - od_tgt_before >= max(min_delta, drop_frac * od_src_before)``.
     3. Source lighter: ``od_src_before - od_src_after >=`` the same threshold (expected gain/loss is half).
     4. Equal OD: ``od_tgt_after / od_src_after`` in ``[ratio_lo, ratio_hi]`` when both are above ``floor``
@@ -301,8 +305,9 @@ def transfer_ok(
     ODs are relative to each cell's pre-dye reference. ``names`` label (source, target) in the reason.
     """
     src, tgt = names
-    if od_src_before <= floor:
-        return "inconclusive", f"{src} OD {od_src_before:.4f} is below the readable floor {floor:g}"
+    readable = max(floor, 3 * min_delta)
+    if od_src_before < readable:
+        return "inconclusive", f"{src} OD {od_src_before:.4f} is below the readable {readable:g}"
     need = max(min_delta, drop_frac * od_src_before)
     gain = od_tgt_after - od_tgt_before
     if gain < need:

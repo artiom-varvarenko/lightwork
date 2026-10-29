@@ -56,7 +56,7 @@ class CallMeta(_M):
     cost_usd: float
     fingerprint: str
     server_props: ServerProps | None = None
-    provenance: Literal["meta", "dev-standin"]
+    provenance: Literal["meta", "dev-standin", "synthetic"]
 
 
 def strip_transport(request: dict[str, Any]) -> dict[str, Any]:
