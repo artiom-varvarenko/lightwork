@@ -1,0 +1,35 @@
+event: response.created
+data: {"response":{"id":"resp_synthetic_0002","model":"muse-spark-1.3-contributor","object":"response","status":"in_progress"},"sequence_number":1,"type":"response.created"}
+
+event: response.in_progress
+data: {"response":{"id":"resp_synthetic_0002","model":"muse-spark-1.3-contributor","object":"response","status":"in_progress"},"sequence_number":2,"type":"response.in_progress"}
+
+event: response.output_item.added
+data: {"item":{"content":[],"id":"msg_resp_synthetic_0002","role":"assistant","type":"message"},"output_index":0,"sequence_number":3,"type":"response.output_item.added"}
+
+event: response.content_part.added
+data: {"content_index":0,"output_index":0,"part":{"text":"","type":"output_text"},"sequence_number":4,"type":"response.content_part.added"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"{\"contradiction\":null,\"d","output_index":0,"sequence_number":5,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"one\":\"yes\",\"evidence\":\"A","output_index":0,"sequence_number":6,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" dark remote lies inside","output_index":0,"sequence_number":7,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" the right-hand slot.\"}","output_index":0,"sequence_number":8,"type":"response.output_text.delta"}
+
+event: response.output_text.done
+data: {"content_index":0,"output_index":0,"sequence_number":9,"text":"{\"contradiction\":null,\"done\":\"yes\",\"evidence\":\"A dark remote lies inside the right-hand slot.\"}","type":"response.output_text.done"}
+
+event: response.content_part.done
+data: {"content_index":0,"output_index":0,"part":{"annotations":[],"text":"{\"contradiction\":null,\"done\":\"yes\",\"evidence\":\"A dark remote lies inside the right-hand slot.\"}","type":"output_text"},"sequence_number":10,"type":"response.content_part.done"}
+
+event: response.completed
+data: {"response":{"id":"resp_synthetic_0002","model":"muse-spark-1.3-contributor","object":"response","output":[{"content":[{"annotations":[],"text":"{\"contradiction\":null,\"done\":\"yes\",\"evidence\":\"A dark remote lies inside the right-hand slot.\"}","type":"output_text"}],"id":"msg_resp_synthetic_0002","role":"assistant","status":"completed","type":"message"}],"status":"completed","usage":{"input_tokens":1000,"input_tokens_details":{"cached_tokens":0},"output_tokens":23,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":1023}},"sequence_number":11,"type":"response.completed"}
+
+data: [DONE]
+

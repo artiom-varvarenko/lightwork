@@ -4,15 +4,85 @@
   "pattern": null,
   "prims": [
     {
-      "c": [
-        1090.0,
-        230.0
+      "closed": true,
+      "id": "s:remote",
+      "kind": "poly",
+      "pts": [
+        [
+          300.0,
+          400.0
+        ],
+        [
+          340.0,
+          400.0
+        ],
+        [
+          340.0,
+          520.0
+        ],
+        [
+          300.0,
+          520.0
+        ]
       ],
-      "id": "t-slot-remote",
-      "kind": "ring",
-      "pulse": false,
-      "r": 90.0,
+      "role": "source"
+    },
+    {
+      "a": [
+        512.5,
+        402.5
+      ],
+      "b": [
+        897.5,
+        287.5
+      ],
+      "id": "a:remote>slot-remote",
+      "kind": "arrow",
       "role": "target"
+    },
+    {
+      "closed": true,
+      "id": "t:slot-remote",
+      "kind": "poly",
+      "pts": [
+        [
+          1000.0,
+          160.0
+        ],
+        [
+          1180.0,
+          160.0
+        ],
+        [
+          1180.0,
+          300.0
+        ],
+        [
+          1000.0,
+          300.0
+        ]
+      ],
+      "role": "target"
+    },
+    {
+      "at": [
+        600.0,
+        64.0
+      ],
+      "id": "step",
+      "kind": "label",
+      "role": "info",
+      "text": "1/2"
+    },
+    {
+      "at": [
+        720.0,
+        64.0
+      ],
+      "id": "status",
+      "kind": "label",
+      "role": "warn",
+      "text": "MOTION ONLY: no hand tracking"
     }
   ],
   "seq": 1,

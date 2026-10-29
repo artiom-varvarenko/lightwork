@@ -1,0 +1,10 @@
+Lightwork synthetic kit-packing procedure
+Original text by the Lightwork project. Apache-2.0.
+
+A case has five labelled slots on a white workbench. Pack one item per step, in this order:
+1. Put the remote control in the slot labelled remote. Check that it lies fully inside that slot.
+2. Put the USB cable in the slot labelled cable. Check that no part of the cable crosses the slot border.
+3. Put the power adapter in the slot labelled adapter. Check that it lies fully inside that slot.
+4. Put the lens cap in the slot labelled cap. Check that the cap is present and the slot contains only one cap.
+5. Put the cleaning cloth in the slot labelled cloth. Check that the cloth is inside its slot and no other slot is empty.
+If an item is outside its slot, ask the operator to put it back and redo that step. Use short spoken instructions.

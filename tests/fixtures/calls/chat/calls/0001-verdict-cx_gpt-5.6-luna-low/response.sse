@@ -1,0 +1,66 @@
+data: {"id":"chatcmpl-keepalive","object":"chat.completion.chunk","created":0,"model":"keepalive","choices":[{"index":0,"delta":{},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"role":"assistant","content":"{\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"done"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"\":\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"yes"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"\",\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"contr"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"ad"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"iction"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"\":"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"null"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":",\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"e"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"vidence"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"\":\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"The"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" blue"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" rectangle"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" is"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" fully"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" contained"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" within"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" the"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" boundaries"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" of"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" the"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" right"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" outlined"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":" slot"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":".\""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{"content":"}"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-1793301692612","object":"chat.completion.chunk","created":1793301692,"model":"gpt-5.6-luna","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":595,"completion_tokens":34,"total_tokens":629}}
+
+data: [DONE]
+

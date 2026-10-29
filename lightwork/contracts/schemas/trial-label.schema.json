@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "contradiction": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contradiction"
+        },
+        "done": {
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ],
+          "title": "Done",
+          "type": "string"
+        },
+        "evidence": {
+          "maxLength": 160,
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "done",
+        "contradiction",
+        "evidence"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "expected": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "frame_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Frame Sha",
+      "type": "string"
+    },
+    "question": {
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "reviewed": {
+      "default": false,
+      "title": "Reviewed",
+      "type": "boolean"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "session_id": {
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "trial-script",
+        "operator"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "step_id": {
+      "minLength": 1,
+      "title": "Step Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "minLength": 1,
+      "title": "Trial Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "run_id",
+    "frame_sha",
+    "trial_id",
+    "step_id",
+    "question",
+    "expected",
+    "source"
+  ],
+  "title": "TrialLabel",
+  "type": "object"
+}

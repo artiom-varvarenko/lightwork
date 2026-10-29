@@ -11,7 +11,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, TypeAdapter
 
-from . import backend, calls, events, layout, render, run, stepgraph
+from . import backend, calls, evaluation, events, layout, render, run, stepgraph
 
 SCHEMA_DIR = Path(__file__).parent / "schemas"
 
@@ -35,6 +35,8 @@ SCHEMAS = {
     "C7-calibration": layout.Calibration.model_json_schema,
     "C9-verdict": backend.Verdict.model_json_schema,
     "C9-mask": backend.Mask.model_json_schema,
+    "trial-card": evaluation.TrialCard.model_json_schema,
+    "trial-label": evaluation.TrialLabel.model_json_schema,
 }
 
 MODELS: dict[str, type[BaseModel]] = {
@@ -46,6 +48,8 @@ MODELS: dict[str, type[BaseModel]] = {
     "C7-calibration": layout.Calibration,
     "C9-verdict": backend.Verdict,
     "C9-mask": backend.Mask,
+    "trial-card": evaluation.TrialCard,
+    "trial-label": evaluation.TrialLabel,
 }
 
 

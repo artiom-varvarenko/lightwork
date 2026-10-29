@@ -1,10 +1,10 @@
 {
   "code_version": "0.1.0",
   "diffs": [],
-  "n_calls": 1,
-  "n_derived": 11,
-  "n_events": 24,
-  "n_inputs": 13,
+  "n_calls": 3,
+  "n_derived": 23,
+  "n_events": 37,
+  "n_inputs": 14,
   "ok": true,
   "run_id": "20261030T120000Z_synthetic-kit"
 }

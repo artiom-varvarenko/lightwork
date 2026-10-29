@@ -1,25 +1,31 @@
-"""Build ``tests/fixtures/runs/synthetic-kit/`` (C6) and ``tests/fixtures/contracts/*.json`` deterministically.
+"""Build the explicitly synthetic C6 run and contract examples through Recorder and the production Reducer.
 
-Run: ``uv run python tests/fixtures/build_synthetic_kit.py``. The output is committed; tests check its hash chain,
-schemas and manifest. Derived events here are hand-written to the contract; once the reducer (H) and recorder (I)
-exist, this builder should produce the run through them instead, so `verify` can re-derive it.
-
-Call files follow the Responses SSE shape documented in ``context/research/meta-api-ref.md`` §3.5.
+Run ``uv run python tests/fixtures/build_synthetic_kit.py``. Generated responses are test data, never Meta evidence:
+all C5/C6 provenance fields say ``synthetic``, and release audit must reject the run even when verify has 0 diffs.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
+from collections import deque
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from lightwork.contracts.calls import call_dirname, frame_ref, request_fingerprint
-from lightwork.contracts.canonical import canonical, canonical_sha, file_sha, q_px, q_s, sha256_hex
-from lightwork.contracts.events import genesis_hash, seal
+import cv2
+import numpy as np
+
+from lightwork.contracts.calls import CallMeta, request_fingerprint
+from lightwork.contracts.canonical import canonical
 from lightwork.contracts.layout import Calibration, Layout
-from lightwork.contracts.render import Ring, SceneMsg
-from lightwork.contracts.run import UNHASHED_FILES, Manifest
-from lightwork.contracts.stepgraph import StepGraph, validate_semantics
+from lightwork.contracts.stepgraph import StepGraph
+from lightwork.core.reducer import Reducer
+from lightwork.models.pricing import cost_usd
+from lightwork.models.record import write_call
+from lightwork.models.requests import META_MODELS
+from lightwork.models.synthetic import SamObject, responses_sse, sam_sse
+from lightwork.models.wire import read_body
+from lightwork.runs import Recorder, verify_run
 from lightwork.testing.synth import Item, add_hand, encode_jpeg, kit_scene
 
 HERE = Path(__file__).parent
@@ -109,184 +115,107 @@ def frames():
     return {"before": encode_jpeg(_crop(before)), "during": encode_jpeg(_crop(during), 70), "after": encode_jpeg(_crop(after))}
 
 
-def verdict_request(frame_sha: str) -> dict:
-    schema = {
-        "type": "object",
-        "properties": {
-            "done": {"type": "string", "enum": ["yes", "no", "unsure"]},
-            "contradiction": {"type": ["string", "null"]},
-            "evidence": {"type": "string"},
-        },
-        "required": ["done", "contradiction", "evidence"],
-        "additionalProperties": False,
+def build_run(root: Path) -> tuple[Path, dict]:
+    """Record the first kit step, including Spark grounding, SAM and a verdict, entirely offline."""
+    sg = StepGraph.model_validate(STEPGRAPH)
+    layout, calib = Layout.model_validate(LAYOUT), Calibration.model_validate(CALIB)
+    started = {
+        "run_id": RUN_ID, "backend": "meta", "models": dict(META_MODELS), "code_commit": "0000000",
+        "dirty": False, "platform": "synthetic", "version": "0.1.0",
     }
-    return {
-        "model": SPARK,
-        "input": [
-            {
-                "type": "message",
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "Step: Put the remote in its slot.\nQuestion: Is the remote lying inside the right-hand slot of the case?"},
-                    {"type": "input_image", "image_url": frame_ref(frame_sha)},
-                ],
-            }
-        ],
-        "reasoning": {"effort": "minimal"},
-        "store": False,
-        "stream": True,
-        "max_output_tokens": 4000,
-        "text": {"format": {"type": "json_schema", "name": "StepVerdict", "strict": True, "schema": schema}},
-    }
+    now = [0.0]
+    rec = Recorder(root, sg.id, started, provenance="synthetic", clock=lambda: now[0])
+    stepgraph_sha = rec.put_run_file("stepgraph.json", sg)
+    layout_sha = rec.put_run_file("layout.json", layout)
+    calib_sha = rec.put_run_file("calib.json", calib)
+    reducer = Reducer(sg, layout, calib, rec.store, backend="meta", models=started["models"])
+    rec.attach(reducer)
+    rec.ingest("procedure_loaded", "orchestrator", {"stepgraph_sha": stepgraph_sha}, 0.0)
+    rec.ingest("calibration_loaded", "orchestrator", {"calib_sha": calib_sha}, 0.0)
+    rec.ingest("layout_loaded", "orchestrator", {"layout_sha": layout_sha}, 0.0)
+    initial_scene = reducer.scene.model_dump(mode="json")
+    images = frames()
+    shas = {name: rec.put_frame(data) for name, data in images.items()}
 
+    def preview(name: str, t: float) -> None:
+        rec.put_preview(cv2.imdecode(np.frombuffer(images[name], np.uint8), cv2.IMREAD_COLOR), t)
 
-def verdict_sse() -> bytes:
-    text = '{"done":"yes","contradiction":null,"evidence":"A dark remote lies inside the right-hand slot."}'
-    resp_id = "resp_synthetic_0001"
-    events = [
-        {"type": "response.created", "response": {"id": resp_id, "status": "in_progress", "model": SPARK}},
-        {"type": "response.in_progress", "response": {"id": resp_id, "status": "in_progress"}},
-        {"type": "response.output_item.added", "output_index": 0, "item": {"type": "message", "id": "msg_1", "role": "assistant", "content": []}},
-        {"type": "response.content_part.added", "output_index": 0, "content_index": 0, "part": {"type": "output_text", "text": ""}},
-    ]
-    for i in range(0, len(text), 24):
-        events.append({"type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": text[i : i + 24]})
-    events += [
-        {"type": "response.output_text.done", "output_index": 0, "content_index": 0, "text": text},
-        {
-            "type": "response.completed",
-            "response": {
-                "id": resp_id,
-                "status": "completed",
-                "model": SPARK,
-                "output": [{"type": "message", "id": "msg_1", "role": "assistant", "content": [{"type": "output_text", "text": text}]}],
-                "usage": {"input_tokens": 1412, "output_tokens": 31, "total_tokens": 1443},
-            },
-        },
-    ]
-    out = "".join(f"event: {e['type']}\ndata: {json.dumps(e, separators=(',', ':'))}\n\n" for e in events) + "data: [DONE]\n\n"
-    return out.encode()
+    rec.ingest("keyframe", "camera", {
+        "frame_sha": shas["before"], "crop_xywh": CROP, "mode": "grey", "verified": True, "t_capture": 0.48,
+    }, 0.5)
+    preview("before", 0.5)
+    rec.ingest("motion", "gate", {"state": "moving", "active_regions": ["slot-remote"]}, 2.1)
+    rec.ingest("hands", "hands", {"over_regions": ["slot-remote"], "tip_xy": [1090.0, 230.0]}, 2.2)
+    preview("during", 2.2)
+    rec.ingest("hands", "hands", {"over_regions": [], "tip_xy": None}, 3.4)
+    rec.ingest("motion", "gate", {"state": "settled", "active_regions": []}, 4.1)
+    out = rec.ingest("keyframe", "camera", {
+        "frame_sha": shas["after"], "crop_xywh": CROP, "mode": "grey", "verified": True, "t_capture": 4.28,
+    }, 4.3)
+    preview("after", 4.3)
+    pending = deque(e.payload for e in out if e.type == "model_request")
+    while pending:
+        intent = pending.popleft()
+        role, model = intent["role"], intent["model"]
+        index, allocated = rec.alloc_call(role, model)
+        endpoint, request = reducer.request_for(intent["intent_id"])
+        response_id = f"resp_synthetic_{index:04d}"
+        if role == "verdict":
+            answer = {"done": "yes", "contradiction": None, "evidence": "A dark remote lies inside the right-hand slot."}
+            raw = responses_sse(canonical(answer), model=model, response_id=response_id)
+        elif role == "ground":
+            # Camera box [1030,210,1150,251], normalised in the CROP sent to Spark (0-1000 grid).
+            answer = {"items": [{"object_name": "remote control",
+                                 "bbox": [{"x_min": 632, "y_min": 232, "x_max": 809, "y_max": 305}]}]}
+            raw = responses_sse(canonical(answer), model=model, response_id=response_id)
+        elif role == "segment":
+            raw = sam_sse([SamObject(3, (430, 130, 550, 171), confidence=0.93)], (680, 560), response_id=response_id)
+        else:
+            raise AssertionError(f"unexpected fixture request: {role}")
+        usage = read_body(raw, "sse", endpoint).usage
+        meta = CallMeta(
+            backend="meta", base_host="api.meta.ai", endpoint=endpoint, model=model, status="ok", http_status=200,
+            attempts=[{"n": 1, "status": 200, "error": None, "wait_s": 0.0, "ms": 2412}], headers={},
+            response_id=response_id, ttfb_ms=1880, total_ms=2412, usage=usage, cost_usd=cost_usd(model, usage),
+            fingerprint=request_fingerprint(request), provenance="synthetic",
+        )
+        rel = write_call(rec.run_dir, index=index, role=role, request=request, raw=raw, kind="sse", meta=meta)
+        assert rel == allocated
+        out = rec.ingest("model_result", "model", {
+            "intent_id": intent["intent_id"], "call_dir": rel, "status": "ok", "latency_ms": 2412, "usage": usage,
+            "http_status": 200,
+        }, 6.712)
+        pending.extend(e.payload for e in out if e.type == "model_request")
+    now[0] = 9.0
+    return rec.close("synthetic fixture end"), initial_scene
 
 
 def build() -> None:
-    if OUT.exists():
-        shutil.rmtree(OUT)
-    (OUT / "frames").mkdir(parents=True)
-    (OUT / "preview").mkdir()
+    with TemporaryDirectory(prefix="lightwork-fixture-") as temp:
+        run_dir, initial_scene = build_run(Path(temp))
+        report = verify_run(run_dir)
+        assert report.ok, report.model_dump()
+        if OUT.exists():
+            shutil.rmtree(OUT)
+        shutil.copytree(run_dir, OUT)
     CONTRACTS.mkdir(parents=True, exist_ok=True)
-
-    sg = StepGraph.model_validate(STEPGRAPH)
-    errs = validate_semantics(sg)
-    assert not errs, errs
-    layout = Layout.model_validate(LAYOUT)
-    calib = Calibration.model_validate(CALIB)
-    for name, obj in (("stepgraph.json", sg), ("layout.json", layout), ("calib.json", calib)):
-        (OUT / name).write_text(canonical(obj) + "\n", encoding="utf-8")
-
-    shas = {}
-    for name, data in frames().items():
-        sha = sha256_hex(data)
-        shas[name] = sha
-        (OUT / "frames" / f"{sha}.jpg").write_bytes(data)
-
-    req = verdict_request(shas["after"])
-    fp = request_fingerprint(req)
-    call_dir = OUT / "calls" / call_dirname(1, "verdict", SPARK)
-    call_dir.mkdir(parents=True)
-    (call_dir / "request.json").write_text(canonical(req) + "\n", encoding="utf-8")
-    (call_dir / "response.sse").write_bytes(verdict_sse())
-    meta = {
-        "backend": "meta",
-        "base_host": "api.meta.ai",
-        "endpoint": "/v1/responses",
-        "model": SPARK,
-        "status": "ok",
-        "http_status": 200,
-        "attempts": [{"n": 1, "status": 200, "error": None, "wait_s": 0.0, "ms": 2412}],
-        "headers": {"x-ratelimit-remaining-requests": "149"},
-        "response_id": "resp_synthetic_0001",
-        "ttfb_ms": 1880,
-        "total_ms": 2412,
-        "usage": {"input_tokens": 1412, "output_tokens": 31, "total_tokens": 1443},
-        "cost_usd": 0.0,
-        "fingerprint": fp,
-        "server_props": None,
-        "provenance": "meta",
-    }
-    (call_dir / "meta.json").write_text(canonical(meta) + "\n", encoding="utf-8")
-
-    scene0 = SceneMsg(seq=1, mode="normal", prims=[Ring(id="t-slot-remote", c=[q_px(1090), q_px(230)], r=90.0, role="target")])
-    scene1 = SceneMsg(seq=2, mode="normal", prims=[Ring(id="t-slot-cable", c=[q_px(850), q_px(350)], r=120.0, role="target")])
-    intent = "remote-in/remote-judge/1"
-    rel_call = call_dir.relative_to(OUT).as_posix()
-    seq_events = [
-        (0.0, "run_started", "orchestrator", {"run_id": RUN_ID, "pack": "synthetic-kit", "backend": "meta", "models": {"verdict": SPARK, "segment": "sam-3.1"}, "code_commit": "0000000", "dirty": False, "platform": "synthetic", "version": "0.1.0"}),
-        (0.0, "procedure_loaded", "orchestrator", {"stepgraph_sha": canonical_sha(sg)}),
-        (0.0, "calibration_loaded", "orchestrator", {"calib_sha": canonical_sha(calib)}),
-        (0.0, "layout_loaded", "orchestrator", {"layout_sha": canonical_sha(layout)}),
-        (0.001, "step", "reducer", {"step": "remote-in", "state": "active", "reason": ""}),
-        (0.001, "scene", "reducer", {"hash": canonical_sha(scene0)}),
-        (0.001, "say", "reducer", {"text": "Put the remote in its slot.", "priority": "normal"}),
-        (0.5, "keyframe", "camera", {"frame_sha": shas["before"], "crop_xywh": CROP, "mode": "grey", "verified": True, "t_capture": 0.48}),
-        (2.1, "motion", "gate", {"state": "moving", "active_regions": ["slot-remote"]}),
-        (2.2, "hands", "hands", {"over_regions": ["slot-remote"], "tip_xy": [1090.0, 230.0]}),
-        (3.4, "hands", "hands", {"over_regions": [], "tip_xy": None}),
-        (4.1, "motion", "gate", {"state": "settled", "active_regions": []}),
-        (4.3, "keyframe", "camera", {"frame_sha": shas["after"], "crop_xywh": CROP, "mode": "grey", "verified": True, "t_capture": 4.28}),
-        (4.3, "check", "reducer", {"step": "remote-in", "check": "hand-at-slot", "status": "pass", "reason": "fingertip reached slot-remote", "evidence": ["hands:10"]}),
-        (4.3, "step", "reducer", {"step": "remote-in", "state": "provisional", "reason": "local checks passed"}),
-        (4.3, "model_request", "reducer", {"intent_id": intent, "role": "verdict", "model": SPARK, "fingerprint": fp, "frame_sha": shas["after"], "prompt_version": "verdict-v1"}),
-        (4.3, "step", "reducer", {"step": "cable-in", "state": "active", "reason": ""}),
-        (4.3, "scene", "reducer", {"hash": canonical_sha(scene1)}),
-        (4.3, "say", "reducer", {"text": "Coil the power cable into the left slot.", "priority": "normal"}),
-        (6.712, "model_result", "model", {"intent_id": intent, "call_dir": rel_call, "status": "ok", "latency_ms": 2412}),
-        (6.712, "parsed", "reducer", {"intent_id": intent, "kind": "verdict", "result": {"done": "yes", "contradiction": None, "evidence": "A dark remote lies inside the right-hand slot."}}),
-        (6.712, "check", "reducer", {"step": "remote-in", "check": "remote-judge", "status": "pass", "reason": "verdict yes", "evidence": [f"intent:{intent}", f"frame:{shas['after']}"]}),
-        (6.712, "cost", "reducer", {"usd_total": 0.0019}),
-        (9.0, "run_stopped", "orchestrator", {"reason": "fixture end"}),
-    ]
-    prev = genesis_hash(RUN_ID)
-    lines = []
-    for i, (t, typ, src, payload) in enumerate(seq_events, 1):
-        ev = seal(prev, i, q_s(t), typ, src, payload)
-        prev = ev.h
-        lines.append(ev.line())
-    (OUT / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-    files = {p.relative_to(OUT).as_posix(): file_sha(p) for p in sorted(OUT.rglob("*")) if p.is_file() and p.name not in UNHASHED_FILES}
-    size = sum((OUT / f).stat().st_size for f in files)
-    manifest = Manifest(
-        run_id=RUN_ID,
-        created_utc="2026-10-30T12:00:00Z",
-        code_commit="0000000",
-        dirty=False,
-        version="0.1.0",
-        platform="synthetic",
-        provenance="meta",
-        backend="meta",
-        models={"verdict": SPARK, "segment": "sam-3.1"},
-        files=files,
-        size_bytes=size,
-        totals={"passed": 0, "failed": 0, "unverified": 0, "calls": 1, "cost_usd": 0.0019, "duration_s": 9.0},
-    )
-    (OUT / "manifest.json").write_text(canonical(manifest) + "\n", encoding="utf-8")
-
-    # Contract example fixtures (one per contract).
+    meta = json.loads(next(OUT.glob("calls/*-verdict-*/meta.json")).read_bytes())
+    manifest = json.loads((OUT / "manifest.json").read_bytes())
     examples = {
         "C3-stepgraph": STEPGRAPH,
         "C4-layout": LAYOUT,
         "C5-call-meta": meta,
-        "C6-manifest": json.loads(canonical(manifest)),
+        "C6-manifest": manifest,
         "C7-calibration": CALIB,
         "C9-verdict": {"done": "yes", "contradiction": None, "evidence": "A dark remote lies inside the right-hand slot."},
         "C9-mask": {"object_id": 3, "box": [1030, 210, 1150, 251], "area_px": 4920, "centroid": [1090.0, 230.0], "confidence": 0.93, "rle": {"size": [41, 120], "counts": "0_1"}},
-        "C6-verify": {"run_id": RUN_ID, "ok": True, "n_events": len(lines), "n_inputs": 13, "n_derived": 11, "n_calls": 1, "diffs": [], "code_version": "0.1.0"},
-        "C2-server-to-page": json.loads(canonical(scene0)),
+        "C6-verify": report.model_dump(mode="json"),
+        "C2-server-to-page": initial_scene,
         "C2-page-to-server": {"type": "hello", "role": "projector", "innerWidth": 854, "innerHeight": 480, "dpr": 1.0, "screen": {"width": 854, "height": 480}, "orientation": "landscape-primary", "fullscreen": True, "secure": True, "wakelock": True, "ua": "synthetic"},
     }
     for name, obj in examples.items():
         (CONTRACTS / f"{name}.json").write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"wrote {OUT} ({size} bytes, {len(lines)} events)")
+    print(f"wrote {OUT} ({manifest['size_bytes']} bytes, {report.n_events} events, provenance synthetic)")
 
 
 if __name__ == "__main__":

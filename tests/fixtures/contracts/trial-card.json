@@ -1,0 +1,1 @@
+{"id":"missing-remote","instruction":"Leave the remote on the bench, outside the case.","step_id":"remote-in","question":"Is the remote inside its slot?","expected":{"done":"no","contradiction":"The remote is outside its slot.","evidence":"Trial script explicitly leaves the remote on the bench."}}

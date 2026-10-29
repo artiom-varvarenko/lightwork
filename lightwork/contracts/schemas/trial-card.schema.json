@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "contradiction": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contradiction"
+        },
+        "done": {
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ],
+          "title": "Done",
+          "type": "string"
+        },
+        "evidence": {
+          "maxLength": 160,
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "done",
+        "contradiction",
+        "evidence"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "expected": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "instruction": {
+      "minLength": 1,
+      "title": "Instruction",
+      "type": "string"
+    },
+    "question": {
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "step_id": {
+      "minLength": 1,
+      "title": "Step Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "instruction",
+    "step_id",
+    "question",
+    "expected"
+  ],
+  "title": "TrialCard",
+  "type": "object"
+}
