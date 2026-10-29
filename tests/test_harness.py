@@ -4,7 +4,6 @@ import socket
 
 import pytest
 
-from conftest import NetworkBlocked
 from lightwork.cli import discover, main
 from lightwork.config import load_settings, parse_dotenv
 from lightwork.testing.synth import well_plate
@@ -12,9 +11,9 @@ from lightwork.vision.source import ImageSequenceSource
 
 
 def test_no_network_blocks_outbound_allows_loopback(no_network):
-    with pytest.raises(NetworkBlocked):
+    with pytest.raises(RuntimeError, match="blocked by no_network"):
         socket.create_connection(("93.184.216.34", 443), timeout=1)
-    with pytest.raises(NetworkBlocked):
+    with pytest.raises(RuntimeError, match="blocked by no_network"):
         socket.getaddrinfo("api.meta.ai", 443)
     srv = socket.socket()
     srv.bind(("127.0.0.1", 0))
