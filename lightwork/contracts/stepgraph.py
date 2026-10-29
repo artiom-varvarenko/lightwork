@@ -46,6 +46,7 @@ class Grid(_M):
     rows: int = Field(ge=1, le=32)
     cols: int = Field(ge=1, le=48)
     naming: Literal["A1", "r1c1"]
+    channel: Literal["r", "g", "b"] = "r"  # OD channel: complementary to the dye (blue dye -> r, tea/coffee -> b)
 
 
 class Object(_M):
