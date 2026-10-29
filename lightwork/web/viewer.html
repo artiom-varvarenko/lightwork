@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Lightwork · Recorded replay</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#11171d;color:#edf3f6}*{box-sizing:border-box}body{margin:0}header,main{max-width:1400px;margin:auto;padding:18px}header{display:flex;gap:16px;align-items:center;flex-wrap:wrap}h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 12px}p{line-height:1.5}.muted{color:#aabac7}#banner{background:#203446;padding:12px 18px;font-weight:700}#banner.synthetic{background:#624111;color:#fff1b8}#verify{color:#85e1b5}a{color:#a4d8ff}button,select{background:#243543;color:inherit;border:1px solid #536877;border-radius:6px;padding:9px 14px;font:inherit}button:disabled{opacity:.5}button,select,input{accent-color:#88d4ff}main{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:18px}.panel{background:#19232d;border:1px solid #314452;border-radius:10px;padding:16px}.stage{padding:0;overflow:hidden}canvas{width:100%;height:min(55vw,510px);display:block;background:#090e12}.controls{padding:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}#seek{width:100%;margin:8px 0}#clock{font-variant-numeric:tabular-nums}#instruction{padding:0 16px 16px;margin:0;min-height:50px}#steps{padding-left:24px;margin:0}#steps li{padding:8px 4px;border-bottom:1px solid #314452}#steps li[data-state="active"]{color:#a9e6ff}#steps li[data-state="passed"]{color:#85e1b5}.badge{font-size:12px;text-transform:uppercase;margin-left:10px;color:#b9cbd8}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid #5c7181;border-radius:7px;padding:7px 10px;font-size:14px}.chip[data-status="pass"]{border-color:#62b68a;color:#9ae3b8}.chip[data-status="fail"]{border-color:#ed7f7f;color:#ffabab}.wide{grid-column:1/-1}.scroll{overflow:auto;max-height:350px}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th,td{padding:9px;border-bottom:1px solid #314452}#error{color:#ffabab;white-space:pre-wrap}footer{padding:0 18px 24px;max-width:1400px;margin:auto;font-size:14px}@media(max-width:800px){main{grid-template-columns:1fr}canvas{height:60vw}}
+</style>
+</head>
+<body>
+<header><h1>Lightwork</h1><span class="muted">Recorded replay · no live model calls</span><label>Run <select id="runs" aria-label="Recorded run"></select></label><span id="verify">Loading verification…</span></header>
+<div id="banner" role="status">Loading recorded run…</div>
+<main>
+<section class="panel stage" aria-label="Recorded work area and recomputed overlay">
+<canvas id="canvas" aria-label="Recorded work area with guidance overlay"></canvas>
+<div class="controls"><button id="play" disabled>Play</button><label>Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label><span id="clock">0.000 / 0.000 s</span><input id="seek" type="range" min="0" max="0" value="0" step="0.001" aria-label="Replay time"></div>
+<p id="instruction" aria-live="polite"></p></section>
+<section class="panel"><h2>Procedure steps</h2><ol id="steps"></ol></section>
+<section class="panel wide"><h2>Evidence at this time</h2><div id="chips" class="chips"></div></section>
+<section class="panel wide"><h2>Model trace <span id="cost" class="muted"></span></h2><div class="scroll"><table><thead><tr><th>Model / job</th><th>Status</th><th>Latency</th><th>Cost</th><th>Record</th></tr></thead><tbody id="trace"></tbody></table></div></section>
+<section class="wide"><p id="error" role="alert"></p><a id="manifest" href="#">Original manifest</a> · <a id="report" href="#">Verification report</a> · <a id="events" href="#">Recorded events</a></section>
+</main>
+<footer class="muted">Python re-runs the deterministic reducer and checks hashes before export. This page plays those recomputed snapshots; it does not run models or re-verify in your browser. Recorded responses, activity and voice remain inputs. A single recording is not a general accuracy claim.</footer>
+<script type="module" src="./static/js/viewer.js"></script>
+</body></html>

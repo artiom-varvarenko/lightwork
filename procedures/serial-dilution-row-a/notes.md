@@ -1,0 +1,32 @@
+# Dilution bench and collection notes
+
+New Lightwork operator notes and trial cards, 2026, under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). The adapted procedure's attribution is: Baldwin G, Haddock-Angelli T, Beal J, Dwijayanti A, Storch M, Farny N, Telmer C, Vignoni A, Tennant R, Rutten P (2019), *Calibration Protocol – Plate Reader Fluorescence Calibration* V.3, protocols.io, https://dx.doi.org/10.17504/protocols.io.6zrhf56, CC BY 4.0. Changes: blue food dye for fluorescein, water for PBS, row A only, camera instead of plate reader, fresh tip per transfer. source.md carries the complete practical adaptation; do not redistribute source images.
+
+## Materials and physical prerequisites
+
+Assumed, not confirmed: clear flat-bottom 96-well plate; working single-channel P200/P20–200; compatible fresh tips; water reservoir; diluted blue food dye; waste cup; white matte backing; tissues; opaque cards for refusal cases. Equipment is expected to be supplied on site; no lab survey or purchase is implied. Obtain bench access and filming permission. Use no biological samples, patient materials or clinical claims. Keep faces, names, room signs and branding outside the crop. Inspect the pipette setting and competence of the operator before staging liquids.
+
+Use the source's 12/24-well, cuvette or tube fallback only after adapting volumes, grid and graph to the real equipment. Do not reuse the 96-well graph or claim plate accuracy for tubes. A single-row centre-corner registration is degenerate; include a nondegenerate grid arrangement or use an appropriately measured grid mapping before such a fallback. Top-down cuvette path length is liquid depth, not automatically the nominal 10 mm side path.
+
+## Placement and optical preparation
+
+Clamp the camera and plate. Put A1 camera-top-left, verified from embossed markings; register A1/A12/H12/H1 centres. Put tips, water, dye and waste in separate reachable zones. Aim slightly off-nadir and minimise glare. If the projector or camera is moved, recalibrate; if only the plate moves, accept a new layout before continuing.
+
+Capture actual blank references and, if available, a cropped flat field. Tune stock to initial red-channel OD 0.8–1.2 without saturation. Measure blank noise and choose positive change thresholds; low-OD steps may remain inconclusive. Use the measurement-mode ACK and settle choreography rather than a projected overlay frame. Invisible water dispenses and fresh-tip practice need operator review, not invented visual certainty. Do not label activity alone as delivery of 100 µL.
+
+## Exact collection sequence
+
+1. Review the generated graph against source.md: fifteen stable IDs, red channel, correct source→target cell arrows, ratio=1/tol=0.25 on each target darker check, final-only series, and A7 mistake recovery excluding A6/skipping `transfer-a6-a7`. A semantic validator does not by itself prove these scientific details.
+2. Create an accepted real layout using `uv run lightwork layout procedures/serial-dilution-row-a/stepgraph.json --manual --work-area X Y W H --mode normal` for screen-only operation; replace X Y W H with the measured crop. For projected operation use its calibrated measurement mode instead. Automatic Spark/SAM assistance needs genuine Meta access and manual acceptance. Save the actual layout/calibration paths.
+3. Choose one physical session ID, for example `lab-dilution-20261102-am`, shared by all runs from that setup/session. Run `uv run lightwork collect --pack procedures/serial-dilution-row-a --layout .lightwork/layouts/serial-dilution-row-a.json --calib .lightwork/calib/lab.json --session-id lab-dilution-20261102-am --seed 42 --backend meta`, substituting your actual files. Use a supported and explicitly reviewed graph if choosing real Glimmer instead; it cannot silently supply SAM.
+4. Open `/screen` on the local server, press Start, read the randomized card, and prepare a fresh row to its exact precondition. Never stack independent liquid trials onto a previously altered row. A new plate row requires registering the changed geometry/graph explicitly. Record pre-transfer references and activity for transfer trials. Keep expected-answer text out of the work-area crop.
+5. Perform the stated action, remove hands and request Capture (`trial_capture`). Inspect the actual stored verified crop, trial ID, question and script label. Reject (`trial_reject`) and restage if volumes, cells, visibility or execution differ. Reject uncertainty about what was physically done; do not ask a model to supply ground truth. Accept (`trial_accept`) only after inspection, then Next (`trial_next`). Hard-case unsure labels mean the required visual evidence is hidden, not a guessed failure.
+6. Stop with q/Ctrl-C. Use the printed closed-run path for `uv run lightwork verify runs/<actual-run-id>` and `uv run lightwork audit runs/<actual-run-id>`. Do not alter closed labels or media. Record actual outcomes with `uv run lightwork eval gate runs` and `uv run lightwork report runs`.
+
+## Continuous demonstrations and measurement gates
+
+Make a separate complete clean run and a complete planted A5→A7 run. For the mistake run, inspect the real failure reason "liquid went into A7, expected A6", red A7/yellow A6, exclusion of A6 and skipped A6→A7; continue A7→A8, finish through A11 and discard 100 µL from A11. The final series must be A1–A5,A7–A11; A6 is an extra blank. Never use the invalid recovery "discard A7, redo A6→A7". Both actual recordings must independently verify at zero diffs. Scripted trial cards alone do not establish recovery success.
+
+In addition to the twelve varied cards, a controlled transfer study needs ten clean transfers and ten wrong-cell transfers, with the wrong target balanced/randomized to a safe neighbouring cell on fresh preparations. Record caught, missed and false alarms and the named cells. Any alternative wrong-well trial without a defined recovery stops and resets. Run five home equal-OD transfers and repeated final-series readings to measure sensitivity; targets are not results. Report saturated, low-signal and covered cases separately, never as passes.
+
+Pending physical acceptance: real equipment survey, optical separability/noise, accepted calibration/layout, operator-reviewed labels, Meta-backed clean and caught-mistake recordings, and measured recovery/latency. No real lab result or successful collection is claimed by these instructions.

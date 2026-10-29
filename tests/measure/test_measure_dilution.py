@@ -107,8 +107,12 @@ def test_transfer_failure_modes():
     assert transfer_ok(0.6, 0.3, 0.6)[1].startswith("source did not get lighter")
     # too dilute to read
     assert transfer_ok(0.01, 0.01, 0.02)[0] == "inconclusive"
-    # readable before, below floor after: direction is enough
-    assert transfer_ok(0.025, 0.025, 0.05)[0] == "pass"
+    # readable by the floor but the expected change (0.0175) is under 1.5 x min_delta: no dead zone, inconclusive
+    assert transfer_ok(0.0175, 0.0175, 0.035) == ("inconclusive", "source OD 0.0350 is below the readable 0.06")
+    # readable before, target below floor after: direction is enough
+    assert transfer_ok(0.032, 0.028, 0.065) == (
+        "pass", "source 0.0650 -> 0.0320, target 0.0280 (ratio below floor)"
+    )
 
 
 def test_wrong_cell_rules():

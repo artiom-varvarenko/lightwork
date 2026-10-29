@@ -1,0 +1,26 @@
+# Kit collection and operator notes
+
+Original Lightwork operator notes and trial cards, 2026; CC BY 4.0, https://creativecommons.org/licenses/by/4.0/. See source.md for the full original procedure. No source manual or third-party images are included.
+
+## Bring and place
+
+Bring the actual cool, unplugged rental projector, matching remote, power cable, HDMI cable, two intact batteries, open fitted case, light matte card inserts and opaque cards for hard cases. A visibly different spare remote is optional for `kit-wrong-remote`; if unavailable, leave that card uncollected rather than substituting a model prediction. The other eleven cards need no spare. Use a rigid bench, locked crop-only camera, laptop and screen overlay; add the calibrated projector only when available. Keep faces, serial numbers not needed for the check, addresses and room branding outside the crop.
+
+Fix the case and bench staging area. Light inserts belong in the dark slots, not on top of items. Take a correctly packed reference showing every connector; obtain slot polygons from actual grounding/SAM where available, then inspect and accept them manually. Draw slot rectangles manually if automatic layout fails. Verify P/C/H/R identities before unpacking. Do not move the case between reference and trial. Keep text outside the work area. Never close the lid before the final open-case capture. The last lid confirmation is unverified, not evidence of hidden contents.
+
+## Exact collection sequence
+
+1. Obtain a real authored and semantically validated `stepgraph.json`; check it preserves the source step IDs. Inspect the source/graph diff and the six-piece checklist. Obtain accepted layout and actual calibration for this bench; a reference layout is not a completed collection session.
+2. Assign one physical session ID such as `home-kit-20261031-am`. Reuse it across every run made without a new physical setup/session; never split one session into training and holdout by renaming runs.
+3. From the repo root run `uv run lightwork collect --pack procedures/kit-return-check --layout .lightwork/layouts/kit-return-check.json --calib .lightwork/calib/kit.json --session-id home-kit-20261031-am --seed 42 --backend meta`. These paths are operator-created files, not supplied measurements. `--backend glimmer` is the real Meta open-weight alternative only with its authenticated server available; it does not supply SAM. Do not silently replace SAM checks. Confirm the accepted graph/backend is executable before collection.
+4. Open `http://localhost:8000/screen`, press Start and read the randomized trial card. Reset to the specified precondition; for moved-to trials record the outside-slot state before moving the item. Stage the card literally, including wrong/missing items. Keep card instructions/expected answers outside the captured evidence crop.
+5. Clear hands and request Capture (`trial_capture`). Wait for the verified measurement crop; do not use a phone screenshot or bypass the measurement ACK. Review the exact stored crop, trial ID, step ID, question and script ground truth. If the wrong state was staged, visibility differs from the card or a needed connector is hidden, Reject (`trial_reject`), restage and recapture. Do not edit a closed run.
+6. Accept (`trial_accept`) only when the crop and performed script justify the expected label. Then Next (`trial_next`). An expected yes is a target label, not proof the trial succeeded. No model verdict may be copied into ground truth. Hard-case unsure means the visible question is genuinely unanswerable, even if the operator knows what is under the cover.
+7. Complete the available cards; note uncollected cards honestly. Stop with q or Ctrl-C. Labels are collected before close and must be manifest-covered. Record the real run path printed by the CLI, then run `uv run lightwork verify runs/<actual-run-id>` and `uv run lightwork audit runs/<actual-run-id>`. Only an actual zero-diff, Meta-provenance run may be considered for release.
+8. For evaluation run `uv run lightwork eval gate runs` and `uv run lightwork report runs`. Keep this twelve-card staged mix separate from a controlled ten-pack comparison: stage five complete cases and five missing-item cases, record actual caught/missed/false alarms, and do not count abstentions as correct passes.
+
+## Clean run, mistake run and evidence still required
+
+Record one continuous clean packing run and a separate mistake run leaving the remote on the bench. In the latter, inspect the actual red location highlight, spoken reason and redo; then put the remote into R and finish. A staged still image is not evidence of a correct live recovery, and a single run is not an 8/10 performance result. Both closed runs must independently verify with zero diffs.
+
+At content preparation no physical kit survey, accepted layout, real labelled trials or clean/mistake Meta recordings are claimed. Required operator work: provide the kit and camera, fix lighting/layout, connect a calibrated projector if used, supply Meta access for SAM/Spark or an explicitly reviewed supported Glimmer graph, perform/review the trials, and record actual latency and outcomes. There are no fabricated run or authoring records in this pack's content deliverable.

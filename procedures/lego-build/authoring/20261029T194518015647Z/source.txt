@@ -1,0 +1,23 @@
+# Original eight-brick bridge
+
+Original design, instructions and trial scripts by the Lightwork contributors, 2026. Licence: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/. This is not a copied LEGO set or instruction sheet. LEGO is a trademark of the LEGO Group, which does not sponsor this project.
+
+## Materials and geometry
+
+Use one compatible baseplate at least 8 studs wide by 8 studs deep; red, blue, yellow and green 2×2 bricks; white and black 2×4 bricks; and one orange 2×6 brick. There are seven added bricks plus the baseplate (eight pieces). All bricks are at least 2×2; no tiny decorative parts. Small parts are not for children under three; an adult stages the demonstration. If these colours/sizes are unavailable, adapt and re-author the procedure before collecting, rather than substituting during a trial.
+
+Secure the baseplate to matte white card. Columns x=1…8 go camera-left to right; rows y=1…8 go camera-top to bottom. All coordinates below are inclusive stud positions. Define manually accepted zones `left-foot`, `right-foot`, `back-foot`, `front-foot`, `left-pillar`, `right-pillar` and `bridge-zone` on the camera view. Define `bench` for loose parts. Use distinct objects `red-brick`, `blue-brick`, `yellow-brick`, `green-brick`, `white-brick`, `black-brick`, `orange-brick` with short colour/shape nouns. Height changes require checking projected alignment; never move the locked baseplate mid-run.
+
+## Nine steps (preserve these IDs)
+
+1. `setup`: Place the empty baseplate in its registered zone with its top edge away from you. Spread seven bricks separately on the bench with no overlaps. Check baseplate and parts present; ask a Meta reader whether the baseplate is empty and unobscured.
+2. `red-left`: Press the red 2×2 onto x=2–3, y=4–5, studs up. It is the left foot. Use `moved_to(red-brick, left-foot)` and `judge` for colour and alignment. If wrong, lift it off and redo.
+3. `blue-right`: Press the blue 2×2 onto x=6–7, y=4–5, studs up. Leave x=4–5 between the feet empty. Use moved-to/presence plus a Meta orientation/location check. If wrong, reseat it.
+4. `yellow-back`: Press the yellow 2×2 onto x=4–5, y=1–2, separate from both feet. Check its presence in `back-foot` and its colour with a Meta reading. This is a rear marker, not a bridge support.
+5. `green-front`: Press the green 2×2 onto x=4–5, y=7–8. Check its presence in `front-foot` and ask whether it is at the front, not the rear.
+6. `white-left`: Put the white 2×4 above the red foot, long axis front-to-back: x=2–3, y=3–6. Its middle four studs engage the red foot, leaving a one-row overhang at each end. Check it in `left-pillar` and ask the Meta reader whether its long axis is front-to-back and it is seated level.
+7. `black-right`: Put the black 2×4 above the blue foot at x=6–7, y=3–6 with the same orientation. Check it in `right-pillar` and use a Meta orientation check. Both pillars must finish at equal height.
+8. `orange-bridge`: Fit the orange 2×6 horizontally across the pillars: x=2–7, y=4–5. It connects white and black while spanning the empty centre. Check moved-to/presence in `bridge-zone` and ask whether it connects both pillars, is level and is orange. Do not push hard if the supports are misplaced; remove the bridge and repair the supports first.
+9. `final-check`: Remove hands. Confirm the orange bridge joins white-left to black-right, red is beneath white, blue beneath black, yellow is at the back and green at the front. Use named presence checks plus a Meta reading for these spatial relationships. Occluded lower colours cannot be inferred with certainty from one top-down frame: use earlier recorded evidence or report unsure, never invent a visible confirmation. Operator may gently check seating after the image; this is not a structural safety certification.
+
+Planted mistake: substitute the green brick for `yellow-back` while leaving yellow on the bench, or place the correct blue brick one row too far forward at `blue-right`. The failure must name colour or position and direct a redo of that step before the bridge is added. A model saying yes alone and an operator confirmation alone are insufficient to pass a guided step; each step needs its declared evidence checks. No copied product photographs or instructions are needed.
