@@ -81,6 +81,11 @@
         "noun": {
           "title": "Noun",
           "type": "string"
+        },
+        "validated": {
+          "default": false,
+          "title": "Validated",
+          "type": "boolean"
         }
       },
       "required": [

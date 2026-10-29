@@ -241,7 +241,7 @@ function setTool(t) {
   for (const [id, name] of [['t-corners', 'corners'], ['t-rect', 'rect'], ['t-area', 'area']]) {
     $(id).classList.toggle('on', tool === name);
   }
-  $('hint').textContent = { corners: 'click TL, TR, BR, BL', rect: 'drag a rectangle', area: 'drag the work area' }[tool] || '';
+  $('hint').textContent = { corners: 'click cell centres TL, TR, BR, BL (not edges)', rect: 'drag a rectangle', area: 'drag the work area' }[tool] || '';
   requestDraw();
 }
 
@@ -249,6 +249,9 @@ $('t-corners').onclick = () => setTool('corners');
 $('t-rect').onclick = () => setTool('rect');
 $('t-area').onclick = () => setTool('area');
 $('t-accept').onclick = () => sendUi('layout_accept');
+for (const [id, action] of [['layout-capture', 'layout_capture'], ['layout-suggest', 'layout_suggest'], ['layout-noun', 'layout_noun']]) {
+  $(id).onclick = () => sendUi(action, { object: $('obj').value });
+}
 
 canvas.addEventListener('pointerdown', (e) => {
   if (!tool || !map) return;
@@ -298,7 +301,7 @@ function applyState(s) {
   state = s;
   const run = s.run || {};
   showBanner();
-  $('runinfo').textContent = [run.pack, run.mode, run.backend, run.provenance === 'dev-standin' ? 'DEV STAND-IN' : null]
+  $('runinfo').textContent = [run.pack, run.mode, run.backend, run.provenance === 'meta' ? null : (run.provenance || 'unknown').toUpperCase()]
     .filter(Boolean)
     .join(' · ');
   $('cost').textContent = typeof s.cost_usd === 'number' ? `$${s.cost_usd.toFixed(3)}` : '';
@@ -348,12 +351,42 @@ function applyState(s) {
   );
 
   const objects = (s.layout && s.layout.objects) || [];
+  $('layout-extra').hidden = !s.layout;
+  $('layout-message').textContent = (s.layout && s.layout.message) || '';
+  $('layout-capture').disabled = !s.layout || !s.layout.work_area_xywh;
+  $('layout-suggest').disabled = !objects.length || !s.layout.work_area_xywh;
+  $('layout-noun').disabled = !objects.length || !s.layout.work_area_xywh;
   $('tools').classList.toggle('on', !!s.layout);
   const sel = $('obj');
   const keep = sel.value;
   sel.replaceChildren(...objects.map((o) => el('option', '', o.id)));
   if (objects.some((o) => o.id === keep)) sel.value = keep;
+  applyCollection(s.collection);
   requestDraw();
+}
+
+function applyCollection(collection) {
+  $('collection').hidden = !collection;
+  const c = collection || {};
+  const card = c.card || {};
+  $('trial-progress').textContent = collection ? `${c.session_id} · trial ${Number(c.index) + 1}/${c.total} · seed ${c.seed}` : '';
+  $('trial-instruction').textContent = card.instruction || '';
+  $('trial-question').textContent = card.question || '';
+  $('trial-expected').textContent = card.expected ? JSON.stringify(card.expected, null, 2) : '';
+  $('trial-phase').textContent = c.phase === 'review' ? 'Not reviewed. Accept only if the captured scene matches the script.' : (c.phase || '');
+  $('trial-error').textContent = c.error || '';
+  const sha = typeof c.frame_sha === 'string' && /^[0-9a-f]{64}$/.test(c.frame_sha) ? c.frame_sha : null;
+  $('trial-image').hidden = !sha;
+  if (sha) {
+    const src = `/frames/${sha}`;
+    if ($('trial-image').getAttribute('src') !== src) $('trial-image').src = src;
+  } else {
+    $('trial-image').removeAttribute('src');
+  }
+  $('trial-capture').disabled = !['perform', 'error'].includes(c.phase);
+  $('trial-accept').disabled = c.phase !== 'review';
+  $('trial-reject').disabled = c.phase !== 'review';
+  $('trial-next').disabled = c.phase !== 'accepted';
 }
 
 function setHud(id, text, cls) {

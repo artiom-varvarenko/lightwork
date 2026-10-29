@@ -17,7 +17,7 @@ from lightwork.contracts.stepgraph import CheckKind, RecoveryAction, StepGraph, 
 from ..errors import ResultError
 from .schema import BOOL, INT, NUM, STR, array, enum, nullable, obj
 
-VERSION = "author-v1"
+VERSION = "author-v2"
 NAME = "StepGraphDraft"
 MAX_ERROR_CHARS = 1500
 
@@ -51,7 +51,7 @@ arrow_to: where something is taken from and where it goes (object ids or cells),
 moved_to: object moved into region. count: exactly n instances of object inside region.
   colour_change: cells of the grid named in object got "darker", "lighter", changed "hue", or stayed unchanged \
 ("none") (direction; min_delta null for the default). series: cells of the grid, in order, form a dilution series \
-with ratio (2 for 1:2) and tol (e.g. 0.25). activity_at: the hand worked at region. judge: a yes/no question that \
+with ratio (0.5 for 1:2, the next cell's OD divided by the previous cell's OD) and tol (e.g. 0.15). activity_at: the hand worked at region. judge: a yes/no question that \
 a vision model answers from one photo taken from above. confirm: the user says "done"; use it only when nothing \
 visible can prove the step.
 - Regions are object ids or "<grid>:<cell>". The cells of colour_change and series are bare cell names ("A1").

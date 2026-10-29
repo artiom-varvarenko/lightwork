@@ -18,8 +18,9 @@ class _M(BaseModel):
 
 
 class SamPrompt(_M):
-    mode: Literal["noun", "grounded"]  # which SAM prompt kind worked for this object during layout (D4)
+    mode: Literal["noun", "grounded"]  # selected SAM prompt; validated records whether layout tested it (D4)
     noun: str
+    validated: bool = False  # True only when this prompt mode was tested and accepted during layout
 
 
 class LayoutObject(_M):

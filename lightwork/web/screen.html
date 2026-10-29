@@ -24,7 +24,7 @@
   #view.picking { cursor: crosshair; }
   #tools { position: absolute; left: 8px; bottom: 8px; display: none; gap: 6px; align-items: center;
            background: rgba(20,24,30,.9); padding: 6px 8px; border-radius: 4px; border: 1px solid var(--line); }
-  #tools.on { display: flex; }
+  #tools.on { display: flex; flex-wrap: wrap; max-width: calc(100% - 16px); }
   #tools .hint { color: var(--dim); margin-left: 6px; }
   aside { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 10px;
           display: flex; flex-direction: column; gap: 12px; min-height: 0; }
@@ -33,6 +33,10 @@
                    padding: 5px 9px; font: inherit; cursor: pointer; }
   button:hover { background: #2f3844; }
   button.on { border-color: var(--info); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #trial-image { width: 100%; max-height: 220px; object-fit: contain; }
+  #trial-error { color: var(--fail); }
+  #trial-expected, #layout-message { white-space: pre-wrap; overflow-wrap: anywhere; }
   #start { font-size: 16px; font-weight: 700; padding: 10px; background: #1f6f3a; border-color: #2d8f4e; }
   #start.done { background: #252c36; font-size: 13px; font-weight: 400; padding: 5px 9px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -75,7 +79,7 @@
   <canvas id="view"></canvas>
   <div id="tools">
     <select id="obj"></select>
-    <button id="t-corners" title="Click the 4 corner cells/corners: TL, TR, BR, BL">4 corners</button>
+    <button id="t-corners" title="Click centres of the four corner cells: TL, TR, BR, BL">4 cell centres</button>
     <button id="t-rect" title="Drag a rectangle">Rectangle</button>
     <button id="t-area" title="Drag the work area">Work area</button>
     <button id="t-accept">Accept layout</button>
@@ -99,6 +103,33 @@
       <button data-action="repeat" title="r">Repeat</button>
       <button data-action="why" title="w">Why</button>
       <button data-action="back" title="b">Back</button>
+    </div>
+  </section>
+  <section id="layout-extra" hidden>
+    <h2>Layout</h2>
+    <p id="layout-message"></p>
+    <p>Grid: click the four corner cell centres, TL → TR → BR → BL, not the plate edges.</p>
+    <div class="row">
+      <button id="layout-capture">Capture work area</button>
+      <button id="layout-suggest">Ground + segment</button>
+      <button id="layout-noun">Try noun segmentation</button>
+    </div>
+  </section>
+  <section id="collection" hidden>
+    <h2>Staged trial</h2>
+    <div id="trial-progress"></div>
+    <p id="trial-instruction"></p>
+    <p id="trial-question"></p>
+    <h2>Script ground truth — not a model prediction</h2>
+    <div id="trial-expected"></div>
+    <p id="trial-phase"></p>
+    <img id="trial-image" alt="Captured work-area crop for operator review" hidden>
+    <p id="trial-error" role="status"></p>
+    <div class="row">
+      <button id="trial-capture" data-action="trial_capture" disabled>Capture trial</button>
+      <button id="trial-accept" data-action="trial_accept" disabled>Accept label</button>
+      <button id="trial-reject" data-action="trial_reject" disabled>Reject capture</button>
+      <button id="trial-next" data-action="trial_next" disabled>Next trial</button>
     </div>
   </section>
   <section>

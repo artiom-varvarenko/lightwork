@@ -24,6 +24,9 @@ per-connection asyncio senders are woken with ``loop.call_soon_threadsafe``. Pag
       ``trace`` [{intent_id, role, model, status, latency_ms, cost_usd}]; ``cost_usd`` float;
       ``hud`` {voice, turn, heard, ...}; ``last_say`` str;
       ``layout`` {objects: [{id, kind, noun?, corners_cam_px?, polygon_cam_px?}], work_area_xywh?}.
+    ``collection`` {session_id, seed, index (zero-based), total, card, phase, frame_sha?, error?};
+    trial capture/review controls emit ``trial_capture``, ``trial_accept``, ``trial_reject``, ``trial_next``.
+    ``layout.message`` is operator guidance; layout_capture/layout_suggest/layout_noun actions carry object id.
     Page -> server: ``{"type": "ui", "action": str, "args": {...}}``. Actions sent by ``screen.html``:
       ``start`` {tts, mic}; ``confirm``, ``repeat``, ``why``, ``back``, ``stop`` {};
       ``layout_corners`` {object, corners_cam_px: [TL, TR, BR, BL]}; ``layout_rect`` {object, xywh};
@@ -62,20 +65,38 @@ class _Dispatcher:
 
     def __init__(self, name: str):
         self._name = name
-        self._q: queue.SimpleQueue[tuple[Callable[..., Any], tuple]] = queue.SimpleQueue()
+        self._q: queue.SimpleQueue[tuple[Callable[..., Any], tuple] | None] = queue.SimpleQueue()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._closed = False
 
     def submit(self, fn: Callable[..., Any], *args: Any) -> None:
         with self._lock:
+            if self._closed:
+                raise RuntimeError(f"{self._name} is closed")
             if self._thread is None:
                 self._thread = threading.Thread(target=self._loop, name=self._name, daemon=True)
                 self._thread.start()
-        self._q.put((fn, args))
+            self._q.put((fn, args))
+
+    def close(self, timeout: float = 5.0) -> None:
+        """Drain accepted callbacks and join the worker; call after websocket producers stop."""
+        with self._lock:
+            if not self._closed:
+                self._closed = True
+                self._q.put(None)
+            thread = self._thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout)
+            if thread.is_alive():
+                raise TimeoutError(f"{self._name} callback did not stop within {timeout}s")
 
     def _loop(self) -> None:
         while True:
-            fn, args = self._q.get()
+            item = self._q.get()
+            if item is None:
+                return
+            fn, args = item
             try:
                 fn(*args)
             except Exception:  # a broken callback must not stop later ones
@@ -221,6 +242,10 @@ class RenderHub:
     def on_tts(self, cb: Callable[[render.Tts], None]) -> None:
         with self._lock:
             self._tts_cbs.append(cb)
+
+    def close(self, timeout: float = 5.0) -> None:
+        """Drain TTS callbacks after the server stops. Idempotent."""
+        self._dispatch.close(timeout)
 
     def stats(self) -> list[dict]:
         """Per connected page: role, send->ACK latency p50/p95 (ms, laptop clock), max unacked seen, scenes sent."""
@@ -454,6 +479,10 @@ class ControlHub:
     def on_action(self, cb: Callable[[str, dict], None]) -> None:
         with self._lock:
             self._cbs.append(cb)
+
+    def close(self, timeout: float = 5.0) -> None:
+        """Drain UI callbacks after the server stops. Idempotent."""
+        self._dispatch.close(timeout)
 
     def push_state(self, patch: dict[str, Any]) -> None:
         """Merge top-level keys into the screen state (thread-safe; latest wins per page)."""
