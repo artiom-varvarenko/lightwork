@@ -1,0 +1,482 @@
+{
+  "$defs": {
+    "Arrow": {
+      "additionalProperties": false,
+      "properties": {
+        "a": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "A",
+          "type": "array"
+        },
+        "b": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "B",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "arrow",
+          "default": "arrow",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "target",
+            "source",
+            "error",
+            "warn",
+            "done",
+            "info"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "a",
+        "b",
+        "role"
+      ],
+      "title": "Arrow",
+      "type": "object"
+    },
+    "Calib": {
+      "additionalProperties": false,
+      "properties": {
+        "H_cam_to_page": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "H Cam To Page",
+          "type": "array"
+        },
+        "page_size": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Page Size",
+          "type": "array"
+        },
+        "type": {
+          "const": "calib",
+          "default": "calib",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "H_cam_to_page",
+        "page_size"
+      ],
+      "title": "Calib",
+      "type": "object"
+    },
+    "Dot": {
+      "additionalProperties": false,
+      "properties": {
+        "c": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "C",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "dot",
+          "default": "dot",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "target",
+            "source",
+            "error",
+            "warn",
+            "done",
+            "info"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "c",
+        "role"
+      ],
+      "title": "Dot",
+      "type": "object"
+    },
+    "Label": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "At",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "label",
+          "default": "label",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "target",
+            "source",
+            "error",
+            "warn",
+            "done",
+            "info"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "text",
+        "role"
+      ],
+      "title": "Label",
+      "type": "object"
+    },
+    "MarkerRect": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "size": {
+          "title": "Size",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y",
+        "size"
+      ],
+      "title": "MarkerRect",
+      "type": "object"
+    },
+    "Pattern": {
+      "additionalProperties": false,
+      "properties": {
+        "aruco_dict": {
+          "const": "DICT_4X4_50",
+          "default": "DICT_4X4_50",
+          "title": "Aruco Dict",
+          "type": "string"
+        },
+        "markers": {
+          "items": {
+            "$ref": "#/$defs/MarkerRect"
+          },
+          "title": "Markers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "markers"
+      ],
+      "title": "Pattern",
+      "type": "object"
+    },
+    "Poly": {
+      "additionalProperties": false,
+      "properties": {
+        "closed": {
+          "title": "Closed",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "poly",
+          "default": "poly",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pts": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "title": "Pts",
+          "type": "array"
+        },
+        "role": {
+          "enum": [
+            "target",
+            "source",
+            "error",
+            "warn",
+            "done",
+            "info"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "pts",
+        "closed",
+        "role"
+      ],
+      "title": "Poly",
+      "type": "object"
+    },
+    "Ring": {
+      "additionalProperties": false,
+      "properties": {
+        "c": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "C",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "ring",
+          "default": "ring",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pulse": {
+          "default": false,
+          "title": "Pulse",
+          "type": "boolean"
+        },
+        "r": {
+          "title": "R",
+          "type": "number"
+        },
+        "role": {
+          "enum": [
+            "target",
+            "source",
+            "error",
+            "warn",
+            "done",
+            "info"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "c",
+        "r",
+        "role"
+      ],
+      "title": "Ring",
+      "type": "object"
+    },
+    "SayMsg": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "priority": {
+          "default": "normal",
+          "enum": [
+            "normal",
+            "interrupt"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "const": "say",
+          "default": "say",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "SayMsg",
+      "type": "object"
+    },
+    "SceneMsg": {
+      "additionalProperties": false,
+      "properties": {
+        "banner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Banner"
+        },
+        "mode": {
+          "enum": [
+            "normal",
+            "pattern",
+            "dark",
+            "grey",
+            "white"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pattern"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prims": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "arrow": "#/$defs/Arrow",
+                "dot": "#/$defs/Dot",
+                "label": "#/$defs/Label",
+                "poly": "#/$defs/Poly",
+                "ring": "#/$defs/Ring"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Ring"
+              },
+              {
+                "$ref": "#/$defs/Arrow"
+              },
+              {
+                "$ref": "#/$defs/Poly"
+              },
+              {
+                "$ref": "#/$defs/Dot"
+              },
+              {
+                "$ref": "#/$defs/Label"
+              }
+            ]
+          },
+          "title": "Prims",
+          "type": "array"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "type": {
+          "const": "scene",
+          "default": "scene",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "mode",
+        "prims"
+      ],
+      "title": "SceneMsg",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "calib": "#/$defs/Calib",
+      "say": "#/$defs/SayMsg",
+      "scene": "#/$defs/SceneMsg"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Calib"
+    },
+    {
+      "$ref": "#/$defs/SceneMsg"
+    },
+    {
+      "$ref": "#/$defs/SayMsg"
+    }
+  ]
+}

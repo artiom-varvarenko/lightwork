@@ -1,0 +1,20 @@
+{
+  "banner": null,
+  "mode": "normal",
+  "pattern": null,
+  "prims": [
+    {
+      "c": [
+        1090.0,
+        230.0
+      ],
+      "id": "t-slot-remote",
+      "kind": "ring",
+      "pulse": false,
+      "r": 90.0,
+      "role": "target"
+    }
+  ],
+  "seq": 1,
+  "type": "scene"
+}

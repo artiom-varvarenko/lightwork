@@ -1,0 +1,200 @@
+{
+  "$defs": {
+    "Ack": {
+      "additionalProperties": false,
+      "properties": {
+        "drawn": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/MarkerRect"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Drawn"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "type": {
+          "const": "ack",
+          "default": "ack",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq"
+      ],
+      "title": "Ack",
+      "type": "object"
+    },
+    "Hello": {
+      "additionalProperties": false,
+      "properties": {
+        "dpr": {
+          "title": "Dpr",
+          "type": "number"
+        },
+        "fullscreen": {
+          "title": "Fullscreen",
+          "type": "boolean"
+        },
+        "innerHeight": {
+          "title": "Innerheight",
+          "type": "integer"
+        },
+        "innerWidth": {
+          "title": "Innerwidth",
+          "type": "integer"
+        },
+        "orientation": {
+          "title": "Orientation",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "projector",
+            "screen",
+            "viewer"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "screen": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Screen",
+          "type": "object"
+        },
+        "secure": {
+          "title": "Secure",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "hello",
+          "default": "hello",
+          "title": "Type",
+          "type": "string"
+        },
+        "ua": {
+          "title": "Ua",
+          "type": "string"
+        },
+        "wakelock": {
+          "title": "Wakelock",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "innerWidth",
+        "innerHeight",
+        "dpr",
+        "screen",
+        "orientation",
+        "fullscreen",
+        "secure",
+        "wakelock",
+        "ua"
+      ],
+      "title": "Hello",
+      "type": "object"
+    },
+    "MarkerRect": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "size": {
+          "title": "Size",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y",
+        "size"
+      ],
+      "title": "MarkerRect",
+      "type": "object"
+    },
+    "Tts": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "start",
+            "end",
+            "error"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "type": {
+          "const": "tts",
+          "default": "tts",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "state"
+      ],
+      "title": "Tts",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "ack": "#/$defs/Ack",
+      "hello": "#/$defs/Hello",
+      "tts": "#/$defs/Tts"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Hello"
+    },
+    {
+      "$ref": "#/$defs/Ack"
+    },
+    {
+      "$ref": "#/$defs/Tts"
+    }
+  ]
+}

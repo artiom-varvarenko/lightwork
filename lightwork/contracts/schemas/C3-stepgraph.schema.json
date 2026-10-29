@@ -1,0 +1,465 @@
+{
+  "$defs": {
+    "Arrow": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "title": "From",
+          "type": "string"
+        },
+        "to": {
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "title": "Arrow",
+      "type": "object"
+    },
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cells"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "darker",
+                "lighter",
+                "hue",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "present",
+            "absent",
+            "moved_to",
+            "count",
+            "colour_change",
+            "series",
+            "activity_at",
+            "judge",
+            "confirm"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "min_delta": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Delta"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        },
+        "object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Question"
+        },
+        "ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ratio"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tol": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tol"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Grid": {
+      "additionalProperties": false,
+      "properties": {
+        "cols": {
+          "maximum": 48,
+          "minimum": 1,
+          "title": "Cols",
+          "type": "integer"
+        },
+        "naming": {
+          "enum": [
+            "A1",
+            "r1c1"
+          ],
+          "title": "Naming",
+          "type": "string"
+        },
+        "rows": {
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rows",
+        "cols",
+        "naming"
+      ],
+      "title": "Grid",
+      "type": "object"
+    },
+    "Object": {
+      "additionalProperties": false,
+      "properties": {
+        "grid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Grid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "item",
+            "container",
+            "tool",
+            "grid",
+            "zone"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "noun": {
+          "title": "Noun",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "noun",
+        "kind"
+      ],
+      "title": "Object",
+      "type": "object"
+    },
+    "Recovery": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "exclude_cells",
+            "skip_steps",
+            "redo_step",
+            "insert_step",
+            "abort"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "cells": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cells"
+        },
+        "on": {
+          "title": "On",
+          "type": "string"
+        },
+        "say": {
+          "default": "",
+          "title": "Say",
+          "type": "string"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Steps"
+        }
+      },
+      "required": [
+        "on",
+        "action"
+      ],
+      "title": "Recovery",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "attribution": {
+          "title": "Attribution",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "text",
+            "url",
+            "pdf"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "licence": {
+          "title": "Licence",
+          "type": "string"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref",
+        "licence",
+        "attribution"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "arrow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Arrow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "recovery": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Recovery"
+          },
+          "title": "Recovery",
+          "type": "array"
+        },
+        "say": {
+          "title": "Say",
+          "type": "string"
+        },
+        "targets": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "say",
+        "checks"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/Object"
+      },
+      "title": "Objects",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "vocabulary": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Vocabulary",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "source",
+    "objects",
+    "steps"
+  ],
+  "title": "StepGraph",
+  "type": "object"
+}

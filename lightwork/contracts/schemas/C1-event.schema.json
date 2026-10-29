@@ -1,0 +1,667 @@
+{
+  "$defs": {},
+  "additionalProperties": false,
+  "description": "One line of ``events.jsonl``. ``payload`` is the canonical dict of the type's payload model.",
+  "properties": {
+    "derived": {
+      "title": "Derived",
+      "type": "boolean"
+    },
+    "h": {
+      "default": "",
+      "title": "H",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    },
+    "seq": {
+      "minimum": 1,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "src": {
+      "title": "Src",
+      "type": "string"
+    },
+    "t": {
+      "minimum": 0,
+      "title": "T",
+      "type": "number"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "seq",
+    "t",
+    "type",
+    "src",
+    "derived",
+    "payload"
+  ],
+  "title": "Event",
+  "type": "object",
+  "x-payloads": {
+    "calibration_loaded": {
+      "additionalProperties": false,
+      "properties": {
+        "calib_sha": {
+          "title": "Calib Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calib_sha"
+      ],
+      "title": "CalibrationLoaded",
+      "type": "object"
+    },
+    "check": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "pending",
+            "inconclusive"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "step": {
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "check",
+        "status",
+        "reason",
+        "evidence"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "cost": {
+      "additionalProperties": false,
+      "properties": {
+        "usd_total": {
+          "title": "Usd Total",
+          "type": "number"
+        }
+      },
+      "required": [
+        "usd_total"
+      ],
+      "title": "Cost",
+      "type": "object"
+    },
+    "hands": {
+      "additionalProperties": false,
+      "properties": {
+        "over_regions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Over Regions",
+          "type": "array"
+        },
+        "tip_xy": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tip Xy"
+        }
+      },
+      "required": [
+        "over_regions",
+        "tip_xy"
+      ],
+      "title": "Hands",
+      "type": "object"
+    },
+    "key": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "Key",
+      "type": "object"
+    },
+    "keyframe": {
+      "additionalProperties": false,
+      "properties": {
+        "crop_xywh": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Crop Xywh",
+          "type": "array"
+        },
+        "frame_sha": {
+          "title": "Frame Sha",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "grey",
+            "dark",
+            "normal"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "t_capture": {
+          "title": "T Capture",
+          "type": "number"
+        },
+        "verified": {
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "frame_sha",
+        "crop_xywh",
+        "mode",
+        "verified",
+        "t_capture"
+      ],
+      "title": "Keyframe",
+      "type": "object"
+    },
+    "layout_loaded": {
+      "additionalProperties": false,
+      "properties": {
+        "layout_sha": {
+          "title": "Layout Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layout_sha"
+      ],
+      "title": "LayoutLoaded",
+      "type": "object"
+    },
+    "measurement": {
+      "$defs": {
+        "CellReading": {
+          "additionalProperties": false,
+          "properties": {
+            "lab": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "title": "Lab",
+              "type": "array"
+            },
+            "n": {
+              "title": "N",
+              "type": "integer"
+            },
+            "od": {
+              "title": "Od",
+              "type": "number"
+            },
+            "sd": {
+              "title": "Sd",
+              "type": "number"
+            }
+          },
+          "required": [
+            "od",
+            "lab",
+            "n",
+            "sd"
+          ],
+          "title": "CellReading",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "additionalProperties": {
+            "$ref": "#/$defs/CellReading"
+          },
+          "title": "Cells",
+          "type": "object"
+        },
+        "channel": {
+          "enum": [
+            "r",
+            "g",
+            "b",
+            "lab"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "frame_sha": {
+          "title": "Frame Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frame_sha",
+        "channel",
+        "cells"
+      ],
+      "title": "Measurement",
+      "type": "object"
+    },
+    "model_request": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "frame_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Frame Sha"
+        },
+        "intent_id": {
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "verdict",
+            "ground",
+            "author",
+            "why",
+            "segment"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent_id",
+        "role",
+        "model",
+        "fingerprint",
+        "frame_sha",
+        "prompt_version"
+      ],
+      "title": "ModelRequest",
+      "type": "object"
+    },
+    "model_result": {
+      "additionalProperties": false,
+      "properties": {
+        "call_dir": {
+          "title": "Call Dir",
+          "type": "string"
+        },
+        "intent_id": {
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "latency_ms": {
+          "title": "Latency Ms",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error",
+            "timeout"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent_id",
+        "call_dir",
+        "status",
+        "latency_ms"
+      ],
+      "title": "ModelResult",
+      "type": "object"
+    },
+    "motion": {
+      "additionalProperties": false,
+      "properties": {
+        "active_regions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Active Regions",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "moving",
+            "settled"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "active_regions"
+      ],
+      "title": "Motion",
+      "type": "object"
+    },
+    "parsed": {
+      "additionalProperties": false,
+      "properties": {
+        "intent_id": {
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "result": {
+          "additionalProperties": true,
+          "title": "Result",
+          "type": "object"
+        }
+      },
+      "required": [
+        "intent_id",
+        "kind",
+        "result"
+      ],
+      "title": "Parsed",
+      "type": "object"
+    },
+    "procedure_loaded": {
+      "additionalProperties": false,
+      "properties": {
+        "stepgraph_sha": {
+          "title": "Stepgraph Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stepgraph_sha"
+      ],
+      "title": "ProcedureLoaded",
+      "type": "object"
+    },
+    "run_started": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "enum": [
+            "meta",
+            "chat"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "code_commit": {
+          "title": "Code Commit",
+          "type": "string"
+        },
+        "dirty": {
+          "title": "Dirty",
+          "type": "boolean"
+        },
+        "models": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Models",
+          "type": "object"
+        },
+        "pack": {
+          "title": "Pack",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "pack",
+        "backend",
+        "models",
+        "code_commit",
+        "dirty",
+        "platform",
+        "version"
+      ],
+      "title": "RunStarted",
+      "type": "object"
+    },
+    "run_stopped": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "RunStopped",
+      "type": "object"
+    },
+    "say": {
+      "additionalProperties": false,
+      "properties": {
+        "priority": {
+          "enum": [
+            "normal",
+            "interrupt"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "priority"
+      ],
+      "title": "Say",
+      "type": "object"
+    },
+    "scene": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "title": "Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hash"
+      ],
+      "title": "Scene",
+      "type": "object"
+    },
+    "step": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "waiting",
+            "active",
+            "provisional",
+            "passed",
+            "failed",
+            "recovery",
+            "unverified",
+            "skipped",
+            "excluded"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "step": {
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "state",
+        "reason"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "tick": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Tick",
+      "type": "object"
+    },
+    "ui": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "title": "Args",
+          "type": "object"
+        }
+      },
+      "required": [
+        "action",
+        "args"
+      ],
+      "title": "Ui",
+      "type": "object"
+    },
+    "voice": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "enum": [
+            "next",
+            "done",
+            "repeat",
+            "why",
+            "back"
+          ],
+          "title": "Command",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "transcript": {
+          "title": "Transcript",
+          "type": "string"
+        },
+        "turn_id": {
+          "title": "Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command",
+        "transcript",
+        "session_id",
+        "turn_id"
+      ],
+      "title": "Voice",
+      "type": "object"
+    },
+    "voice_rejected": {
+      "additionalProperties": false,
+      "properties": {
+        "transcript": {
+          "title": "Transcript",
+          "type": "string"
+        }
+      },
+      "required": [
+        "transcript"
+      ],
+      "title": "VoiceRejected",
+      "type": "object"
+    }
+  }
+}

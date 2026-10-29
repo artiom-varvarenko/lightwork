@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "Totals": {
+      "additionalProperties": false,
+      "properties": {
+        "calls": {
+          "title": "Calls",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "duration_s": {
+          "title": "Duration S",
+          "type": "number"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        },
+        "unverified": {
+          "title": "Unverified",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passed",
+        "failed",
+        "unverified",
+        "calls",
+        "cost_usd",
+        "duration_s"
+      ],
+      "title": "Totals",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "backend": {
+      "enum": [
+        "meta",
+        "chat"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "code_commit": {
+      "title": "Code Commit",
+      "type": "string"
+    },
+    "created_utc": {
+      "title": "Created Utc",
+      "type": "string"
+    },
+    "dirty": {
+      "title": "Dirty",
+      "type": "boolean"
+    },
+    "files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Files",
+      "type": "object"
+    },
+    "models": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Models",
+      "type": "object"
+    },
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "provenance": {
+      "enum": [
+        "meta",
+        "dev-standin"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "size_bytes": {
+      "title": "Size Bytes",
+      "type": "integer"
+    },
+    "totals": {
+      "$ref": "#/$defs/Totals"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_utc",
+    "code_commit",
+    "dirty",
+    "version",
+    "platform",
+    "provenance",
+    "backend",
+    "models",
+    "files",
+    "size_bytes",
+    "totals"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

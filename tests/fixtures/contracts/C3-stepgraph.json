@@ -1,0 +1,102 @@
+{
+  "id": "synthetic-kit",
+  "objects": [
+    {
+      "id": "case",
+      "kind": "container",
+      "noun": "case"
+    },
+    {
+      "id": "remote",
+      "kind": "item",
+      "noun": "remote control"
+    },
+    {
+      "id": "cable",
+      "kind": "item",
+      "noun": "power cable"
+    },
+    {
+      "id": "slot-remote",
+      "kind": "zone",
+      "noun": "slot"
+    },
+    {
+      "id": "slot-cable",
+      "kind": "zone",
+      "noun": "slot"
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "attribution": "Lightwork authors",
+    "kind": "text",
+    "licence": "Apache-2.0",
+    "ref": "tests/fixtures/build_synthetic_kit.py"
+  },
+  "steps": [
+    {
+      "arrow": {
+        "from": "remote",
+        "to": "slot-remote"
+      },
+      "checks": [
+        {
+          "id": "remote-present",
+          "kind": "present",
+          "object": "remote",
+          "region": "slot-remote"
+        },
+        {
+          "id": "hand-at-slot",
+          "kind": "activity_at",
+          "region": "slot-remote"
+        },
+        {
+          "id": "remote-judge",
+          "kind": "judge",
+          "question": "Is the remote lying inside the right-hand slot of the case?"
+        }
+      ],
+      "detail": "The remote goes in the small slot on the right of the case.",
+      "id": "remote-in",
+      "recovery": [
+        {
+          "action": "redo_step",
+          "on": "remote-present",
+          "say": "The remote is not in its slot yet."
+        }
+      ],
+      "say": "Put the remote in its slot.",
+      "targets": [
+        "slot-remote"
+      ]
+    },
+    {
+      "checks": [
+        {
+          "id": "cable-present",
+          "kind": "present",
+          "object": "cable",
+          "region": "slot-cable"
+        },
+        {
+          "id": "done",
+          "kind": "confirm",
+          "required": false
+        }
+      ],
+      "id": "cable-in",
+      "say": "Coil the power cable into the left slot.",
+      "targets": [
+        "slot-cable"
+      ]
+    }
+  ],
+  "title": "Synthetic kit return check",
+  "vocabulary": [
+    "remote",
+    "cable",
+    "case"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "area_px": {
+      "title": "Area Px",
+      "type": "integer"
+    },
+    "box": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Box",
+      "type": "array"
+    },
+    "centroid": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Centroid",
+      "type": "array"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "object_id": {
+      "title": "Object Id",
+      "type": "integer"
+    },
+    "rle": {
+      "additionalProperties": true,
+      "title": "Rle",
+      "type": "object"
+    }
+  },
+  "required": [
+    "object_id",
+    "box",
+    "area_px",
+    "centroid",
+    "rle"
+  ],
+  "title": "Mask",
+  "type": "object"
+}

@@ -1,0 +1,38 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "contradiction": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Contradiction"
+    },
+    "done": {
+      "enum": [
+        "yes",
+        "no",
+        "unsure"
+      ],
+      "title": "Done",
+      "type": "string"
+    },
+    "evidence": {
+      "maxLength": 160,
+      "title": "Evidence",
+      "type": "string"
+    }
+  },
+  "required": [
+    "done",
+    "contradiction",
+    "evidence"
+  ],
+  "title": "Verdict",
+  "type": "object"
+}

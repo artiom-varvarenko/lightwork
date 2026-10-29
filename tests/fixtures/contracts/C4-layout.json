@@ -1,0 +1,137 @@
+{
+  "created": "2026-10-30T12:00:00Z",
+  "objects": {
+    "cable": {
+      "kind": "item",
+      "polygon_cam_px": [
+        [
+          200,
+          200
+        ],
+        [
+          320,
+          200
+        ],
+        [
+          320,
+          300
+        ],
+        [
+          200,
+          300
+        ]
+      ],
+      "sam": {
+        "mode": "noun",
+        "noun": "power cable"
+      }
+    },
+    "case": {
+      "corners_cam_px": [
+        [
+          700,
+          120
+        ],
+        [
+          1220,
+          120
+        ],
+        [
+          1220,
+          600
+        ],
+        [
+          700,
+          600
+        ]
+      ],
+      "kind": "container",
+      "sam": {
+        "mode": "noun",
+        "noun": "case"
+      }
+    },
+    "remote": {
+      "kind": "item",
+      "polygon_cam_px": [
+        [
+          300,
+          400
+        ],
+        [
+          340,
+          400
+        ],
+        [
+          340,
+          520
+        ],
+        [
+          300,
+          520
+        ]
+      ],
+      "sam": {
+        "mode": "grounded",
+        "noun": "remote control"
+      }
+    },
+    "slot-cable": {
+      "corners_cam_px": [
+        [
+          740,
+          160
+        ],
+        [
+          960,
+          160
+        ],
+        [
+          960,
+          540
+        ],
+        [
+          740,
+          540
+        ]
+      ],
+      "kind": "zone",
+      "sam": {
+        "mode": "noun",
+        "noun": "slot"
+      }
+    },
+    "slot-remote": {
+      "corners_cam_px": [
+        [
+          1000,
+          160
+        ],
+        [
+          1180,
+          160
+        ],
+        [
+          1180,
+          300
+        ],
+        [
+          1000,
+          300
+        ]
+      ],
+      "kind": "zone",
+      "sam": {
+        "mode": "noun",
+        "noun": "slot"
+      }
+    }
+  },
+  "pack": "synthetic-kit",
+  "work_area_xywh": [
+    600,
+    80,
+    680,
+    560
+  ]
+}

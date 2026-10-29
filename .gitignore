@@ -23,3 +23,9 @@ raw-footage/
 .DS_Store
 .idea/
 .vscode/
+
+# lightwork local state and outputs
+runs-dev/
+.lightwork/
+site/
+eval/cache/

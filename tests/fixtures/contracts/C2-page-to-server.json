@@ -1,0 +1,16 @@
+{
+  "dpr": 1.0,
+  "fullscreen": true,
+  "innerHeight": 480,
+  "innerWidth": 854,
+  "orientation": "landscape-primary",
+  "role": "projector",
+  "screen": {
+    "height": 480,
+    "width": 854
+  },
+  "secure": true,
+  "type": "hello",
+  "ua": "synthetic",
+  "wakelock": true
+}

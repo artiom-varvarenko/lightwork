@@ -1,0 +1,129 @@
+{
+  "$defs": {
+    "LayoutObject": {
+      "additionalProperties": false,
+      "properties": {
+        "corners_cam_px": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corners Cam Px"
+        },
+        "kind": {
+          "enum": [
+            "item",
+            "container",
+            "tool",
+            "grid",
+            "zone"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "polygon_cam_px": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Polygon Cam Px"
+        },
+        "sam": {
+          "$ref": "#/$defs/SamPrompt"
+        }
+      },
+      "required": [
+        "kind",
+        "sam"
+      ],
+      "title": "LayoutObject",
+      "type": "object"
+    },
+    "SamPrompt": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "noun",
+            "grounded"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "noun": {
+          "title": "Noun",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "noun"
+      ],
+      "title": "SamPrompt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "created": {
+      "title": "Created",
+      "type": "string"
+    },
+    "objects": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LayoutObject"
+      },
+      "title": "Objects",
+      "type": "object"
+    },
+    "pack": {
+      "title": "Pack",
+      "type": "string"
+    },
+    "work_area_xywh": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Work Area Xywh",
+      "type": "array"
+    }
+  },
+  "required": [
+    "pack",
+    "created",
+    "work_area_xywh",
+    "objects"
+  ],
+  "title": "Layout",
+  "type": "object"
+}

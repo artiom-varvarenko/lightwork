@@ -1,0 +1,217 @@
+{
+  "$defs": {
+    "CameraInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "controls": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Controls",
+          "type": "object"
+        },
+        "device_id": {
+          "title": "Device Id",
+          "type": "string"
+        },
+        "mode": {
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "device_id",
+        "mode",
+        "controls"
+      ],
+      "title": "CameraInfo",
+      "type": "object"
+    },
+    "MmScale": {
+      "additionalProperties": false,
+      "properties": {
+        "H_cam_to_mm": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "H Cam To Mm"
+        },
+        "source": {
+          "enum": [
+            "card",
+            "plate",
+            "idcard",
+            "nominal"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "MmScale",
+      "type": "object"
+    },
+    "PageInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "dpr": {
+          "title": "Dpr",
+          "type": "number"
+        },
+        "h": {
+          "title": "H",
+          "type": "number"
+        },
+        "w": {
+          "title": "W",
+          "type": "number"
+        }
+      },
+      "required": [
+        "w",
+        "h",
+        "dpr"
+      ],
+      "title": "PageInfo",
+      "type": "object"
+    },
+    "Residuals": {
+      "additionalProperties": false,
+      "properties": {
+        "max_px": {
+          "title": "Max Px",
+          "type": "number"
+        },
+        "n_inliers": {
+          "title": "N Inliers",
+          "type": "integer"
+        },
+        "n_markers": {
+          "title": "N Markers",
+          "type": "integer"
+        },
+        "p95_px": {
+          "title": "P95 Px",
+          "type": "number"
+        },
+        "rms_px": {
+          "title": "Rms Px",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rms_px",
+        "p95_px",
+        "max_px",
+        "n_markers",
+        "n_inliers"
+      ],
+      "title": "Residuals",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "H_cam_to_page": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "H Cam To Page",
+      "type": "array"
+    },
+    "H_plate_cam_to_page": {
+      "anyOf": [
+        {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "H Plate Cam To Page"
+    },
+    "camera": {
+      "$ref": "#/$defs/CameraInfo"
+    },
+    "created": {
+      "title": "Created",
+      "type": "string"
+    },
+    "flat_field_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flat Field Sha"
+    },
+    "measurement_mode": {
+      "enum": [
+        "grey",
+        "dark"
+      ],
+      "title": "Measurement Mode",
+      "type": "string"
+    },
+    "mm": {
+      "$ref": "#/$defs/MmScale"
+    },
+    "page": {
+      "$ref": "#/$defs/PageInfo"
+    },
+    "residuals": {
+      "$ref": "#/$defs/Residuals"
+    }
+  },
+  "required": [
+    "H_cam_to_page",
+    "page",
+    "camera",
+    "residuals",
+    "mm",
+    "measurement_mode",
+    "created"
+  ],
+  "title": "Calibration",
+  "type": "object"
+}

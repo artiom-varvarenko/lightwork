@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "Attempt": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error"
+        },
+        "ms": {
+          "title": "Ms",
+          "type": "integer"
+        },
+        "n": {
+          "title": "N",
+          "type": "integer"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Status"
+        },
+        "wait_s": {
+          "title": "Wait S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "n",
+        "status",
+        "error",
+        "wait_s",
+        "ms"
+      ],
+      "title": "Attempt",
+      "type": "object"
+    },
+    "ServerProps": {
+      "additionalProperties": false,
+      "properties": {
+        "build_info": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Build Info"
+        },
+        "modalities": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modalities"
+        },
+        "model_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Path"
+        }
+      },
+      "title": "ServerProps",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "items": {
+        "$ref": "#/$defs/Attempt"
+      },
+      "title": "Attempts",
+      "type": "array"
+    },
+    "backend": {
+      "enum": [
+        "meta",
+        "chat"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "base_host": {
+      "title": "Base Host",
+      "type": "string"
+    },
+    "cost_usd": {
+      "title": "Cost Usd",
+      "type": "number"
+    },
+    "endpoint": {
+      "title": "Endpoint",
+      "type": "string"
+    },
+    "fingerprint": {
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "headers": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Headers",
+      "type": "object"
+    },
+    "http_status": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Http Status"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "provenance": {
+      "enum": [
+        "meta",
+        "dev-standin"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "response_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Response Id"
+    },
+    "server_props": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ServerProps"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "error",
+        "timeout"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "total_ms": {
+      "title": "Total Ms",
+      "type": "integer"
+    },
+    "ttfb_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ttfb Ms"
+    },
+    "usage": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Usage"
+    }
+  },
+  "required": [
+    "backend",
+    "base_host",
+    "endpoint",
+    "model",
+    "status",
+    "http_status",
+    "attempts",
+    "headers",
+    "response_id",
+    "ttfb_ms",
+    "total_ms",
+    "usage",
+    "cost_usd",
+    "fingerprint",
+    "provenance"
+  ],
+  "title": "CallMeta",
+  "type": "object"
+}

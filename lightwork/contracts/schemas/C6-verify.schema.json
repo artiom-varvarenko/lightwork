@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "Diff": {
+      "additionalProperties": false,
+      "properties": {
+        "cls": {
+          "enum": [
+            "chain",
+            "manifest",
+            "derived",
+            "fingerprint",
+            "schema",
+            "missing",
+            "extra"
+          ],
+          "title": "Cls",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seq"
+        }
+      },
+      "required": [
+        "cls",
+        "detail"
+      ],
+      "title": "Diff",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code_version": {
+      "title": "Code Version",
+      "type": "string"
+    },
+    "diffs": {
+      "items": {
+        "$ref": "#/$defs/Diff"
+      },
+      "title": "Diffs",
+      "type": "array"
+    },
+    "n_calls": {
+      "title": "N Calls",
+      "type": "integer"
+    },
+    "n_derived": {
+      "title": "N Derived",
+      "type": "integer"
+    },
+    "n_events": {
+      "title": "N Events",
+      "type": "integer"
+    },
+    "n_inputs": {
+      "title": "N Inputs",
+      "type": "integer"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "ok",
+    "n_events",
+    "n_inputs",
+    "n_derived",
+    "n_calls",
+    "diffs",
+    "code_version"
+  ],
+  "title": "VerifyReport",
+  "type": "object"
+}
