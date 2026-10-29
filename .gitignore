@@ -1,0 +1,25 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# large media stays out of git (link from README instead)
+*.mp4
+*.mov
+*.mkv
+*.MP4
+*.MOV
+raw-footage/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
