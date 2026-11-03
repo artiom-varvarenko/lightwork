@@ -191,7 +191,7 @@ LOOK_WORDS = ("look again", "look at the table", "what's on the table", "whats o
               "scan the table", "find everything", "look closer", "look closely", "you missed")
 BUTTON_TIPS = {"learn": ("HOLD TO LEARN THE EMPTY TABLE AGAIN", "TAKE EVERYTHING OFF IT FIRST"),
                "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE"),
-               "home": ("HOLD FOR THE GAMES MENU", "SAY 'STOP PLAYING' FOR THE TABLE", ),
+               "home": ("HOLD FOR THE MENU", "GAMES AND THE OBJECT BOARD"),
                "recal": ("HOLD TO RECALIBRATE: CLEAR THE TABLE", "THEN TOUCH THE THREE CIRCLES")}
 _uids = itertools.count(1)
 
@@ -1375,8 +1375,8 @@ class TableDashboard:
 
     geo: Geo
     buttons: list[Button] = field(default_factory=lambda: [
-        Button("learn", "LEARN", (COL_X1 / 2, 150.0), r=BTN_R), Button("scale", "SCALE", (COL_X1 / 2, 235.0), r=BTN_R),
-        Button("recal", "RECAL", (COL_X1 / 2, 320.0), r=BTN_R),
+        Button("home", "HOME", (COL_X1 / 2, 120.0), r=BTN_R), Button("learn", "LEARN", (COL_X1 / 2, 192.0), r=BTN_R),
+        Button("scale", "SCALE", (COL_X1 / 2, 264.0), r=BTN_R), Button("recal", "RECAL", (COL_X1 / 2, 336.0), r=BTN_R),
     ])
     note: str = ""
     note_role: str = "info"
@@ -1391,7 +1391,7 @@ class TableDashboard:
 
     def game_mode(self, on: bool) -> None:
         """While a game is on, the column holds one HOME button (the games menu) instead of LEARN and SCALE."""
-        if on and not any(b.key == "home" for b in self.buttons):
+        if on and not self.table_buttons:
             self.table_buttons = self.buttons
             self.buttons = [Button("home", "HOME", (COL_X1 / 2, 190.0), r=BTN_R),
                             Button("recal", "RECAL", (COL_X1 / 2, 300.0), r=BTN_R)]
@@ -1742,12 +1742,18 @@ class TableSession:
         self.log.append(f"game: {key}")
         return say
 
-    def _leave_games(self, now: float) -> None:
+    def _leave_games(self, now: float) -> list[str]:
+        """Back to the object board: the table is learned first if it never was (a session started in a game), else
+        looked at again where anything may have been put down or taken."""
         self.dash.game_mode(False)
         self._smooth(False)
+        if self.zone is not None and self.zone.ref is None:
+            self.relearn(now)
+            return ["Object board. Clear the table so I can learn it, then put things down."]
         self.dirty, self.anywhere, self.last_change_t = True, True, now  # look at the table again: things may
         if self.motion is not None:  # have been put down or taken while we played
             self.motion.reset()
+        return ["Object board. Put things on the table."]
 
     def _ask_guess(self, jpeg: bytes, not_these=()) -> None:
         """Draw and guess: the drawing goes to the brain (Muse Spark) on the worker; ``not_these``: guesses the player
@@ -1813,6 +1819,8 @@ class TableSession:
         points, segments = self._game_points(now)
         lines, sounds = self.games.update(now, points, tips, segments)
         self.sfx += sounds
+        if not self.games.active:  # OBJECTS picked on the menu: the object board
+            lines = [line for line in lines if not line.startswith("Object board")] + self._leave_games(now)
         self._guess_done(now)
         game = self.games.game
         if game is not None and game.say:
@@ -2155,6 +2163,9 @@ class TableSession:
         fired = self.dash.step(tips, now, dt)
         if fired:
             self.sfx.append("press")
+        if "home" in fired:  # the menu: games and the object board
+            self._pending_say += self.start_game("menu", now)
+            return fired, []
         if "learn" in fired:
             if self.learn_at is not None and self._learn_tries > 0:
                 self._force_learn = True  # held again while it refuses: learn the table as it is
@@ -2549,7 +2560,7 @@ class TableSession:
                 self._smooth(True)
                 self.scan = None
             elif was_playing and not self.games.active:
-                self._leave_games(now)
+                said = [line for line in said if not line.startswith("Object board")] + self._leave_games(now)
             self.sfx.append("press")
             return said
         g = self.guide

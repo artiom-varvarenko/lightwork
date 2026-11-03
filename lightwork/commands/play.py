@@ -95,8 +95,9 @@ def configure(p) -> None:
     p.add_argument("--port", type=int, default=PORT)
     p.add_argument("--page-wait", type=float, default=60.0, help="seconds to wait for the projector page")
     p.add_argument("--exposure", type=int, default=None,
-                   help="C920 exposure_time_absolute in 100 us (default 312; 78 with --game: a quarter of the motion "
-                        "blur on a moving hand, written again once streaming, with the gain raised to keep the light)")
+                   help="C920 exposure_time_absolute in 100 us (default 312; 39 with --game, which the C920 rounds "
+                        "up to 78: a quarter of the motion blur, written once streaming, with the gain raised to keep "
+                        "the light)")
     p.add_argument("--gain", type=int, help="fixed C920 gain 0-255 (default: chosen for the room and adjusted)")
     p.add_argument("--recal-every", type=float, default=None,
                    help="seconds between mapping checks (0 = off; default 300, table 0: the border watch still checks)")
@@ -330,7 +331,7 @@ def run(args) -> int:
     if args.recal_every is None:
         args.recal_every = 0.0 if args.table else 300.0
     if args.exposure is None:
-        args.exposure = 78 if args.game else 312  # 3 Nov: 39 applied once, then the C920 kept 78
+        args.exposure = 39 if args.game else 312  # games: the C920's shortest step it keeps (it reports 78)
     gain = args.gain if args.gain is not None else START_GAIN
     lock = dict(load_lock())
     lock.update(exposure_time_absolute=args.exposure, gain=gain)
@@ -542,7 +543,7 @@ class Play:
                                      "from the hands until a card is measured (SCALE)"))
         else:
             self.table.set_geo(self.geo, self.last_image)
-        if self.args.game and self.gain.available and not getattr(self, "_game_exposed", False):
+        if self.args.game and self.gain.available:  # after every calibration: it sets the gain for the room again
             self._game_exposure()
         if self.table.zone_error:
             print(f"table: {self.table.zone_error}")
@@ -551,31 +552,37 @@ class Play:
             print(f"table area: {w}x{h} camera px at {x},{y}, detection at 1/{self.table.zone.down}")
 
     def _game_exposure(self) -> None:
-        """Games: the short exposure (the C920 ignores some at stream start: written again now, 3 Nov: 78 read back as
-        156), then the gain raised until the table is about as bright as it was calibrated (3 Nov, more room light:
-        3.9 ms at gain 48 = 7.8 ms at gain 16, same noise, half the blur)."""
+        """Games: a short exposure, then the gain raised until the table is about as bright as it was calibrated.
+
+        3 Nov measurements on this C920 PRO while streaming: it rounds a written exposure up to its next step and reports
+        that (write 312 -> 312, write 78 -> reports 156 and is as bright as 156, write 39 -> reports 78 and is darker),
+        so the readback is not a check of the write and the shortest exposure needs a write of 39. Judged by the
+        table's brightness instead."""
         from ..sessioncal import surface_level
 
-        self._game_exposed = True
+        want = int(self.args.exposure)
         before = surface_level(self.cam)[0]
-        err = self.gain.ctl.set("exposure_time_absolute", int(self.args.exposure))
-        if err:
-            print(f"game exposure: {err}")
-            return
+        for _ in range(2):  # twice: a single write is sometimes not applied
+            err = self.gain.ctl.set("exposure_time_absolute", want)
+            if err:
+                print(f"game exposure: {err}")
+                return
+            time.sleep(0.25)
+        try:
+            got = self.gain.ctl.get(["exposure_time_absolute"]).get("exposure_time_absolute")
+        except Exception:  # noqa: BLE001 - only for the log
+            got = None
         g = self.gain.gain
         level = surface_level(self.cam)[0]
+        dimmed = level
         for _ in range(8):
             if level >= 0.9 * before or g >= 200:
                 break
             g = min(200, int(g * 1.4) + 8)
             self.gain.set(g)
             level = surface_level(self.cam)[0]
-        try:
-            got = self.gain.ctl.get(["exposure_time_absolute"]).get("exposure_time_absolute", self.args.exposure)
-        except Exception:  # noqa: BLE001 - a readback is only for the log
-            got = self.args.exposure
-        print(f"game exposure {got / 10:.1f} ms (asked {self.args.exposure / 10:.1f}), gain {g}: table level {level:.0f} "
-              f"(calibrated {before:.0f})")
+        print(f"game exposure: wrote {want}, camera reports {got}; table level {before:.0f} -> {dimmed:.0f}, "
+              f"gain {g} -> {level:.0f}")
 
     def _hand_region(self) -> None:
         """Point the tiled hand search at the projected page (plus ``HAND_MARGIN``) in camera px."""

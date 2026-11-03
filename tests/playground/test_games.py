@@ -99,7 +99,7 @@ def test_voice_routing(tmp_path):
     assert isinstance(host.game, Menu)
     assert host.hear("follow the lights", 1.0)[0].startswith("Follow")
     assert isinstance(host.game, FollowLights)
-    assert host.hear("stop playing", 2.0) == ["Okay, back to the table."] and not host.active
+    assert host.hear("stop playing", 2.0) == ["Object board."] and not host.active
 
 
 def test_table_session_runs_a_game_without_scanning(tmp_path):
@@ -155,7 +155,7 @@ def test_recal_button_and_smooth_projection_with_games(tmp_path):
     rig = Rig(state_dir=tmp_path)
     calls = []
     rig.page.set_smooth = calls.append  # the render hub's switch for the page's easing and fades
-    assert {b.key for b in rig.ts.dash.buttons} == {"learn", "scale", "recal"}
+    assert {b.key for b in rig.ts.dash.buttons} == {"home", "learn", "scale", "recal"}
     rig.ts.start_game("catch", rig.t)
     assert {b.key for b in rig.ts.dash.buttons} == {"home", "recal"} and calls == [True]
     rig.ts.hear("stop playing", rig.t)
@@ -180,3 +180,25 @@ def test_hub_smooth_keeps_the_rotation():
     assert '"smooth":true' in hub._view.model_dump_json()
     hub.set_smooth(False)
     assert '"smooth"' not in hub._view.model_dump_json()  # off: the message is as before smoothing existed
+
+
+def test_object_board_tile_learns_the_table_when_it_never_was(tmp_path):
+    from .test_table_scans import Rig
+    from .test_tabletop import table
+
+    rig = Rig(game="menu", state_dir=tmp_path)
+    rig.ts.zone.ref = None  # started in a game: no empty table learned yet
+    rig.run(0.5, table())
+    menu = rig.ts.games.game
+    tile = next(b for b in menu.bubbles if b.key == "objects")
+    t = rig.t
+    said = []
+    while rig.ts.games.active and rig.t < t + 2.0:
+        rig.t += 0.05
+        rig.page.now = rig.t
+        said += rig.ts.games.update(rig.t, [tile.c], [])[0]
+        if not rig.ts.games.active:
+            said += rig.ts._leave_games(rig.t)
+    assert not rig.ts.games.active and rig.ts.learn_at is not None
+    assert said[-1].startswith("Object board. Clear the table")
+    assert "home" in {b.key for b in rig.ts.dash.buttons} and "learn" in {b.key for b in rig.ts.dash.buttons}

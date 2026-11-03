@@ -3,7 +3,8 @@
 ``catch``   Catch the light: glowing targets appear anywhere on the table; touch them before they fade. 45 s.
 ``follow``  Follow the lights: four pads light up in a sequence; touch them back in the same order. It grows.
 ``draw``    Draw and guess: draw with a fingertip in light; take your hands away and Muse Spark guesses what it is.
-``menu``    Three bubbles to pick one by holding a fingertip on it.
+``menu``    Bubbles to pick one by holding a fingertip on it, and OBJECTS: back to the object board, where things put on
+            the table are found, named (Muse Spark), outlined (SAM 3.1) and measured.
 
 Hands come from the table's tracker (MediaPipe landmarks, local); everything is drawn in the playground's design space
 (750 x 420, the page) and reads upright from the player's side with ``--rotate 180``. The games run inside
@@ -134,10 +135,11 @@ class Menu(Game):
     def __init__(self, now, rng, best: dict):
         super().__init__(now, rng)
         self.best = best
-        y = 205.0
-        self.bubbles = [Bubble("catch", "CATCH\nTHE LIGHT", (200.0, y), 52.0),
-                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (410.0, y), 52.0),
-                        Bubble("draw", "DRAW\nAND GUESS", (620.0, y), 52.0)]
+        y = 200.0
+        self.bubbles = [Bubble("catch", "CATCH\nTHE LIGHT", (165.0, y), 46.0),
+                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (330.0, y), 46.0),
+                        Bubble("draw", "DRAW\nAND GUESS", (495.0, y), 46.0),
+                        Bubble("objects", "OBJECT\nBOARD", (660.0, y), 46.0)]
         self.choice: str | None = None
         self.last = now
 
@@ -150,7 +152,7 @@ class Menu(Game):
                 self.sfx.append("press")
 
     def draw(self, c, now):
-        roles = {"catch": "target", "follow": "source", "draw": "warn"}
+        roles = {"catch": "target", "follow": "source", "draw": "warn", "objects": "info"}
         for b in self.bubbles:
             best = self.best.get(b.key)
             b.draw(c, roles[b.key], f"BEST {best}" if best else "")
@@ -167,12 +169,15 @@ class Menu(Game):
             for k, (dx, dy) in enumerate(((-13, -13), (13, -13), (-13, 13), (13, 13))):
                 lit = int(now * 2.5) % 4 == k
                 c.circle(f"ico-follow-{k}", (x + dx, y + dy), 9 if lit else 6, role, n=14)
-        else:  # a squiggle
+        elif b.key == "draw":  # a squiggle
             pts = [(x - 24 + 4 * i, y + 10 * math.sin(i * 0.9 + now * 3)) for i in range(13)]
             c.poly("ico-draw", pts, role)
+        else:  # two things on a table, each outlined
+            c.rect("ico-obj-a", x - 22, y - 14, x - 2, y + 6, role)
+            c.circle("ico-obj-b", (x + 13, y + 6), 10, role, n=16)
 
     def hud(self, now, best):
-        return "PICK A GAME: HOLD A FINGER ON IT", "OR SAY: CATCH, FOLLOW OR DRAW", "info"
+        return "PICK ONE: HOLD A FINGER ON IT", "OR SAY: CATCH, FOLLOW, DRAW OR OBJECTS", "info"
 
 
 # ---------------------------------------------------------------------------------------------------- catch
@@ -559,9 +564,12 @@ class GameHost:
 
     def start(self, key: str, now: float) -> list[str]:
         self.again = self.home = None
+        if key == "objects":  # the object board: no game; the table session learns the table and scans again
+            self.game = None
+            return ["Object board."]  # the session says what to do: learn the table, or put things down
         if key == "menu":
             self.game = Menu(now, self.rng, self.best)
-            return ["Pick a game: catch the light, follow the lights, or draw and guess."]
+            return ["Pick a game, or the object board."]
         if key == "catch":
             self.game = CatchLight(now, self.rng)
             return ["Catch the light! Touch every light before it fades."]
@@ -630,12 +638,17 @@ class GameHost:
     def hear(self, text: str, now: float) -> list[str] | None:
         """Game words ("let's play", "catch the light", "menu", "stop playing"); None when it is not about games."""
         low = text.lower()
+        if self.game is not None and any(w in low for w in ("object board", "objects", "scan the table", "map the table",
+                                                            "recognize", "recognise")):
+            return self.start("objects", now)
         if self.game is None and not any(w in low for w in ("play", "game", "let's draw", "lets draw")):
             return None  # not playing: only a sentence about playing starts a game ("what is this drawing?" does not)
         if any(w in low for w in ("stop playing", "stop the game", "exit game", "no more games", "back to the table")):
             self.stop()
-            return ["Okay, back to the table."]
-        if any(w in low for w in ("menu", "other game", "another game", "let's play", "play a game", "games")):
+            return ["Object board."]
+        bare = low.strip(" .!?")
+        if bare in ("play", "games", "game", "menu") or any(
+                w in low for w in ("menu", "other game", "another game", "let's play", "play a game", "games")):
             return self.start("menu", now)
         for key, words in WORDS.items():
             if any(w in low for w in words) and (self.game is None or self.game.key != key or self.game.over):
