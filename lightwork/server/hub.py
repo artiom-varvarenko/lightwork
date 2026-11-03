@@ -10,7 +10,9 @@ per-connection asyncio senders are woken with ``loop.call_soon_threadsafe``. Pag
     drew after ``requestAnimationFrame`` and an ACK covers every older seq. The current scene is re-sent as a
     heartbeat after ``HEARTBEAT_S`` without a scene, which keeps the page's "LINK LOST" timer quiet.
     ``show_mode`` replaces the scene with a bare measurement/pattern scene until ``show_mode("normal")`` and waits for
-    the link page (newest projector, else newest screen) to ACK it.
+    the link page (newest projector, else newest screen) to ACK it. ``set_view`` turns the projector page (C2
+    ``view``); every page gets the current view on connect, before its first scene. ``say`` and ``sfx`` queue on the
+    link page only and go out before the next scene.
 ``PreviewHub`` (``/ws/camera``)
     Binary frames ``CAMERA_HEADER`` + JPEG, latest wins, at most ``MAX_UNACKED`` frames in flight per viewer; the page
     ACKs with the text message ``{"ack": frame_id}`` after drawing.
@@ -151,8 +153,11 @@ class _Page(_Conn):
     sent_version: int = 0
     last_scene_t: float = 0.0
     calib_version: int = 0
+    view_version: int = 0
     says: deque[render.SayMsg] = field(default_factory=deque)
+    sfx: deque[render.Sfx] = field(default_factory=deque)
     acked_version: int = 0
+    acked_versions: deque[tuple[int, float]] = field(default_factory=lambda: deque(maxlen=64))  # (version, first ACK t)
     last_ack: render.Ack | None = None
     last_ack_t: float | None = None
     latencies_ms: deque[float] = field(default_factory=lambda: deque(maxlen=LATENCY_WINDOW))
@@ -173,6 +178,8 @@ class RenderHub:
         self._effective = self._dump_effective()
         self._calib: render.Calib | None = None
         self._calib_version = 0
+        self._view: render.View | None = None
+        self._view_version = 0
         self._pages: list[_Page] = []
         self._say_n = 0
         self._tts_cbs: list[Callable[[render.Tts], None]] = []
@@ -180,16 +187,43 @@ class RenderHub:
 
     # ---- worker-thread API
 
-    def publish_scene(self, scene: render.SceneMsg) -> None:
+    def publish_scene(self, scene: render.SceneMsg) -> int:
+        """Make ``scene`` the current one; returns its version, for :meth:`acked_at`."""
         with self._lock:
             self._scene = scene
             if self._mode_scene is None:
                 self._bump()
+            return self._version
+
+    def version(self) -> int:
+        """Version of the scene pages are being sent now."""
+        with self._lock:
+            return self._version
+
+    def acked_at(self, version: int) -> float | None:
+        """Laptop ``time.monotonic()`` of the link page's first ACK covering ``version`` (or a newer one), or None while
+        it has not drawn it. Non-blocking, for frame loops that must know when a scene is on the surface."""
+        with self._lock:
+            page = self._link_page()
+            if page is None or page.acked_version < version:
+                return None
+            for v, t in page.acked_versions:
+                if v >= version:
+                    return t
+            return page.last_ack_t
 
     def set_calib(self, calib: render.Calib) -> None:
         with self._lock:
             self._calib = calib
             self._calib_version += 1
+            self._poke_all()
+
+    def set_view(self, view: render.View) -> None:
+        """Turn everything the projector page draws (C2 ``view``). Set it before a pattern flash: a mapping solved
+        from an unturned pattern does not hold for a turned page."""
+        with self._lock:
+            self._view = view
+            self._view_version += 1
             self._poke_all()
 
     def say(self, text: str, priority: str = "normal") -> str:
@@ -203,6 +237,16 @@ class RenderHub:
                 page.says.append(msg)
                 page.poke()
             return msg.id
+
+    def sfx(self, name: str, gain: float = 1.0) -> None:
+        """Queue a short UI sound (C2 ``sfx``) on the link page, like :meth:`say`: dropped when neither page is
+        connected. ``gain`` is clamped to 0..1. The projector page stays silent until its tap to start."""
+        with self._lock:
+            msg = render.Sfx(name=name, gain=min(1.0, max(0.0, float(gain))))
+            page = self._link_page()
+            if page is not None:
+                page.sfx.append(msg)
+                page.poke()
 
     def show_mode(self, mode: str, pattern: render.Pattern | None = None, timeout: float = 1.0) -> float | None:
         """PageLink (B, D): switch every page to ``mode`` and wait until the link page ACKs a draw of it.
@@ -298,11 +342,16 @@ class RenderHub:
 
     def _outgoing(self, page: _Page, now: float) -> list[str]:
         out: list[str] = []
+        if self._view is not None and page.view_version != self._view_version:  # first: it applies to what follows
+            page.view_version = self._view_version
+            out.append(self._view.model_dump_json())
         if self._calib is not None and page.calib_version != self._calib_version:
             page.calib_version = self._calib_version
             out.append(self._calib.model_dump_json())
         while page.says:
             out.append(page.says.popleft().model_dump_json())
+        while page.sfx:  # before the scene: a sound lands with the frame that shows its change
+            out.append(page.sfx.popleft().model_dump_json())
         due = page.sent_version != self._version or now - page.last_scene_t >= HEARTBEAT_S
         if due and len(page.outstanding) < MAX_UNACKED:
             seq = page.next_seq
@@ -322,6 +371,8 @@ class RenderHub:
         page.latencies_ms.append((now - sent[1]) * 1000.0)
         for seq in [s for s in page.outstanding if s <= ack.seq]:
             del page.outstanding[seq]
+        if sent[0] > page.acked_version:
+            page.acked_versions.append((sent[0], now))
         page.acked_version = max(page.acked_version, sent[0])
         page.last_ack = ack
         page.last_ack_t = now

@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
 from lightwork.contracts import render
@@ -51,6 +52,30 @@ def test_connect_gets_calib_then_full_scene(hubs):
         scene = ws.receive_json()
         assert scene["type"] == "scene" and scene["seq"] == 1 and scene["prims"][0]["id"] == "a"
         assert rh.hello("projector").innerWidth == 915 and rh.hello("screen") is None
+
+
+def test_view_reaches_a_page_before_anything_it_turns(hubs):
+    """The pattern must be drawn turned too, or the mapping solved from it does not hold for turned scenes."""
+    client, rh, _, _ = hubs
+    rh.set_view(render.View(rotate=180))
+    rh.set_calib(render.Calib(H_cam_to_page=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], page_size=[915, 412]))
+    rh.publish_scene(ring("a"))
+    with client.websocket_connect("/ws/render") as ws:
+        ws.send_json(hello("projector"))
+        assert ws.receive_json() == {"type": "view", "rotate": 180}
+        assert ws.receive_json()["type"] == "calib"
+        assert ws.receive_json()["type"] == "scene"
+        ack(ws, 1)
+        rh.set_view(render.View(rotate=0))  # a change reaches connected pages
+        assert ws.receive_json() == {"type": "view", "rotate": 0}
+
+
+def test_no_view_message_unless_one_is_set(hubs):
+    client, rh, _, _ = hubs
+    rh.publish_scene(ring("a"))
+    with client.websocket_connect("/ws/render") as ws:
+        ws.send_json(hello("projector"))
+        assert ws.receive_json()["type"] == "scene"
 
 
 def test_latest_wins_and_at_most_two_unacked(hubs):
@@ -180,6 +205,28 @@ def test_say_goes_to_projector_else_screen_and_tts_reports_back(hubs):
             proj.send_json({"type": "tts", "id": sid2, "state": "start"})
             assert done.wait(2)
     assert got == [render.Tts(id=sid2, state="start")]
+
+
+def test_sfx_goes_to_projector_else_screen_before_the_scene(hubs):
+    client, rh, _, _ = hubs
+    rh.sfx("scan")  # no page: dropped, never delivered later
+    with client.websocket_connect("/ws/render") as scr:
+        scr.send_json(hello("screen"))
+        assert scr.receive_json()["type"] == "scene"
+        rh.sfx("found", 0.5)
+        assert scr.receive_json() == {"type": "sfx", "name": "found", "gain": 0.5}
+        with client.websocket_connect("/ws/render") as proj:
+            proj.send_json(hello("projector"))
+            assert proj.receive_json()["type"] == "scene"
+            sid = rh.say("Found it")
+            rh.sfx("answer", 2.0)  # clamped to the contract's 0..1
+            rh.publish_scene(ring("a"))
+            assert proj.receive_json()["id"] == sid
+            assert proj.receive_json() == {"type": "sfx", "name": "answer", "gain": 1.0}
+            assert proj.receive_json()["prims"][0]["id"] == "a"
+            assert scr.receive_json()["prims"][0]["id"] == "a"  # projector connected: no sound on the screen
+    with pytest.raises(ValidationError):
+        rh.sfx("boom")
 
 
 def test_render_requires_hello_first(hubs):

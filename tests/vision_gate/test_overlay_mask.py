@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+import re
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -71,6 +73,34 @@ def test_arrow_dot_poly_label_geometry():
     assert lit(mw, 1000 + 0.95 * font_cam * 3, 200)
     open_ = rasterize([closed.model_copy(update={"closed": False})], H, PAGE, FRAME)
     assert not lit(open_, 200, 800)
+
+
+def test_glow_masks_the_halo_and_reveals_mask_as_fully_drawn():
+    """The camera sees the faint halo too; a revealing outline or label is masked as it ends up."""
+    plain = render.Poly(id="p", pts=[[600.0, 300.0], [1000.0, 300.0], [1000.0, 700.0]], closed=True, role="target")
+    glowing = plain.model_copy(update={"glow": True, "draw_ms": 800})
+    m0, m1 = rasterize([plain], H, PAGE, FRAME), rasterize([glowing], H, PAGE, FRAME)
+    half, halo = STROKE_CAM / 2, STROKE_CAM * style.GLOW_WIDTH_LINES / 2  # 5 and 16 camera px
+    assert not lit(m0, 800, 300 + half + 3) and lit(m1, 800, 300 + halo - 1.5) and not lit(m1, 800, 300 + halo + 3)
+    assert (m1 >= m0).all() and np.count_nonzero(m1) > 2.5 * np.count_nonzero(m0)
+    assert lit(m1, 800, 500)  # the closing edge, which a draw_ms outline reaches last
+    peak = STROKE_CAM * (1 + style.PULSE_GAIN) * style.GLOW_WIDTH_LINES / 2  # pulsing and glowing: 25.6 camera px
+    m = rasterize([ring(pulse=True).model_copy(update={"glow": True})], H, PAGE, FRAME)
+    assert lit(m, 800 + 60 + peak - 1.5, 400) and not lit(m, 800 + 60 + peak + 3, 400)
+    label = render.Label(id="l", at=[1000.0, 200.0], text="SCREWDRIVER", role="info")
+    typed = label.model_copy(update={"type_ms": 900})
+    assert (rasterize([typed], H, PAGE, FRAME) == rasterize([label], H, PAGE, FRAME)).all()
+
+
+def test_projector_style_mirrors_the_page_scripts():
+    web = Path(style.__file__).parents[1] / "web" / "js"
+    consts = {}
+    for name in ("scene.js", "projector.js"):
+        for key, value in re.findall(r"^const ([A-Z][A-Z0-9_]*) = ([0-9.]+);", (web / name).read_text(), re.M):
+            consts[key] = float(value)
+    for key in ("PROJ_W", "PROJ_H", "LINE_PROJ_PX", "TEXT_PROJ_PX", "PULSE_HZ", "PULSE_GAIN", "DOT_RADIUS_LINES",
+                "ARROW_HEAD_LINES", "ARROW_HEAD_RAD", "RING_SEGMENTS", "GLOW_WIDTH_LINES", "GLOW_ALPHA"):
+        assert consts.get(key) == getattr(style, key), key
 
 
 def test_perspective_ring_follows_mapped_points():

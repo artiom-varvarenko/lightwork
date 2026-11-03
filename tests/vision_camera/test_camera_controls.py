@@ -76,7 +76,7 @@ def test_apply_lock_both_name_sets_in_order(fake_v4l2, names):
     assert w.index(focus_auto) < w.index("focus_absolute")
     # readback = defaults from the brief, None-default controls = the device default written explicitly
     controls = report.controls()
-    assert controls[exp_auto] == 1 and controls[exp_abs] == 167
+    assert controls[exp_auto] == 1 and controls[exp_abs] == defaults()["exposure_time_absolute"]
     assert controls["white_balance_temperature"] == 5000 and controls["power_line_frequency"] == 1
     assert controls["focus_absolute"] == 20 and controls["brightness"] == 128 and controls["gain"] == 0
     # the readback was one -C call after all writes
@@ -98,9 +98,10 @@ def test_readback_mismatch_is_reported(fake_v4l2):
     assert not report.ok
     assert [r.name for r in report.mismatches] == ["exposure_time_absolute", "power_line_frequency"]
     bad = report.mismatches[0]
-    assert bad.value == 167 and bad.readback == 250 and bad.error is None
+    want = defaults()["exposure_time_absolute"]
+    assert bad.value == want and bad.readback == 250 and bad.error is None
     text = "\n".join(report.lines())
-    assert "exposure_time_absolute: want 167, MISMATCH read 250" in text
+    assert f"exposure_time_absolute: want {want}, MISMATCH read 250" in text
     assert "power_line_frequency: want 1, MISMATCH read 2" in text
 
 

@@ -229,7 +229,7 @@ def test_device_lock_applied_and_reapplied_after_reopen(tmp_path, monkeypatch, f
         d = cam.describe()
         assert d["device_id"] == "usb-046d_HD_Pro_Webcam_C920_ABCDEF-video-index0"
         assert d["mode"] == "MJPG 64x48@30"
-        assert d["controls"]["auto_exposure"] == 1 and d["controls"]["exposure_time_absolute"] == 167
+        assert d["controls"]["auto_exposure"] == 1 and d["controls"]["exposure_time_absolute"] == lock["exposure_time_absolute"]
     assert written_count(fake, "auto_exposure") == 2  # first open + the reopen
     assert len(caps.opened) == 4
 
@@ -245,7 +245,7 @@ def test_device_lock_mismatch_makes_camera_uncontrolled(tmp_path, fake_v4l2, fak
                             capture_factory=fake_capture([10**9]))
     with LiveCamera(backend) as cam:
         assert not cam.controlled
-        assert cam.status == "camera lock incomplete: exposure_time_absolute=250 (want 167)"
+        assert cam.status == f"camera lock incomplete: exposure_time_absolute=250 (want {lock['exposure_time_absolute']})"
         assert cam.report.name_set == "old"
 
 
@@ -310,3 +310,23 @@ def _no_c920(tmp_path):
     by_id.mkdir()
     (by_id / "usb-Generic_Laptop_Camera_2009-video-index0").symlink_to(tmp_path / "dev" / "video0")
     open_camera(None, by_id_dir=by_id)
+
+
+def test_truncated_mjpeg_frames_are_recognised():
+    """libjpeg decodes the missing part of a cut-short MJPEG frame as flat (128, 128, 128)."""
+    import numpy as np
+
+    from lightwork.vision.capture import truncated_mjpeg
+
+    rng = np.random.default_rng(0)
+    img = np.clip(rng.normal(128, 3, (1080, 1920, 3)), 0, 255).astype(np.uint8)  # a grey wall, with sensor noise
+    assert not truncated_mjpeg(img)
+    cut = img.copy()
+    cut[700:] = 128
+    assert truncated_mjpeg(cut)
+    part = img.copy()
+    part[400:416, 1000:1700] = 128  # one MCU row, from a lost packet to a restart marker
+    assert truncated_mjpeg(part)
+    saturated = img.copy()
+    saturated[500:] = 255
+    assert not truncated_mjpeg(saturated)

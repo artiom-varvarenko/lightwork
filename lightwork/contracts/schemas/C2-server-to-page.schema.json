@@ -169,6 +169,13 @@
         "text": {
           "title": "Text",
           "type": "string"
+        },
+        "type_ms": {
+          "default": 0,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Type Ms",
+          "type": "integer"
         }
       },
       "required": [
@@ -239,6 +246,18 @@
           "title": "Closed",
           "type": "boolean"
         },
+        "draw_ms": {
+          "default": 0,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Draw Ms",
+          "type": "integer"
+        },
+        "glow": {
+          "default": false,
+          "title": "Glow",
+          "type": "boolean"
+        },
         "id": {
           "title": "Id",
           "type": "string"
@@ -294,6 +313,11 @@
           "minItems": 2,
           "title": "C",
           "type": "array"
+        },
+        "glow": {
+          "default": false,
+          "title": "Glow",
+          "type": "boolean"
         },
         "id": {
           "title": "Id",
@@ -458,13 +482,75 @@
       ],
       "title": "SceneMsg",
       "type": "object"
+    },
+    "Sfx": {
+      "additionalProperties": false,
+      "description": "A short synthesized UI sound on the speaking page (projector, else screen); pages without sound ignore it.",
+      "properties": {
+        "gain": {
+          "default": 1.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Gain",
+          "type": "number"
+        },
+        "name": {
+          "enum": [
+            "scan",
+            "found",
+            "press",
+            "gone",
+            "error",
+            "listen",
+            "answer"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "const": "sfx",
+          "default": "sfx",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Sfx",
+      "type": "object"
+    },
+    "View": {
+      "additionalProperties": false,
+      "description": "How the projector page turns everything it draws, pattern included: ``rotate: 180`` reads right from the far side\nof a table. Page CSS px (``Calib.page_size``, ``Ack.drawn``) stay in the page's own, unturned frame, so a mapping\nsolved from a turned pattern already contains the turn. Sent on connect and on change; screen pages ignore it.",
+      "properties": {
+        "rotate": {
+          "default": 0,
+          "enum": [
+            0,
+            180
+          ],
+          "title": "Rotate",
+          "type": "integer"
+        },
+        "type": {
+          "const": "view",
+          "default": "view",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "View",
+      "type": "object"
     }
   },
   "discriminator": {
     "mapping": {
       "calib": "#/$defs/Calib",
       "say": "#/$defs/SayMsg",
-      "scene": "#/$defs/SceneMsg"
+      "scene": "#/$defs/SceneMsg",
+      "sfx": "#/$defs/Sfx",
+      "view": "#/$defs/View"
     },
     "propertyName": "type"
   },
@@ -477,6 +563,12 @@
     },
     {
       "$ref": "#/$defs/SayMsg"
+    },
+    {
+      "$ref": "#/$defs/Sfx"
+    },
+    {
+      "$ref": "#/$defs/View"
     }
   ]
 }

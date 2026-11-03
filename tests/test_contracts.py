@@ -10,6 +10,7 @@ from pydantic import TypeAdapter, ValidationError
 from lightwork.contracts import canonical, file_sha
 from lightwork.contracts.calls import request_fingerprint
 from lightwork.contracts.events import ChainError, Event, check_chain, read_events, seal
+from lightwork.contracts.layout import Calibration
 from lightwork.contracts.render import PageToServer, ServerToPage
 from lightwork.contracts.run import UNHASHED_FILES, Manifest
 from lightwork.contracts.schema import MODELS, SCHEMA_DIR, render_all
@@ -37,6 +38,42 @@ def test_example_round_trip_and_schema(fixtures_dir, name):
     assert canonical(adapter.dump_python(again, mode="json")) == canonical(adapter.dump_python(obj, mode="json"))
     schema = json.loads((SCHEMA_DIR / f"{name}.schema.json").read_text())
     jsonschema.validate(raw, schema)
+
+
+def test_calibration_is_projector_or_screen_only(fixtures_dir):
+    """A half-projector calibration would project without a mapping, or with one on a rig that has no projector."""
+    projector = json.loads((fixtures_dir / "contracts" / "C7-calibration.json").read_text())
+    screen = {**projector, "H_cam_to_page": None, "page": None, "residuals": None, "flat_field_crop_xywh": None,
+              "H_plate_cam_to_page": None, "measurement_mode": "normal"}
+    assert Calibration.model_validate(screen).screen_only
+    for key in ("H_cam_to_page", "page", "residuals"):
+        with pytest.raises(ValidationError, match="needs H_cam_to_page"):
+            Calibration.model_validate({**projector, key: None})
+        with pytest.raises(ValidationError, match="screen-only"):
+            Calibration.model_validate({**screen, key: projector[key]})
+
+
+def test_render_effects_are_optional_and_left_out_at_default(fixtures_dir):
+    """Scenes without effects must dump, and so hash (C1 ``scene``), exactly as before effects existed."""
+    adapter = ADAPTERS["C2-server-to-page"]
+    schema = json.loads((SCHEMA_DIR / "C2-server-to-page.schema.json").read_text())
+    raw = json.loads((fixtures_dir / "contracts" / "C2-server-to-page.json").read_text())
+    assert adapter.dump_python(adapter.validate_python(raw), mode="json") == raw
+    raw["prims"][0].update(glow=True, draw_ms=600)
+    raw["prims"][3]["type_ms"] = 400
+    ring = {"kind": "ring", "id": "r", "c": [1.0, 2.0], "r": 3.0, "role": "done", "pulse": False, "glow": True}
+    raw["prims"].append(ring)
+    jsonschema.validate(raw, schema)
+    assert adapter.dump_python(adapter.validate_python(raw), mode="json") == raw
+    sfx = {"type": "sfx", "name": "found", "gain": 0.5}
+    jsonschema.validate(sfx, schema)
+    assert adapter.dump_python(adapter.validate_python(sfx), mode="json") == sfx
+    assert adapter.validate_python({"type": "sfx", "name": "scan"}).gain == 1.0
+    for bad in ({"type": "sfx", "name": "boom"}, {"type": "sfx", "name": "scan", "gain": 1.5}):
+        with pytest.raises(ValidationError):
+            adapter.validate_python(bad)
+    with pytest.raises(ValidationError):
+        adapter.validate_python({**raw, "prims": [{**raw["prims"][0], "draw_ms": 5001}]})
 
 
 def test_canonical_rules():

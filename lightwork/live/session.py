@@ -18,7 +18,9 @@ it never changes reducer scenes or their recorded hashes.
 Every stored/sent image is a validated work-area crop. B verifies the measurement
 pair and encodes JPEG before H reads the saved bytes. Screen-only capture uses
 B's normal mode; once a projector has connected, loss of that page cannot silently
-switch to normal capture. No cache, synthetic response or model substitution is
+switch to normal capture. A screen-only calibration (C7 ``measurement_mode``
+"normal") never projects: /projector pages get no mapping and are ignored.
+No cache, synthetic response or model substitution is
 used in production. ``scripted=True`` is restricted to synthetic recorders and is
 only for the offline replay-as-live diagnostic (see ``diagnostic.py``).
 """
@@ -251,8 +253,9 @@ class LiveSession:
         info = self.source.describe()
         if not synthetic:
             self._check_camera(info)
-        self.overlay = OverlayMask((first.image.shape[1], first.image.shape[0]), self.calib.H_cam_to_page,
-                                   (self.calib.page.w, self.calib.page.h))
+        # A screen-only calibration has no projector mapping: nothing is projected, so nothing is masked.
+        self.overlay = None if self.calib.screen_only else OverlayMask(
+            (first.image.shape[1], first.image.shape[0]), self.calib.H_cam_to_page, (self.calib.page.w, self.calib.page.h))
         self.gate = Gate(self.regions, self.layout.work_area_xywh)
         self.hand_events = HandEvents(self.regions)
         if self.recorder is None:
@@ -294,8 +297,9 @@ class LiveSession:
         }
         self.control.on_action(self.on_ui)
         self.render.on_tts(self._on_tts)
-        self.render.set_calib(Calib(H_cam_to_page=self.calib.H_cam_to_page,
-                                    page_size=[self.calib.page.w, self.calib.page.h]))
+        if not self.calib.screen_only:
+            self.render.set_calib(Calib(H_cam_to_page=self.calib.H_cam_to_page,
+                                        page_size=[self.calib.page.w, self.calib.page.h]))
         self.control.push_state({
             **self.screen.snapshot(), "run": {"id": self.recorder.run_id, "pack": self.graph.id,
                 "mode": "live", "backend": self.backend, "provenance": prov},
@@ -373,6 +377,8 @@ class LiveSession:
         self._sync_projection(force=True)
 
     def _sync_projection(self, *, force: bool = False) -> bool:
+        if self.calib.screen_only:  # a /projector page gets no mapping and never lights the bench
+            return False
         projecting = self.render.hello("projector") is not None
         if projecting:
             self._projection_seen = True
@@ -517,7 +523,8 @@ class LiveSession:
                     hand_observed = True
                     for kind, payload in observations:
                         self._submit(_Message("input", (kind, "hands", payload), t=self.recorder.run_time(frame.t_mono)))
-                for kind, payload in self.gate.update(frame, self.overlay.mask_at(frame.t_mono)):
+                mask = self.overlay.mask_at(frame.t_mono) if self.overlay is not None else None
+                for kind, payload in self.gate.update(frame, mask):
                     self._submit(_Message("input", (kind, "gate", payload), t=self.recorder.run_time(frame.t_mono)))
                     capture_needed = payload["state"] == "settled"
                 if capture_needed and not hand_over:

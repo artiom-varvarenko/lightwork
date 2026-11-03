@@ -3,7 +3,10 @@
 All primitive coordinates are camera px (D5); each page maps them with ``H_cam_to_page`` from the ``calib`` message.
 ``scene`` is always a full snapshot; the latest wins and the server keeps at most 2 unacknowledged.
 Projector renderers map ``role`` to saturated primaries on pure black, lines >= 4 projector px, no fills, text >= 28
-projector px and never inside the work area.
+projector px and never inside the work area. Effects change how a prim is drawn, never where: ``glow`` adds a faint
+wide halo under the stroke; ``draw_ms`` / ``type_ms`` reveal an outline / label text when its id first appears (the
+overlay mask covers them as fully drawn). Effects at their default are left out of dumps, so a scene without effects
+serialises, and hashes (C1 ``scene``), exactly as before they existed.
 """
 
 from __future__ import annotations
@@ -20,6 +23,10 @@ class _M(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+def _unset(v: object) -> bool:
+    return not v
+
+
 # ---------------------------------------------------------------- primitives
 
 
@@ -30,6 +37,7 @@ class Ring(_M):
     r: float
     role: Role
     pulse: bool = False
+    glow: bool = Field(False, exclude_if=_unset)  # faint halo under the stroke (projector_style.GLOW_*)
 
 
 class Arrow(_M):
@@ -46,6 +54,8 @@ class Poly(_M):
     pts: list[XY]
     closed: bool
     role: Role
+    glow: bool = Field(False, exclude_if=_unset)
+    draw_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: draws itself from pts[0] when its id appears
 
 
 class Dot(_M):
@@ -61,6 +71,7 @@ class Label(_M):
     at: XY
     text: str
     role: Role
+    type_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: typed out when its id appears or text changes
 
 
 Prim = Annotated[Ring | Arrow | Poly | Dot | Label, Field(discriminator="kind")]
@@ -135,5 +146,22 @@ class SayMsg(_M):
     priority: Literal["normal", "interrupt"] = "normal"
 
 
+class Sfx(_M):
+    """A short synthesized UI sound on the speaking page (projector, else screen); pages without sound ignore it."""
+
+    type: Literal["sfx"] = "sfx"
+    name: Literal["scan", "found", "press", "gone", "error", "listen", "answer"]
+    gain: float = Field(1.0, ge=0.0, le=1.0)
+
+
+class View(_M):
+    """How the projector page turns everything it draws, pattern included: ``rotate: 180`` reads right from the far side
+    of a table. Page CSS px (``Calib.page_size``, ``Ack.drawn``) stay in the page's own, unturned frame, so a mapping
+    solved from a turned pattern already contains the turn. Sent on connect and on change; screen pages ignore it."""
+
+    type: Literal["view"] = "view"
+    rotate: Literal[0, 180] = 0
+
+
 PageToServer = Annotated[Hello | Ack | Tts, Field(discriminator="type")]
-ServerToPage = Annotated[Calib | SceneMsg | SayMsg, Field(discriminator="type")]
+ServerToPage = Annotated[Calib | SceneMsg | SayMsg | Sfx | View, Field(discriminator="type")]

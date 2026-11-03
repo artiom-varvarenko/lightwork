@@ -74,13 +74,35 @@ class MmScale(_M):
 
 
 class Calibration(_M):
-    H_cam_to_page: H3
-    page: PageInfo
+    """``measurement_mode`` "normal" marks a screen-only calibration (``lightwork calibrate screen``): no projector
+    was calibrated, so ``H_cam_to_page``, ``page`` and ``residuals`` are null and nothing may be projected with it.
+    Grey/dark calibrations always carry the projector mapping they were solved with."""
+
+    H_cam_to_page: H3 | None
+    page: PageInfo | None
     camera: CameraInfo
-    residuals: Residuals
+    residuals: Residuals | None
     mm: MmScale
     flat_field_sha: str | None = None
     flat_field_crop_xywh: Annotated[list[int], Field(min_length=4, max_length=4)] | None = None
-    measurement_mode: Literal["grey", "dark"]
+    measurement_mode: Literal["grey", "dark", "normal"]
     created: str
     H_plate_cam_to_page: H3 | None = None  # optional second homography at plate height (rig:C4 > 3 mm)
+
+    @property
+    def screen_only(self) -> bool:
+        return self.measurement_mode == "normal"
+
+    @model_validator(mode="after")
+    def _projector_or_screen(self):
+        mapping = (self.H_cam_to_page, self.page, self.residuals)
+        if not self.screen_only:
+            if any(v is None for v in mapping):
+                raise ValueError("a grey/dark (projector) calibration needs H_cam_to_page, page and residuals")
+            return self
+        projector_only = (*mapping, self.H_plate_cam_to_page, self.flat_field_sha, self.flat_field_crop_xywh,
+                          self.mm.H_cam_to_mm)
+        if any(v is not None for v in projector_only) or self.mm.source != "nominal":
+            raise ValueError("a screen-only calibration (measurement_mode normal) has no projector mapping, "
+                             "residuals, plate homography, flat field or mm scale")
+        return self

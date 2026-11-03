@@ -52,7 +52,7 @@ Use a fresh output directory and open `http://127.0.0.1:8080/`. The viewer reuse
 
 ## Rig and calibration
 
-Fix the camera above the accepted work area. Use matte backing, stable lighting and locked exposure, white balance and focus. Linux by-id devices are preferable to unstable camera indices. `doctor` reports devices and environment; it is not a hardware acceptance test.
+Fix the camera above the accepted work area. Use matte backing, stable lighting and locked exposure, white balance and focus. Linux by-id devices are preferable to unstable camera indices. `doctor` reports devices and environment; it is not a hardware acceptance test. On the C920 PRO (`046d:08e5`) only some `exposure_time_absolute` steps take effect while streaming: 156 (the default) and 312 read back exactly, while values such as 167 are ignored and leave the lock incomplete.
 
 ```sh
 uv run lightwork doctor
@@ -70,7 +70,34 @@ Open/tap Start on the projector page if a programmatic tap does not grant fullsc
 
 `calibrate check --camera "$CAMERA" --output "$CALIB"` checks a saved calibration; it needs the documented physical reference/card and operator alignment inspection. Nominal scale is not measured millimetre accuracy. Recalibrate after movement or a page-size change. Do not run calibration alongside live/replay on the same port.
 
-Screen overlay does not need a connected projector during live operation, but the current `live` CLI still requires a valid calibration file matching its actual camera device/mode/control readback. There is no advertised screen-only calibration bootstrap command; do not fabricate a calibrated rig by copying the fixture's file.
+### Screen-only guidance (no projector)
+
+Guidance can also appear only on `/screen`, drawn over the camera image, with speech from that page. No overhead mount is needed, but the camera must stay fixed and see every object and region of the work area. Lock its controls at that position, then record the camera:
+
+```sh
+uv run python -m lightwork.vision.capture --focus-sweep --save-lock
+uv run lightwork calibrate screen --camera "$CAMERA"
+```
+
+This writes `.lightwork/calib/screen.json` (`--output` selects another path): the camera device, mode and locked control readback, with `measurement_mode: "normal"` and no projector mapping, residuals, flat field or mm scale. An incomplete lock is refused. Live checks the camera against this file before every capture, so recalibrate after changing the camera, its mode or its lock. With it, live never projects: a `/projector` page gets no mapping and captures stay in normal mode. The projector actions (`check`, `plate`, `flat`, `watch`) refuse it. Never substitute the fixture's calibration.
+
+## Projected table (`play --table`)
+
+A live table demo, separate from recorded procedure runs. The projector page must be up (`lightwork tank up`); the session calibrates, asks for three touches, then learns the empty table (it refuses while something dark still lies on it).
+
+```sh
+uv run lightwork play --table --rotate 180 --names meta \
+  --task procedures/serial-dilution-row-a/bench.json --voice
+```
+
+- **Objects** are found only in scans: once the view has been still for about 0.35 s after a change, everything projected over the table goes dark for about a quarter of a second, the page's ACK is waited for, and two clean frames are compared with the learned table. The camera therefore never sees its own outlines or labels. Outlines redraw themselves after each scan; a hand on an object turns it yellow until the next scan.
+- **Hands** are searched in overlapping full-resolution tiles and each one is then followed in its own crop, so MediaPipe sees palms about three times larger than in a whole-page search.
+- **Names** (`--names meta`): every object found in one scan goes to Muse Spark in a single call. With `--task`, the same call also says which listed item each object is: listed items turn green, others red, and the status line shows progress (`SERIAL DILUTION 4/6 NEED ...`). `--task` also takes a text file or inline `"Title: item, item"`.
+- **Outlines** (`--sam`, on by default with Meta names): SAM 3.1 gets one box per new object and the outline follows its mask.
+- **Questions** (`--voice`): open `/screen` on the laptop and press Start for the microphone (Muse Voice Transcribe). Point at an object and ask "what is this?"; Muse Spark answers through the projector phone. "What's missing?" is answered from the checklist without a model call.
+- Model calls are recorded under `.lightwork/play-calls/` and held to `LW_BUDGET_USD`.
+
+For filming, keep the setup still: camera plugged into the laptop itself (not a hub; truncated frames are dropped and counted), steady room light (the camera gain is fixed after calibration in table mode), the tripod clear of the table, and dark or coloured matte objects with space between them. Reload the projector page and tap Start after updating, so the page picks up the new scripts and sound is unlocked.
 
 ## Author a procedure
 
@@ -117,7 +144,7 @@ uv run lightwork live --pack procedures/kit-return-check \
   --layout "$LAYOUT" --calib "$CALIB" --source "$CAMERA" --backend meta
 ```
 
-Open `/screen` and press Start to enable speech/microphone permissions. `/projector` is optional. With a connected projector, capture uses the calibrated grey/dark ACK sequence; losing that page does not silently downgrade to an illuminated normal frame. Without a projector, screen-only capture uses normal mode.
+Open `/screen` and press Start to enable speech/microphone permissions. `/projector` is optional. With a connected projector, capture uses the calibrated grey/dark ACK sequence; losing that page does not silently downgrade to an illuminated normal frame. Without a projector, or with a screen-only calibration, capture uses normal mode. Speech plays on the newest `/projector` page, otherwise on `/screen`. Chromium on Linux has voices only with `speech-dispatcher` (for example with `espeak-ng`) installed **and** Chromium started with `--enable-speech-dispatcher` (on Arch, a line in `~/.config/chromium-flags.conf`); without the flag it reports no voices.
 
 Terminal controls: Space = confirm, `r` = repeat, `b` = back, `q` = stop. Stop/SIGINT/SIGTERM drains outstanding calls before closing the run. Confirmation is not fabricated model evidence: unresolved steps remain explicitly `unverified`.
 

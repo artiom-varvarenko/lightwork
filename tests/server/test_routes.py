@@ -40,7 +40,15 @@ def test_pages_served(client):
         assert r.headers["cache-control"] == "no-cache"
     assert client.get("/viewer").status_code == (200 if (WEB_DIR / "viewer.html").is_file() else 404)
     for js in ("scene", "aruco", "link", "tts", "projector", "screen"):
-        assert client.get(f"/static/js/{js}.js").status_code == 200
+        r = client.get(f"/static/js/{js}.js")
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache"
+
+
+def test_page_script_urls_change_with_the_script(client):
+    """A phone's Chrome kept an old projector.js "fresh" across reloads: the page names its script by mtime."""
+    stamp = (WEB_DIR / "js" / "projector.js").stat().st_mtime_ns
+    assert f'src="/static/js/projector.js?v={stamp}"' in client.get("/projector").text
+    assert client.get(f"/static/js/projector.js?v={stamp}").status_code == 200
 
 
 def test_list_runs(client):

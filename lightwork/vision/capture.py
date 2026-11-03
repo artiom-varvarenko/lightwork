@@ -58,6 +58,18 @@ class CameraNotFound(RuntimeError):
     pass
 
 
+def truncated_mjpeg(img: np.ndarray) -> bool:
+    """A cut-short MJPEG frame: libjpeg ("Corrupt JPEG data: premature end of data segment") decodes what is missing
+    as flat grey, exactly (128, 128, 128). 2 Nov: 309 such frames in 2.5 h from the C920 behind a USB hub; each one
+    looked like a light change across the table. No camera image has a quarter of a row at exactly 128 in all three
+    channels: sensor noise and compression break it up. Checks the middle row of every 16-px MCU row."""
+    rows = img[8::16]
+    if rows.ndim != 3 or rows.shape[2] != 3 or rows.size == 0:
+        return False
+    flat = np.all(rows == 128, axis=2)
+    return bool((flat.mean(axis=1) > 0.25).any())
+
+
 class Backend(Protocol):
     reconnect: bool  # True: a failed grab means "lost, reopen"; False: it means end of source
     controlled: bool
@@ -264,6 +276,7 @@ class LiveCamera:
         self._reopens = 0
         self._ages: deque[float] = deque(maxlen=10_000)
         self._gap_max = 0.0
+        self.dropped = 0  # truncated MJPEG frames never published
         img = backend.open()
         self._publish(img, time.monotonic(), None)
         self._thread = threading.Thread(target=self._loop, name="lightwork-capture", daemon=True)
@@ -325,7 +338,8 @@ class LiveCamera:
         """Frames produced, reopens, max inter-frame gap and driver-to-app age percentiles (live V4L2 only)."""
         with self._cond:
             ages = np.array(self._ages, dtype=np.float64)
-            out = {"frames": self._next_idx, "reopens": self._reopens, "gap_ms_max": round(self._gap_max * 1000, 1)}
+            out = {"frames": self._next_idx, "reopens": self._reopens, "gap_ms_max": round(self._gap_max * 1000, 1),
+                   "dropped_truncated": self.dropped}
         if ages.size:
             out["age_ms_p50"] = round(float(np.percentile(ages, 50)) * 1000, 1)
             out["age_ms_p95"] = round(float(np.percentile(ages, 95)) * 1000, 1)
@@ -387,6 +401,12 @@ class LiveCamera:
                 if self._stop.is_set():
                     break
                 if got is not None:
+                    if self._backend.reconnect and truncated_mjpeg(got[0]):  # live camera: drop, read the next
+                        self.dropped += 1
+                        if self.dropped in (1, 10, 100) or self.dropped % 1000 == 0:
+                            log.warning("dropped %d truncated camera frame(s) (USB bandwidth? plug the camera into "
+                                        "the laptop itself, not a hub)", self.dropped)
+                        continue
                     self._publish(*got)
                     continue
                 if not self._backend.reconnect:

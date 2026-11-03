@@ -1,5 +1,6 @@
 """Calibration and rig:C1-C4 checks. Starts a local server and waits for /projector (run `lightwork tank up`
 in another terminal). No camera images are saved except an explicitly selected, verified flat-field crop.
+`calibrate screen` needs no projector: it records the locked camera for screen-only guidance.
 See `lightwork.vision.calib` for the hardware-check recipe; all library flows also accept synthetic camera/page peers.
 """
 
@@ -10,13 +11,13 @@ from contextlib import contextmanager
 from pathlib import Path
 
 COMMAND = "calibrate"
-HELP = "Calibrate projector guidance; run, card, check, watch, plate, or flat (rig:C1-C4)."
+HELP = "Calibrate projector guidance (run, card, check, watch, plate, flat; rig:C1-C4) or a screen-only camera (screen)."
 
 
 def configure(p) -> None:
-    p.add_argument("action", nargs="?", choices=("run", "card", "check", "watch", "plate", "flat"), default="run")
+    p.add_argument("action", nargs="?", choices=("run", "card", "check", "watch", "plate", "flat", "screen"), default="run")
     p.add_argument("--camera", help="by-id path, camera index, video, or image directory (default: C920)")
-    p.add_argument("--output", type=Path, help="calib.json path; for card, printable SVG path")
+    p.add_argument("--output", type=Path, help="calib.json path (screen: .lightwork/calib/screen.json); for card, printable SVG path")
     p.add_argument("--port", type=int, default=8000, help="local server port (default 8000)")
     p.add_argument("--page-wait", type=float, default=90.0, help="seconds to wait for a stable projector hello")
     p.add_argument("--mm", choices=("auto", "card", "idcard", "nominal"), default="auto")
@@ -123,6 +124,25 @@ def _reference(cam, link, calib):
     return monitor
 
 
+def _screen(args) -> int:
+    from ..vision.calib.flow import save_calibration, screen_calib_path, screen_calibration
+
+    path = args.output or screen_calib_path()
+    cam = _open_camera(args.camera)
+    try:
+        calib = screen_calibration(cam)
+        controlled = cam.controlled
+    finally:
+        cam.close()
+    save_calibration(calib, path)
+    print(f"{path}: screen-only calibration for {calib.camera.device_id}, {calib.camera.mode}; nothing is projected")
+    print(f"controls: {calib.camera.controls or 'none (auto settings)'}")
+    if not controlled:
+        print("WARNING: uncontrolled camera; lock exposure, focus and white balance for repeatable evidence")
+    print("Recalibrate after changing the camera, its mode or its lock (.lightwork/camera.json).")
+    return 0
+
+
 def _watch(args, cam, link, page, path):
     from ..vision.calib.flow import recalibrate
     from ..vision.calib.solve import CalibrationError
@@ -163,7 +183,7 @@ def _watch(args, cam, link, page, path):
 
 
 def run(args) -> int:
-    from ..vision.calib.flow import add_flat_field, calib_path, calibrate_plate_height, run_calibration
+    from ..vision.calib.flow import add_flat_field, calib_path, calibrate_plate_height, load_calibration, run_calibration
     from ..vision.calib.mm import card_svg, mm_per_page_px
     from ..vision.calib.solve import CalibrationError
 
@@ -174,11 +194,15 @@ def run(args) -> int:
             path.write_text(card_svg(), encoding="utf-8")
             print(f"{path}: print A4 landscape at 100 %, no fit-to-page; verify the 100 mm bar with a ruler")
             return 0
+        if args.action == "screen":
+            return _screen(args)
         if args.repeat < 1 or args.interval <= 0 or args.duration < 0 or args.page_wait <= 0 or args.mount_mm <= 0:
             raise ValueError("repeat >=1, interval/page-wait/mount-mm >0 and duration >=0 are required")
         if args.action == "flat" and args.work_area is None:
             raise ValueError("flat requires --work-area X Y W H; only explicitly selected pixels may be stored")
         path = args.output or calib_path()
+        if args.action != "run" and load_calibration(path).screen_only:
+            raise ValueError(f"{path} is a screen-only calibration; projector checks need `lightwork calibrate run`")
         with _rig(args) as (cam, link, page):
             if args.action == "run":
                 ok = True

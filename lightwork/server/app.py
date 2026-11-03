@@ -31,13 +31,23 @@ def discover_routers():
     return out
 
 
+class NoCacheStatic(StaticFiles):
+    """Static files the browser revalidates (ETag, so unchanged files cost a 304): a phone keeps the projector page
+    open for days, and its scripts must follow code changes."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 def create_app(**state: Any) -> FastAPI:
     app = FastAPI(title="Lightwork", version=__version__, docs_url=None, redoc_url=None)
     for key, value in state.items():
         setattr(app.state, key, value)
     for _name, router in discover_routers():
         app.include_router(router)
-    app.mount("/static", StaticFiles(directory=WEB_DIR, check_dir=True), name="static")
+    app.mount("/static", NoCacheStatic(directory=WEB_DIR, check_dir=True), name="static")
     return app
 
 

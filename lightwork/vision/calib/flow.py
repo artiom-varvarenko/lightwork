@@ -1,5 +1,6 @@
 """Calibration on the rig (PLAN §4.4, D5, D7; C7): flash the pattern, solve, add the mm scale and write
 ``.lightwork/calib/calib.json``; optional consented-crop flat field, bump re-solve and plate-height homography.
+Screen-only guidance (no projector) records just the locked camera in ``.lightwork/calib/screen.json``.
 
 Choreography: ``show_mode("pattern")`` -> ACK -> frames older than ACK + 120 ms are skipped (they may still show the
 previous page) -> the next frames are detected until >= ``N_FRAMES`` frames together hold >= 6 markers (a hand may
@@ -37,7 +38,7 @@ MAX_RMS_PX = 1.5  # rig:C2
 DEFAULT_MOUNT_MM = 500.0
 LIT_MODE = "grey"  # frame for finding printed references: lights the bench without clipping it
 MM_SOURCES = ("auto", "card", "idcard", "nominal")
-CALIB_DIR, CALIB_FILE = "calib", "calib.json"
+CALIB_DIR, CALIB_FILE, SCREEN_CALIB_FILE = "calib", "calib.json", "screen.json"
 CLIP_NOTE = 0.01  # share of clipped marker pixels worth a warning
 
 
@@ -66,6 +67,10 @@ def calib_path(state_dir: Path | None = None) -> Path:
     return calib_dir(state_dir) / CALIB_FILE
 
 
+def screen_calib_path(state_dir: Path | None = None) -> Path:
+    return calib_dir(state_dir) / SCREEN_CALIB_FILE
+
+
 def flat_field_path(calib_file: Path, sha: str) -> Path:
     """The flat-field JPEG named by ``flat_field_sha`` sits next to ``calib.json``; runs store it as
     ``frames/<sha>.jpg``."""
@@ -89,6 +94,23 @@ def load_calibration(path: Path | None = None) -> Calibration:
 
 def _now_utc() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def screen_calibration(cam: Camera) -> Calibration:
+    """C7 for guidance shown only on the screen: the camera identity and control readback that live checks before
+    every capture. No projector is involved, so there is no mapping, residual, flat field or mm scale to record, and
+    live never projects or switches measurement modes with it. An incomplete lock is refused: live would reject it."""
+    report = getattr(cam, "report", None)
+    if report is not None and not report.ok:
+        raise CalibrationError(f"{getattr(cam, 'status', 'camera lock incomplete')}; fix the camera lock first")
+    if cam.latest() is None:
+        raise CalibrationError("camera gave no frame")
+    info = cam.describe()
+    return Calibration(
+        H_cam_to_page=None, page=None, residuals=None,
+        camera=CameraInfo(device_id=info["device_id"], mode=info["mode"], controls=info["controls"]),
+        mm=MmScale(source="nominal"), measurement_mode="normal", created=_now_utc(),
+    )
 
 
 # ---------------------------------------------------------------------------------------------------- pattern flash

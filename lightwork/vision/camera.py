@@ -4,7 +4,7 @@ Controls are written in :data:`LOCK_ORDER` (every auto switch before its manual 
 manual value while its auto mode is on), one ``v4l2-ctl -c`` call each, then read back with ``v4l2-ctl -C``. Kernels
 expose one of two name sets (``auto_exposure`` vs ``exposure_auto`` ...); a lock is keyed by the new names and each
 control is written under whichever name the device lists. Lock values: ``.lightwork/camera.json``
-(``{"controls": {"exposure_time_absolute": 333, ...}}``, old names accepted, ``null`` = device default) merged over
+(``{"controls": {"exposure_time_absolute": 312, ...}}``, old names accepted, ``null`` = device default) merged over
 :data:`LOCK_ORDER` defaults. Requested values are clamped to the device's min/max/step before writing; the readback
 must equal the clamped value.
 """
@@ -37,7 +37,9 @@ class CtrlSpec:
 LOCK_ORDER: tuple[CtrlSpec, ...] = (
     CtrlSpec("auto_exposure", "exposure_auto", 1),  # 1 = manual on V4L2
     CtrlSpec("exposure_dynamic_framerate", "exposure_auto_priority", 0),
-    CtrlSpec("exposure_time_absolute", "exposure_absolute", 167),  # 100 us units; whole multiple of 8.33 ms
+    # 100 us units. A streaming C920 PRO (046d:08e5) applies only a few steps (156 and 312 read back exactly) and
+    # silently keeps its old value for others such as 167, so the default is its own default step.
+    CtrlSpec("exposure_time_absolute", "exposure_absolute", 156),
     CtrlSpec("gain", None, None),
     CtrlSpec("white_balance_automatic", "white_balance_temperature_auto", 0),
     CtrlSpec("white_balance_temperature", None, 5000),

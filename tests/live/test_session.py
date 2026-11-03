@@ -16,7 +16,7 @@ from lightwork.config import Settings
 from lightwork.contracts.calls import CallMeta, request_fingerprint
 from lightwork.contracts.canonical import sha256_hex
 from lightwork.contracts.events import Event, read_events
-from lightwork.contracts.layout import Layout
+from lightwork.contracts.layout import Calibration, Layout
 from lightwork.contracts.render import Tts
 from lightwork.contracts.stepgraph import StepGraph
 from lightwork.core.scenarios import calibration
@@ -133,7 +133,8 @@ def session_factory(tmp_path):
 
     def create(*, quiet=False, voice=None, voice_dry_run=False, hubs=None, measurement_mode="grey"):
         graph, layout, calib = artefacts()
-        calib = calib.model_copy(update={"measurement_mode": measurement_mode})
+        screen = {"H_cam_to_page": None, "page": None, "residuals": None} if measurement_mode == "normal" else {}
+        calib = Calibration.model_validate({**calib.model_dump(), **screen, "measurement_mode": measurement_mode})
         clock = FixtureClock()
         recorder = Recorder(tmp_path / str(len(sessions)), graph.id, {
             "run_id": "20261029T120000Z_" + graph.id, "backend": "meta",
@@ -358,6 +359,22 @@ def test_capture_failure_and_projector_disconnect_never_accept_evidence(session_
         session.capture_now().result(3)
     assert not calls.requests
     assert not any(e.type == "keyframe" for e in observed.events)
+
+
+def test_screen_only_calibration_never_lights_a_connected_projector(session_factory):
+    renderer = Render()
+    hubs = make_hubs()
+    hubs["render_hub"].close()
+    hubs["render_hub"] = renderer
+    session, calls, _, clock, _ = session_factory(hubs=hubs, measurement_mode="normal")
+    renderer.projector = True  # a /projector page is open, but this rig was calibrated for the screen only
+    clock.t = .2
+    frame = session.capture_now().result(3)
+    assert renderer.modes == []
+    assert frame.payload["mode"] == "normal" and frame.payload["verified"]
+    calls.release_all()
+    session.stop()
+    assert verify_run(session.join(5)).ok
 
 
 def test_unverified_crop_is_logged_but_never_model_evidence(session_factory):

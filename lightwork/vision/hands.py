@@ -1,7 +1,11 @@
 """Hands (D12, advisory only): MediaPipe HandLandmarker -> index fingertip in camera px -> C1 ``hands`` events.
 
-``HandTracker`` runs MediaPipe 1.x HandLandmarker in VIDEO mode at 640 px wide (640x360 for 16:9 frames). MediaPipe
-is in the optional ``live`` extra and is imported lazily; replay, verify and export never touch this class.
+``HandTracker`` runs MediaPipe 1.x HandLandmarker in VIDEO mode at 640 px wide (640x360 for 16:9 frames), or at full
+resolution / in IMAGE mode when asked. MediaPipe is in the optional ``live`` extra and is imported lazily; replay,
+verify and export never touch this class.
+``TiledHandTracker`` also searches overlapping tiles over a region, for hands far from the camera (``lightwork play``).
+``RegionHandTracker`` follows up to two hands, with all landmarks, in a crop around the projected page.
+``CropHandTracker`` (``play --table``) finds up to two hands in full-resolution tiles and follows each in its own crop.
 
 ``HandEvents`` turns observations into C1 ``hands`` payloads ``{over_regions, tip_xy}``:
 
@@ -122,6 +126,132 @@ class HandObs:
     tips: tuple[tuple[float, float], ...] = ()  # index fingertips of all detected hands, primary first
 
 
+@dataclass(frozen=True, eq=False)
+class HandPose:
+    img: np.ndarray  # 21 x 2 camera px
+    world: np.ndarray  # 21 x 3 metres, hand-centred (MediaPipe world landmarks)
+    side: str  # MediaPipe handedness label ("Left"/"Right"; it assumes a mirrored, selfie-style image)
+    score: float
+
+    @property
+    def tip(self) -> tuple[float, float]:
+        return float(self.img[INDEX_TIP][0]), float(self.img[INDEX_TIP][1])
+
+    def shifted(self, dx: float, dy: float) -> HandPose:
+        return HandPose(self.img + (dx, dy), self.world, self.side, self.score)
+
+
+def palm_px(img: np.ndarray) -> float:
+    """Palm length in image px: wrist to middle-finger knuckle (landmarks 0 and 9)."""
+    return float(np.linalg.norm(img[9] - img[0]))
+
+
+def _alpha(cutoff_hz, dt: float):
+    return 1.0 / (1.0 + 1.0 / (2.0 * math.pi * np.asarray(cutoff_hz) * dt))
+
+
+class PoseFilter:
+    """Steadies one hand's 21 landmarks for drawing: a One Euro filter per landmark, then a dead band.
+
+    MediaPipe's landmarks move by a few px every frame even when the hand is still, and drawn raw onto the hand they
+    shake (2 Nov, table: "the projection keeps shaking ... even when they're still"). The One Euro filter (Casiez,
+    Roussel and Vogel, CHI 2012) smooths strongly at rest and hardly at all in fast moves: its cutoff rises with each
+    landmark's speed. Speeds are measured in palm lengths per second and the dead band in palm lengths, so the same
+    settings hold for a hand near the camera and one across the table. A drawn landmark then moves only once its
+    filtered position is more than ``deadband`` away, and then only by the excess (a leash, never a jump): what is left
+    of the noise never reaches the projection, and a small tremble between the projected lines and the hand they light
+    cannot feed itself.
+    """
+
+    # Tuned on simulated MediaPipe noise (3-5 px per landmark on a 160 px palm, 25 fps, 2 Nov): a still hand is drawn
+    # 40-100x steadier than raw; at 3 palm lengths per second the drawing trails by about a tenth of a palm. 3 Nov
+    # ("the hand tracking is slow"): a 0.5 -> 1.0 Hz floor only cut the trail of a slow hand from 155 to 131 ms; the
+    # dead band sets most of it, and it is what keeps a still hand still. Kept as tuned.
+    MIN_CUTOFF_HZ = 0.5  # at rest
+    BETA = 2.0  # cutoff added per palm length per second of landmark speed
+    D_CUTOFF_HZ = 2.0  # speed estimate
+    DEADBAND = 0.03  # palm lengths (about 3 mm on a hand): the leash between filtered and drawn landmarks
+    RESET_S = 0.3  # a longer gap restarts the filter at the new position
+
+    def __init__(self, *, min_cutoff: float = MIN_CUTOFF_HZ, beta: float = BETA, d_cutoff: float = D_CUTOFF_HZ,
+                 deadband: float = DEADBAND):
+        self.min_cutoff, self.beta, self.d_cutoff, self.deadband = min_cutoff, beta, d_cutoff, deadband
+        self.reset()
+
+    def reset(self) -> None:
+        self.raw: np.ndarray | None = None  # last input, image px
+        self.x: np.ndarray | None = None  # filtered
+        self.dx: np.ndarray | None = None  # filtered velocity, px/s
+        self.shown: np.ndarray | None = None  # what to draw: filtered, behind the dead band
+        self.palm = 0.0  # smoothed palm length, px
+        self.t: float | None = None
+
+    def update(self, img: np.ndarray, t: float) -> np.ndarray:
+        """Feed this frame's landmarks (21 x 2 px, frame time ``t`` in s); returns the landmarks to draw (a copy)."""
+        img = np.asarray(img, dtype=np.float64)
+        palm = max(palm_px(img), 1.0)
+        dt = None if self.t is None else t - self.t
+        if dt is None or dt <= 0 or dt > self.RESET_S:
+            self.raw, self.x, self.shown = img.copy(), img.copy(), img.copy()
+            self.dx = np.zeros_like(img)
+            self.palm, self.t = palm, t
+            return self.shown.copy()
+        self.palm += 0.2 * (palm - self.palm)
+        self.dx += _alpha(self.d_cutoff, dt) * ((img - self.raw) / dt - self.dx)
+        speed = np.linalg.norm(self.dx, axis=1) / self.palm  # palm lengths per second, per landmark
+        self.x += _alpha(self.min_cutoff + self.beta * speed, dt)[:, None] * (img - self.x)
+        gap = self.x - self.shown
+        dist = np.linalg.norm(gap, axis=1)
+        excess = dist - self.deadband * self.palm
+        moved = excess > 0  # dragged on a leash: never a jump, and still while the filter stays within the band
+        self.shown[moved] += gap[moved] * (excess[moved] / dist[moved])[:, None]
+        self.raw, self.t = img.copy(), t
+        return self.shown.copy()
+
+
+class JitterMeter:
+    """Frame-to-frame landmark movement of a hand held still, raw and as drawn (``PoseFilter.shown``), in image px.
+
+    A frame counts when the raw palm centre stayed within ``STILL`` palm lengths of its mean over the last ``WINDOW``
+    frames. ``take()`` returns (still frames, raw RMS px, drawn RMS px, share of still frames that redrew) and starts
+    over."""
+
+    WINDOW = 8
+    STILL = 0.04
+    PALM = (0, 5, 9, 13, 17)
+
+    def __init__(self) -> None:
+        self._centres: list[np.ndarray] = []
+        self._prev: tuple[np.ndarray, np.ndarray] | None = None
+        self._n = self._moved = 0
+        self._raw2 = self._shown2 = 0.0
+
+    def clear(self) -> None:
+        self._centres, self._prev = [], None
+
+    def add(self, raw: np.ndarray, shown: np.ndarray) -> None:
+        self._centres = (self._centres + [raw[list(self.PALM)].mean(axis=0)])[-self.WINDOW:]
+        prev, self._prev = self._prev, (raw.copy(), shown.copy())
+        if prev is None or len(self._centres) < self.WINDOW:
+            return
+        c = np.array(self._centres)
+        if float(np.max(np.linalg.norm(c - c.mean(axis=0), axis=1))) > self.STILL * max(palm_px(raw), 1.0):
+            return
+        d_raw = np.linalg.norm(raw - prev[0], axis=1)
+        d_shown = np.linalg.norm(shown - prev[1], axis=1)
+        self._n += 1
+        self._raw2 += float(np.mean(d_raw**2))
+        self._shown2 += float(np.mean(d_shown**2))
+        self._moved += bool(np.any(d_shown > 0))
+
+    def take(self) -> tuple[int, float, float, float]:
+        n = self._n
+        out = (n, math.sqrt(self._raw2 / n), math.sqrt(self._shown2 / n), self._moved / n) if n else (0, 0.0, 0.0, 0.0)
+        self._n = self._moved = 0
+        self._raw2 = self._shown2 = 0.0
+        return out
+
+
 class HandTracker:
     """MediaPipe HandLandmarker (VIDEO mode). Not thread-safe: call ``process`` from one worker thread.
 
@@ -130,12 +260,15 @@ class HandTracker:
     on every frame looking for the second hand: 17 ms p50 / 25 ms p95, over the 15 ms budget.
     """
 
-    def __init__(self, model_path: Path | None = None, *, num_hands: int = 1, min_confidence: float = 0.5):
+    def __init__(self, model_path: Path | None = None, *, num_hands: int = 1, min_confidence: float = 0.5,
+                 infer_w: int | None = INFER_W, image_mode: bool = False):
+        """``infer_w``: width every input is resized to first (None: as given, at full resolution). ``image_mode``:
+        each call stands alone (MediaPipe IMAGE mode, palm detection every time) instead of tracking (VIDEO mode)."""
         mp, vision, BaseOptions = _import_mediapipe()
         path = ensure_model(Path(model_path) if model_path is not None else default_model_path())
         opts = vision.HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(path)),
-            running_mode=vision.RunningMode.VIDEO,
+            running_mode=vision.RunningMode.IMAGE if image_mode else vision.RunningMode.VIDEO,
             num_hands=num_hands,
             min_hand_detection_confidence=min_confidence,
             min_hand_presence_confidence=min_confidence,
@@ -144,17 +277,41 @@ class HandTracker:
         self._mp = mp
         self._lm = vision.HandLandmarker.create_from_options(opts)
         self._last_ms = -1
+        self._infer_w = infer_w
+        self._image_mode = image_mode
 
-    def process(self, frame: Frame) -> HandObs:
+    def _detect(self, frame: Frame):
         img = frame.image
         h, w = img.shape[:2]
-        ih = max(1, round(h * INFER_W / w))
-        small = img if w == INFER_W else cv2.resize(img, (INFER_W, ih), interpolation=cv2.INTER_AREA)
+        if self._infer_w is None or w == self._infer_w:
+            small = img
+        else:
+            small = cv2.resize(img, (self._infer_w, max(1, round(h * self._infer_w / w))), interpolation=cv2.INTER_AREA)
         rgb = np.ascontiguousarray(cv2.cvtColor(small, cv2.COLOR_BGR2RGB))
+        image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb)
+        if self._image_mode:
+            return self._lm.detect(image)
         # VIDEO mode requires strictly increasing integer-ms timestamps.
         ts = max(round(frame.t_mono * 1000.0), self._last_ms + 1)
         self._last_ms = ts
-        res = self._lm.detect_for_video(self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb), ts)
+        return self._lm.detect_for_video(image, ts)
+
+    def poses(self, frame: Frame) -> list[HandPose]:
+        """Every detected hand with all 21 landmarks, most confident first."""
+        h, w = frame.image.shape[:2]
+        res = self._detect(frame)
+        out = []
+        for i, lms in enumerate(res.hand_landmarks):
+            cat = res.handedness[i][0] if i < len(res.handedness) and res.handedness[i] else None
+            img = np.array([[p.x * w, p.y * h] for p in lms], dtype=np.float64)
+            world = np.array([[p.x, p.y, p.z] for p in res.hand_world_landmarks[i]], dtype=np.float64)
+            out.append(HandPose(img, world, cat.category_name if cat else "?", cat.score if cat else 0.0))
+        out.sort(key=lambda p: -p.score)
+        return out
+
+    def process(self, frame: Frame) -> HandObs:
+        h, w = frame.image.shape[:2]
+        res = self._detect(frame)
         hands = []
         for i, lms in enumerate(res.hand_landmarks):
             score = res.handedness[i][0].score if i < len(res.handedness) and res.handedness[i] else 0.0
@@ -175,6 +332,402 @@ class HandTracker:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+Rect = tuple[int, int, int, int]  # x0, y0, x1, y1 camera px, end-exclusive
+
+
+def tile_rects(region: Rect, *, max_tiles: int = 3, overlap: float = 0.3) -> list[Rect]:
+    """Split ``region`` along its long side into at most ``max_tiles`` roughly square tiles sharing ``overlap`` of their
+    length, so a hand crossing a seam is whole in one of them. A tile's long side sets how large a palm looks to the
+    palm detector, which sees every input at 192 px."""
+    x0, y0, x1, y1 = region
+    w, h = x1 - x0, y1 - y0
+    long, short = max(w, h), min(w, h)
+    if short <= 0 or max_tiles < 1:
+        return []
+    n = max(1, min(max_tiles, round((long / short - overlap) / (1 - overlap))))
+    size = long / (n - (n - 1) * overlap)
+    step = size * (1 - overlap)
+    out = []
+    for i in range(n):
+        a, b = round(i * step), (long if i == n - 1 else round(i * step + size))
+        out.append((x0 + a, y0, x0 + b, y1) if w >= h else (x0, y0 + a, x1, y0 + b))
+    return out
+
+
+class TiledHandTracker:
+    """One hand's index fingertip, searched in the whole frame and in overlapping tiles over a region of interest.
+
+    MediaPipe finds palms on a 192 px copy of its input. In a 1920x1080 frame a hand on a wall 2 m from the camera then
+    has a palm about 5 px wide and is mostly missed (1 Nov, wall: a hand in 15-50 % of the frames while someone used
+    it, in one session almost never; ceiling mode, with the hand near the camera, tracked well). Tiles over ``region``
+    (the projected page plus a margin) show the detector the palm about twice as large, and the landmarks come from a
+    sharper crop. The whole frame stays a search window for hands too large for a tile.
+
+    Every window has its own VIDEO-mode landmarker, because MediaPipe tracks a hand from the previous frame of the same
+    input. That keeps the cost at one MediaPipe call per frame in the steady state: the window tracking a hand runs
+    alone, and with no hand one window is searched per frame, in turn. When its window loses the hand (it moved into
+    the next tile), the other windows are searched in the same frame. While the whole frame tracks a hand that is over
+    a tile, that tile is tried every ``PROBE_EVERY`` frames and takes over once it sees the hand (sharper landmarks).
+    """
+
+    PROBE_EVERY = 3
+
+    def __init__(self, region: Rect | None = None, *, max_tiles: int = 3, overlap: float = 0.3,
+                 model_path: Path | None = None, min_confidence: float = 0.5, factory=None):
+        self._factory = factory or (lambda: HandTracker(model_path, min_confidence=min_confidence))
+        self.max_tiles, self.overlap = max_tiles, overlap
+        self.tiles: list[Rect] = []
+        self._trackers = [self._factory()]  # [0] searches the whole frame, [1 + k] tile k
+        self.active: int | None = None  # window index tracking a hand
+        self._next = 0
+        self._frames = 0
+        self._last_tip: tuple[float, float] | None = None
+        self.set_region(region)
+
+    def set_region(self, region: Rect | None) -> list[Rect]:
+        """Tile ``region`` (None: whole frame only). Landmarkers are reused; returns the tiles."""
+        self.tiles = tile_rects(region, max_tiles=self.max_tiles, overlap=self.overlap) if region is not None else []
+        while len(self._trackers) < 1 + len(self.tiles):
+            self._trackers.append(self._factory())
+        while len(self._trackers) > 1 + len(self.tiles):
+            self._trackers.pop().close()
+        if self.active is not None and self.active >= len(self._trackers):
+            self.active = None
+        return self.tiles
+
+    def _run(self, i: int, frame: Frame) -> HandObs:
+        if i == 0:
+            return self._trackers[0].process(frame)
+        h, w = frame.image.shape[:2]
+        x0, y0, x1, y1 = self.tiles[i - 1]
+        x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
+        if x1 - x0 < 32 or y1 - y0 < 32:
+            return HandObs(present=False, tip_xy=None)
+        obs = self._trackers[i].process(Frame(frame.image[y0:y1, x0:x1], frame.t_mono, frame.idx))
+        if not obs.present:
+            return obs
+        tips = tuple((x + x0, y + y0) for x, y in (obs.tips or (obs.tip_xy,)))
+        return HandObs(present=True, tip_xy=tips[0], tips=tips)
+
+    def _tile_at(self, xy: tuple[float, float]) -> int | None:
+        """Window index of the tile holding ``xy`` farthest from its edges, or None."""
+        best, depth = None, 0.0
+        for k, (x0, y0, x1, y1) in enumerate(self.tiles):
+            d = min(xy[0] - x0, x1 - xy[0], xy[1] - y0, y1 - xy[1])
+            if d > depth:
+                best, depth = 1 + k, d
+        return best
+
+    def _centre_dist(self, i: int, xy: tuple[float, float]) -> float:
+        x0, y0, x1, y1 = self.tiles[i - 1]
+        return math.dist(((x0 + x1) / 2, (y0 + y1) / 2), xy)
+
+    def _found(self, i: int, obs: HandObs) -> HandObs:
+        self.active = i
+        self._last_tip = obs.tip_xy
+        return obs
+
+    def process(self, frame: Frame) -> HandObs:
+        self._frames += 1
+        n = len(self._trackers)
+        if self.active is not None:
+            obs = self._run(self.active, frame)
+            if obs.present:
+                if self.active == 0 and self._frames % self.PROBE_EVERY == 0:
+                    k = self._tile_at(obs.tip_xy)
+                    if k is not None:
+                        tile_obs = self._run(k, frame)
+                        if tile_obs.present:
+                            return self._found(k, tile_obs)
+                return self._found(self.active, obs)
+            lost, self.active = self.active, None
+            order = [i for i in range(1, n) if i != lost]
+            if self._last_tip is not None:  # the tile around the last fingertip first, the whole frame last
+                order.sort(key=lambda i: self._centre_dist(i, self._last_tip))
+            for i in order + ([0] if lost != 0 else []):
+                obs = self._run(i, frame)
+                if obs.present:
+                    return self._found(i, obs)
+            return HandObs(present=False, tip_xy=None)
+        i = self._next % n
+        self._next = i + 1
+        obs = self._run(i, frame)
+        return self._found(i, obs) if obs.present else obs
+
+    def close(self) -> None:
+        for t in self._trackers:
+            t.close()
+        self._trackers = []
+
+
+class RegionHandTracker:
+    """Up to ``num_hands`` hands (default two) with all landmarks, searched in a crop of the frame (``lightwork play
+    --table``: the projected page plus a margin).
+
+    One VIDEO-mode landmarker with ``num_hands=2``: while fewer hands than that are tracked, MediaPipe runs its palm
+    detector on every frame (17 ms p50 / 25 ms p95 at 1080p, see :class:`HandTracker`); tracked hands take the cheap
+    landmark path. The palm detector sees every input at 192 px, so cropping the frame to the page shows it larger
+    palms: a page half the frame wide doubles them. The crop is not reset when the region moves (a recalibration):
+    MediaPipe re-finds a hand whose tracked position no longer fits within a frame.
+    """
+
+    def __init__(self, region: Rect | None = None, *, num_hands: int = 2, model_path: Path | None = None,
+                 min_confidence: float = 0.5, factory=None):
+        make = factory or (lambda: HandTracker(model_path, num_hands=num_hands, min_confidence=min_confidence))
+        self._tracker = make()
+        self.region: Rect | None = None
+        self.set_region(region)
+
+    def set_region(self, region: Rect | None) -> list[Rect]:
+        """Crop to ``region`` (None: the whole frame). Returns the search windows, for reporting."""
+        self.region = region
+        return [region] if region is not None else []
+
+    def poses(self, frame: Frame) -> list[HandPose]:
+        """Every hand found, camera px, most confident first."""
+        if self.region is None:
+            return self._tracker.poses(frame)
+        h, w = frame.image.shape[:2]
+        x0, y0, x1, y1 = self.region
+        x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
+        if x1 - x0 < 32 or y1 - y0 < 32:
+            return []
+        crop = Frame(frame.image[y0:y1, x0:x1], frame.t_mono, frame.idx)
+        return [p.shifted(x0, y0) for p in self._tracker.poses(crop)]
+
+    def process(self, frame: Frame) -> HandObs:
+        poses = self.poses(frame)
+        if not poses:
+            return HandObs(present=False, tip_xy=None)
+        tips = tuple(p.tip for p in poses)
+        return HandObs(present=True, tip_xy=tips[0], tips=tips)
+
+    def close(self) -> None:
+        self._tracker.close()
+
+
+TILE_PX = 560  # search tile side, camera px: a 140 px palm shows about 48 px wide to the 192 px palm detector
+
+
+def grid_tiles(region: Rect, *, tile: int = TILE_PX, overlap: float = 0.3) -> list[Rect]:
+    """Tiles of about ``tile`` px in a grid over ``region``, neighbours sharing ``overlap`` of their side, so a palm
+    crossing a seam is whole in one of them."""
+    x0, y0, x1, y1 = region
+    w, h = x1 - x0, y1 - y0
+    if w <= 0 or h <= 0:
+        return []
+
+    def split(length: int) -> list[tuple[int, int]]:
+        n = max(1, math.ceil((length - overlap * tile) / ((1 - overlap) * tile)))
+        if n == 1:
+            return [(0, length)]
+        size = length / (n - (n - 1) * overlap)
+        step = size * (1 - overlap)
+        return [(round(i * step), length if i == n - 1 else round(i * step + size)) for i in range(n)]
+
+    return [(x0 + a, y0 + b, x0 + c, y0 + d) for b, d in split(h) for a, c in split(w)]
+
+
+def hand_centre(img: np.ndarray) -> np.ndarray:
+    """Centre of the landmarks' bounding box, image px."""
+    return (img.min(axis=0) + img.max(axis=0)) / 2
+
+
+@dataclass(eq=False)
+class _Follower:
+    lm: object  # VIDEO-mode landmarker, one hand
+    active: bool = False
+    centre: np.ndarray | None = None  # where the hand is expected in the next frame (crop centre), camera px
+    last: np.ndarray | None = None  # hand centre last seen, camera px
+    vel: np.ndarray | None = None  # hand centre motion, px per frame (smoothed)
+    side: int = 0  # crop side, camera px
+    misses: int = 0
+    age: int = 0  # frames followed
+
+
+class CropHandTracker:
+    """Up to ``num_hands`` hands at full camera resolution (``lightwork play --table``).
+
+    MediaPipe finds a hand by first spotting its palm in a 192 x 192 copy of its input. A whole table seen by a 1080p
+    camera shows a palm about 16 px wide there (2 Nov, :class:`RegionHandTracker` on the page crop: "palms 1.2x larger
+    to the detector", a hand found in 5-20 % of the frames while objects were put down). So:
+
+    - Search: overlapping full-resolution tiles of about ``TILE_PX`` over the region (the projected page plus a
+      margin), in MediaPipe IMAGE mode, ``search_per_frame`` tiles per frame in turn while a hand slot is free. A palm
+      shows about three times larger to the detector than in the page crop. Tiles near a hand lost a moment ago go
+      first.
+    - Follow: each hand found gets its own VIDEO-mode landmarker, fed a square crop ``CROP_PALMS`` palm lengths wide,
+      centred where the hand is expected (last centre plus last motion). The hand fills the crop, so its landmarks
+      come from full-resolution pixels, and MediaPipe's own tracking carries over: the crop moves with the hand, so
+      the hand stays where MediaPipe last saw it in crop coordinates. ``LOST_FRAMES`` misses in a row free the slot.
+
+    Steady state: one landmark pass per hand (MediaPipe skips palm detection while it tracks), plus the search while a
+    slot is free. Not thread-safe; call from one thread.
+    """
+
+    CROP_PALMS = 4.5
+    CROP_MIN, CROP_MAX = 288, 720
+    LOST_FRAMES = 3
+    SAME_HAND = 0.6  # palm lengths: wrists (or hand centres) closer than this are one hand
+    LOST_FIRST_S = 1.0
+
+    def __init__(self, region: Rect | None = None, *, num_hands: int = 2, search_per_frame: int = 2,
+                 tile: int = TILE_PX, model_path: Path | None = None, min_confidence: float = 0.5, factory=None,
+                 search_factory=None):
+        follow = factory or (lambda: HandTracker(model_path, num_hands=1, min_confidence=min_confidence, infer_w=None))
+        search = search_factory or (lambda: HandTracker(model_path, num_hands=2, min_confidence=min_confidence,
+                                                         infer_w=None, image_mode=True))
+        self._followers = [_Follower(follow()) for _ in range(num_hands)]
+        self._search = search()
+        self.search_per_frame = search_per_frame
+        self.tile = tile
+        self.region: Rect | None = None
+        self.tiles: list[Rect] = []
+        self._tiles_for: tuple[int, int] | None = None  # frame size the whole-frame tiles were made for
+        self._next = 0
+        self._lost: list[tuple[float, np.ndarray]] = []  # (t, centre) of hands lost lately
+        self.searched = 0  # tile searches, for status lines
+        self.set_region(region)
+
+    def set_region(self, region: Rect | None) -> list[Rect]:
+        """Search tiles over ``region`` (None: the whole frame). Followers keep their hands. Returns the tiles."""
+        self.region = region
+        self.tiles = grid_tiles(region, tile=self.tile) if region is not None else []
+        self._tiles_for = None
+        self._next = 0
+        return self.tiles
+
+    @property
+    def following(self) -> int:
+        return sum(f.active for f in self._followers)
+
+    def poses(self, frame: Frame) -> list[HandPose]:
+        """Every hand, camera px, most confident first."""
+        h, w = frame.image.shape[:2]
+        if self.region is None and self._tiles_for != (w, h):
+            self.tiles, self._tiles_for = grid_tiles((0, 0, w, h), tile=self.tile), (w, h)
+        out: list[tuple[_Follower, HandPose]] = []
+        for f in self._followers:
+            if not f.active:
+                continue
+            p = self._follow(f, frame)
+            if p is not None:
+                out.append((f, p))
+            else:
+                f.misses += 1
+                if f.misses >= self.LOST_FRAMES:
+                    self._release(f, frame.t_mono, lost=True)
+        out = self._dedupe(out)
+        free = [f for f in self._followers if not f.active]
+        if free and self.tiles:
+            order, rr = self._search_order(frame.t_mono)
+            searched_rr = 0
+            budget = max(1, self.search_per_frame - len(out))  # each followed hand already costs a landmark pass
+            for k in order[:budget]:
+                searched_rr += k in rr
+                for p in self._search_tile(self.tiles[k], frame):
+                    if free and not any(self._same(p, q) for _, q in out):
+                        f = free.pop(0)
+                        self._start(f, p)
+                        out.append((f, p))
+            self._next = (self._next + searched_rr) % len(self.tiles)
+        return [p for _, p in sorted(out, key=lambda fp: -fp[1].score)]
+
+    def process(self, frame: Frame) -> HandObs:
+        poses = self.poses(frame)
+        if not poses:
+            return HandObs(present=False, tip_xy=None)
+        tips = tuple(p.tip for p in poses)
+        return HandObs(present=True, tip_xy=tips[0], tips=tips)
+
+    def close(self) -> None:
+        for f in self._followers:
+            f.lm.close()
+        self._search.close()
+        self._followers = []
+
+    # ---- internals
+
+    @staticmethod
+    def _square(centre: np.ndarray, side: int, w: int, h: int) -> tuple[int, int, int]:
+        s = max(1, min(side, w, h))
+        x0 = round(min(max(float(centre[0]) - s / 2, 0.0), w - s))
+        y0 = round(min(max(float(centre[1]) - s / 2, 0.0), h - s))
+        return x0, y0, s
+
+    def _follow(self, f: _Follower, frame: Frame) -> HandPose | None:
+        h, w = frame.image.shape[:2]
+        x0, y0, s = self._square(f.centre, f.side, w, h)
+        poses = f.lm.poses(Frame(frame.image[y0:y0 + s, x0:x0 + s], frame.t_mono, frame.idx))
+        if not poses:
+            return None
+        p = poses[0].shifted(x0, y0)
+        self._seen(f, p)
+        return p
+
+    def _seen(self, f: _Follower, p: HandPose) -> None:
+        c = hand_centre(p.img)
+        step = np.zeros(2) if f.last is None else c - f.last
+        f.vel = step if f.vel is None else 0.5 * f.vel + 0.5 * step
+        f.last, f.centre = c, c + f.vel
+        want = int(min(max(self.CROP_PALMS * palm_px(p.img), self.CROP_MIN), self.CROP_MAX))
+        if f.side == 0 or abs(want - f.side) > 0.3 * f.side:  # steady crop size: MediaPipe's ROI is relative to it
+            f.side = want
+        f.misses = 0
+        f.age += 1
+
+    def _start(self, f: _Follower, p: HandPose) -> None:
+        f.active, f.last, f.vel, f.side, f.age = True, None, None, 0, 0
+        self._seen(f, p)
+
+    def _release(self, f: _Follower, t: float, *, lost: bool) -> None:
+        if lost and f.last is not None:
+            self._lost.append((t, f.last.copy()))
+        f.active, f.centre, f.last, f.vel, f.misses, f.age = False, None, None, None, 0, 0
+
+    def _same(self, p: HandPose, q: HandPose) -> bool:
+        palm = max(palm_px(p.img), palm_px(q.img), 1.0)
+        near = self.SAME_HAND * palm
+        return (math.dist(p.img[0], q.img[0]) < near
+                or float(np.linalg.norm(hand_centre(p.img) - hand_centre(q.img))) < near)
+
+    def _dedupe(self, out: list[tuple[_Follower, HandPose]]) -> list[tuple[_Follower, HandPose]]:
+        """One hand followed twice (hands crossed, or a follower jumped to the other hand): the older follower keeps it."""
+        keep: list[tuple[_Follower, HandPose]] = []
+        for f, p in sorted(out, key=lambda fp: -fp[0].age):
+            if any(self._same(p, q) for _, q in keep):
+                self._release(f, 0.0, lost=False)
+            else:
+                keep.append((f, p))
+        return keep
+
+    def _search_order(self, t: float) -> tuple[list[int], set[int]]:
+        """Tile indices to search, best first, and which of them are round-robin turns."""
+        n = len(self.tiles)
+        self._lost = [(tl, c) for tl, c in self._lost if t - tl <= self.LOST_FIRST_S]
+        first: list[int] = []
+        for _, c in reversed(self._lost):
+            best, depth = None, 0.0
+            for k, (x0, y0, x1, y1) in enumerate(self.tiles):
+                d = min(c[0] - x0, x1 - c[0], c[1] - y0, y1 - c[1])
+                if d > depth:
+                    best, depth = k, d
+            if best is not None and best not in first:
+                first.append(best)
+        rr = [(self._next + i) % n for i in range(n)]
+        rr = [k for k in rr if k not in first]
+        return first + rr, set(rr)
+
+    def _search_tile(self, tile: Rect, frame: Frame) -> list[HandPose]:
+        h, w = frame.image.shape[:2]
+        x0, y0, x1, y1 = max(0, tile[0]), max(0, tile[1]), min(w, tile[2]), min(h, tile[3])
+        if x1 - x0 < 32 or y1 - y0 < 32:
+            return []
+        self.searched += 1
+        found = self._search.poses(Frame(frame.image[y0:y1, x0:x1], frame.t_mono, frame.idx))
+        return [p.shifted(x0, y0) for p in found]
 
 
 class HandEvents:

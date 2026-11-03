@@ -129,20 +129,28 @@
     }
   },
   "additionalProperties": false,
+  "description": "``measurement_mode`` \"normal\" marks a screen-only calibration (``lightwork calibrate screen``): no projector\nwas calibrated, so ``H_cam_to_page``, ``page`` and ``residuals`` are null and nothing may be projected with it.\nGrey/dark calibrations always carry the projector mapping they were solved with.",
   "properties": {
     "H_cam_to_page": {
-      "items": {
-        "items": {
-          "type": "number"
+      "anyOf": [
+        {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
         },
-        "maxItems": 3,
-        "minItems": 3,
-        "type": "array"
-      },
-      "maxItems": 3,
-      "minItems": 3,
-      "title": "H Cam To Page",
-      "type": "array"
+        {
+          "type": "null"
+        }
+      ],
+      "title": "H Cam To Page"
     },
     "H_plate_cam_to_page": {
       "anyOf": [
@@ -205,7 +213,8 @@
     "measurement_mode": {
       "enum": [
         "grey",
-        "dark"
+        "dark",
+        "normal"
       ],
       "title": "Measurement Mode",
       "type": "string"
@@ -214,10 +223,24 @@
       "$ref": "#/$defs/MmScale"
     },
     "page": {
-      "$ref": "#/$defs/PageInfo"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PageInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "residuals": {
-      "$ref": "#/$defs/Residuals"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Residuals"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [

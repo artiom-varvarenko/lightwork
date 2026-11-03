@@ -1,8 +1,11 @@
 // Projector page (C2 role "projector"): draws scenes through H_cam_to_page, measurement and pattern modes, speaks
-// `say` lines, ACKs every drawn scene after requestAnimationFrame.
-import { drawScene, homographyMap, MEASURE_FILL, PALETTES } from './scene.js';
+// `say` lines and plays `sfx` sounds (both only after the tap to start), ACKs every drawn scene after
+// requestAnimationFrame. A `view` with rotate 180 turns everything drawn, pattern included, about the page centre;
+// page CSS px (calib, ACK rects) stay in the unturned frame.
+import { drawScene, forgetReveals, homographyMap, MEASURE_FILL, PALETTES } from './scene.js';
 import { drawMarkers } from './aruco.js';
 import { openSocket } from './link.js';
+import * as sfx from './sfx.js';
 import { Speaker } from './tts.js';
 
 const PROJ_W = 854; // DLP native resolution (rig brief §1); line and text sizes are set in projector px
@@ -28,12 +31,15 @@ let frameRequested = false;
 let animating = false;
 let wake = null;
 let started = false;
+let rotate = 0; // C2 view: 0 or 180 degrees
 
 const speaker = new Speaker((m) => sock.send(m));
 
 const sock = openSocket('/ws/render', {
   onopen: () => {
     ackedSeq = 0; // wire seqs restart per connection
+    rotate = 0; // a view belongs to its server: a new one sends its own before anything it turns
+    document.documentElement.classList.remove('rot180');
     sendHello();
   },
   onmessage: (data) => {
@@ -51,9 +57,21 @@ const sock = openSocket('/ws/render', {
       requestDraw();
     } else if (msg.type === 'say') {
       speaker.say(msg);
+    } else if (msg.type === 'sfx') {
+      sfx.play(msg.name, msg.gain); // silent until the tap to start unlocks audio
+    } else if (msg.type === 'view') {
+      rotate = msg.rotate === 180 ? 180 : 0;
+      document.documentElement.classList.toggle('rot180', rotate === 180);
+      requestDraw();
     }
   },
 });
+
+// Device-px transform for drawing at `scale` device px per unit, turned by the current view.
+function setView(scale) {
+  if (rotate === 180) ctx.setTransform(-scale, 0, 0, -scale, canvas.width, canvas.height);
+  else ctx.setTransform(scale, 0, 0, scale, 0, 0);
+}
 
 function sendHello() {
   sock.send({
@@ -104,6 +122,9 @@ function requestDraw() {
 
 function draw(ts) {
   frameRequested = false;
+  // No scene on the table (link lost, measurement or pattern mode, no mapping): when it is back, it reveals itself
+  // again (draw_ms outlines, type_ms labels).
+  if (linkLost || !scene || scene.mode !== 'normal' || !calib) forgetReveals();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -115,12 +136,13 @@ function draw(ts) {
   let drawn;
   animating = false;
   if (scene.mode === 'pattern') {
+    setView(1); // drawMarkers works in device px; turned, whole device px stay whole
     drawn = drawMarkers(ctx, scene.pattern.markers, dpr);
   } else if (scene.mode !== 'normal') {
     ctx.fillStyle = MEASURE_FILL[scene.mode];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else if (calib) {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    setView(dpr);
     const unit = Math.max(W / PROJ_W, H / PROJ_H);
     animating = drawScene(ctx, scene, {
       map: calib.map,
@@ -140,7 +162,7 @@ function draw(ts) {
 }
 
 function drawLinkLost() {
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  setView(dpr);
   const unit = Math.max(W / PROJ_W, H / PROJ_H);
   ctx.strokeStyle = PALETTES.projector.error;
   ctx.lineWidth = 12 * unit;
@@ -176,10 +198,11 @@ async function requestWake() {
   sendHello();
 }
 
-// Tap to start: the gesture grants fullscreen, the landscape lock and speech (an `adb shell input tap` counts).
+// Tap to start: the gesture grants fullscreen, the landscape lock, speech and sound (an `adb shell input tap` counts).
 tap.addEventListener('pointerup', async () => {
   started = true;
   speaker.activate();
+  sfx.unlock(); // inside the gesture, before any await
   tap.classList.add('hidden');
   try {
     await document.documentElement.requestFullscreen({ navigationUI: 'hide' });

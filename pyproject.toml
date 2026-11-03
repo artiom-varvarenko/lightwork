@@ -12,7 +12,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "httpx>=0.28",
-    "pydantic>=2.9",
+    "pydantic>=2.11",
     "meta-sam-parser>=0.1.0",
 ]
 

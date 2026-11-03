@@ -44,10 +44,14 @@ def _fixed(pts: np.ndarray) -> np.ndarray:
 
 
 def _draw(canvas: np.ndarray, prim, H: np.ndarray, unit: float) -> None:
-    """Draw one primitive on a page-space canvas (``SUPERSAMPLE`` px per CSS px), as projector.js strokes it."""
+    """Draw one primitive on a page-space canvas (``SUPERSAMPLE`` px per CSS px), as projector.js strokes it. A glowing
+    ring or poly covers its halo (faint, but the camera sees it); ``draw_ms`` outlines and ``type_ms`` labels are drawn
+    whole, as they are once revealed."""
     stroke = style.LINE_PROJ_PX * unit
     if prim.kind == "ring" and prim.pulse:
         stroke *= 1 + style.PULSE_GAIN
+    if getattr(prim, "glow", False):  # ring and poly only
+        stroke *= style.GLOW_WIDTH_LINES
     thick = max(1, round(stroke * SUPERSAMPLE))
     if prim.kind == "ring":
         a = np.linspace(0.0, 2 * math.pi, style.RING_SEGMENTS, endpoint=False)

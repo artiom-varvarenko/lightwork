@@ -39,6 +39,66 @@ const PULSE_GAIN = 0.6;
 const DOT_RADIUS_LINES = 1.5;
 const ARROW_HEAD_LINES = 4;
 const ARROW_HEAD_RAD = 0.5;
+const GLOW_WIDTH_LINES = 3.2;
+const GLOW_ALPHA = 0.28;
+
+// Reveals of `draw_ms` outlines and `type_ms` labels: kind + id -> {key, t0, ms}. Only the ids of the scene drawn
+// last are kept, so an outline that leaves and comes back (the server blanks them for a moment after a scan) draws
+// itself again. A new `key` restarts a reveal: a poly's draw_ms, a label's text.
+let reveals = new Map();
+
+// The page showed no scene (link lost, measurement or pattern mode): what comes back reveals itself again.
+export function forgetReveals() {
+  reveals = new Map();
+}
+
+// Fraction 0..1 of prim `id`'s reveal, `ms` long from when it first showed with `key`; 1 without a clock. A running
+// reveal keeps the length it started with.
+function revealed(seen, id, key, ms, t) {
+  let r = reveals.get(id);
+  if (!r || r.key !== key || !(t >= r.t0)) r = { key, t0: t, ms }; // also when the clock went back: start again
+  seen.set(id, r);
+  if (t === undefined || !(r.ms > 0)) return 1;
+  return Math.min(1, ((t - r.t0) * 1000) / r.ms);
+}
+
+// The first `frac` of the outline through mapped points `pts`, by length from the first point (closing edge last).
+function outlinePath(ctx, pts, closed, frac) {
+  ctx.beginPath();
+  if (!pts.length) return;
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  if (frac >= 1) {
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (closed) ctx.closePath();
+    return;
+  }
+  const route = closed ? [...pts, pts[0]] : pts;
+  const lens = [];
+  let total = 0;
+  for (let i = 1; i < route.length; i++) {
+    lens.push(Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1]));
+    total += lens[i - 1];
+  }
+  let left = frac * total;
+  for (let i = 1; i < route.length && left > 0; i++) {
+    const [ax, ay] = route[i - 1];
+    const [bx, by] = route[i];
+    const k = Math.min(1, left / lens[i - 1]);
+    ctx.lineTo(ax + (bx - ax) * k, ay + (by - ay) * k);
+    left -= lens[i - 1];
+  }
+}
+
+// A wide faint stroke of the current path under the line: saturated colour on black reads as a soft halo through a
+// 100 lm DLP.
+function glow(ctx, colour, width) {
+  const alpha = ctx.globalAlpha;
+  ctx.globalAlpha = alpha * GLOW_ALPHA;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = width * GLOW_WIDTH_LINES;
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+}
 
 function stroke(ctx, outline, colour, width) {
   if (outline) {
@@ -61,10 +121,13 @@ function ringPath(ctx, map, c, r) {
   ctx.closePath();
 }
 
-// Draws `scene.prims`. opts: {map, palette, lineWidth, fontPx, t (seconds, for pulse), outline}.
-// Returns true when a primitive pulses, i.e. the caller should keep animating.
+// Draws `scene.prims`. opts: {map, palette, lineWidth, fontPx, t (seconds: pulse and reveal clock), outline}.
+// Returns true while something moves (a pulsing ring, an outline drawing itself, a label typing): the caller should
+// keep requesting frames.
 export function drawScene(ctx, scene, opts) {
   const { map, palette, lineWidth, fontPx, t = 0, outline = false } = opts;
+  const clock = typeof opts.t === 'number' ? opts.t : undefined; // no clock: reveals show at once
+  const seen = new Map();
   let animated = false;
   ctx.save();
   ctx.lineCap = 'round';
@@ -78,6 +141,7 @@ export function drawScene(ctx, scene, opts) {
         w *= 1 + PULSE_GAIN * (0.5 + 0.5 * Math.sin(2 * Math.PI * PULSE_HZ * t));
       }
       ringPath(ctx, map, p.c, p.r);
+      if (p.glow) glow(ctx, colour, w);
       stroke(ctx, outline, colour, w);
     } else if (p.kind === 'arrow') {
       const [ax, ay] = map(p.a[0], p.a[1]);
@@ -92,12 +156,11 @@ export function drawScene(ctx, scene, opts) {
       ctx.lineTo(bx - head * Math.cos(ang + ARROW_HEAD_RAD), by - head * Math.sin(ang + ARROW_HEAD_RAD));
       stroke(ctx, outline, colour, lineWidth);
     } else if (p.kind === 'poly') {
-      ctx.beginPath();
-      p.pts.forEach((pt, i) => {
-        const [x, y] = map(pt[0], pt[1]);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      });
-      if (p.closed) ctx.closePath();
+      const f = revealed(seen, `poly ${p.id}`, p.draw_ms || 0, p.draw_ms, clock);
+      if (f < 1) animated = true;
+      if (f <= 0) continue;
+      outlinePath(ctx, p.pts.map((pt) => map(pt[0], pt[1])), p.closed, 1 - (1 - f) ** 3); // ease-out cubic
+      if (p.glow) glow(ctx, colour, lineWidth);
       stroke(ctx, outline, colour, lineWidth);
     } else if (p.kind === 'dot') {
       const [x, y] = map(p.c[0], p.c[1]);
@@ -114,15 +177,31 @@ export function drawScene(ctx, scene, opts) {
       const [x, y] = map(p.at[0], p.at[1]);
       ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
       ctx.textBaseline = 'middle';
+      let text = p.text;
+      let cursor = null; // [x offset, width] of the cell the next character will fill
+      const f = revealed(seen, `label ${p.id}`, p.text, p.type_ms, clock);
+      if (f < 1) {
+        animated = true;
+        const chars = Array.from(p.text); // code points: never half an emoji
+        const n = Math.floor(f * chars.length);
+        text = chars.slice(0, n).join('');
+        if (n < chars.length) {
+          const before = ctx.measureText(text).width;
+          cursor = [before, ctx.measureText(text + chars[n]).width - before];
+        }
+      }
       if (outline) {
         ctx.strokeStyle = 'rgba(0,0,0,0.85)';
         ctx.lineWidth = Math.max(3, fontPx / 5);
-        ctx.strokeText(p.text, x, y);
+        ctx.strokeText(text, x, y);
       }
       ctx.fillStyle = colour;
-      ctx.fillText(p.text, x, y);
+      ctx.fillText(text, x, y);
+      // A block cursor inside the next character's cell: never outside the finished label (the overlay mask's box).
+      if (cursor) ctx.fillRect(x + cursor[0], y - 0.35 * fontPx, Math.max(cursor[1], 0.2 * fontPx), 0.7 * fontPx);
     }
   }
   ctx.restore();
+  reveals = seen;
   return animated;
 }
