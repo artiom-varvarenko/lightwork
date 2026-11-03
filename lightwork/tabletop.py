@@ -40,6 +40,7 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import re
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -50,6 +51,8 @@ import cv2
 import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
+from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
+    plan_request_context, scale_plan
 from .geometry import apply_h
 from .playground import (
     ADAPT_RATE,
@@ -86,9 +89,11 @@ HAND_GROW = 0.3  # the hand mask grows by this share of the palm length (wrist t
 ARM_LEN = 3.0  # forearm masked from the wrist, in palm lengths
 GHOST_RING = (3, 9)  # small px: the ring around a blob that shows the table next to it
 GHOST_MIN_PX = 20
-COL_X1 = 104.0  # design px: the button column runs along the left end up to here
-STATUS_Y1 = 40.0  # design px: the status line runs along the far edge down to here
-STATUS_Y = 21.0
+COL_X1 = 64.0  # design px: the button column runs along the left end up to here (3 Nov: 104 took too much table)
+STATUS_Y1 = 62.0  # design px: the two status lines run along the far edge down to here
+STATUS_Y = 17.0  # first line (what to do), vertical middle
+STATUS_Y2 = 45.0  # second line (progress, a hint)
+BTN_R = 15.0  # button radius: an icon, no word under it (the status bar says what a hovered button does)
 HUD_RECTS = ((0.0, 0.0, COL_X1 + 4.0, DESIGN_H), (0.0, 0.0, DESIGN_W, STATUS_Y1 + 4.0))  # cut out of detection
 PAD_PAGE = 7.0  # page px between an object and its projected outline (3 Nov: 14 read as "the outline is too big")
 OUTLINE_EPS = 0.75  # page px: the outline polygon keeps the contour to this tolerance
@@ -102,6 +107,9 @@ REID_S = 8.0
 REID_SIZE = 0.2  # a re-found object's sides agree within this share ...
 REID_BGR = 45.0  # ... and its median colour within this, per channel (in the learned light)
 MATCH_SIZE = 0.35  # a blob matches a track only with sides within this share of the track sides
+SWAP_ASPECT = 0.15  # with a different colour, an aspect ratio this different (share) ...
+SWAP_FILL = 0.15  # ... or a fill this different, or sides this different (share): another object
+SWAP_SIZE = 0.12
 MOVE_PAGE = 2.0  # page px: smaller changes leave the drawn outline alone (no flicker, no overlay churn)
 SIZE_TOL = 0.04
 ANGLE_TOL = 4.0
@@ -156,7 +164,9 @@ TYPE_MS_PER_CHAR = 28  # names type themselves in
 POINT_RECENT_S = 3.0  # a question is about what a fingertip pointed at within this long before it was heard ...
 POINT_NEAR = 60.0  # ... within this many design px of the object's outline
 ASKED_GLOW_S = 6.0  # the object asked about stays lit (green) this long after the answer
-STATUS_CHARS = 44  # the status line holds about this many characters
+STATUS_CHARS = 44  # a status line holds about this many characters
+BUTTON_TIPS = {"learn": ("HOLD TO LEARN THE EMPTY TABLE AGAIN", "TAKE EVERYTHING OFF IT FIRST"),
+               "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE")}
 _uids = itertools.count(1)
 
 
@@ -226,6 +236,20 @@ def rect_moved(a, b, dist: float = 6.0, angle: float = 12.0) -> bool:
 def same_size(a: tuple[float, float], b: tuple[float, float], tol: float = MATCH_SIZE) -> bool:
     """Both sides within ``tol`` of each other (long with long, short with short); a few px always pass."""
     return all(abs(x - y) <= max(tol * max(x, y), 6.0) for x, y in zip(a, b, strict=True))
+
+
+def other_object(tr_blob: Blob, sides: tuple[float, float], b: Blob) -> bool:
+    """``b`` is plainly another object than the track's, although it lies where the track was: a different colour and
+    a different shape (3 Nov: a black card put where a teal ring had been took over the ring's track and its name,
+    "blue rubber ring"). A colour change alone is the same object (a cup filling with dye), and so is a shape change
+    alone (an object turned over, a blob that took in a shadow)."""
+    if float(np.max(np.abs(np.asarray(tr_blob.bgr, float) - np.asarray(b.bgr, float)))) <= REID_BGR:
+        return False
+    (la, sa), (lb, sb) = sides, b.sides
+    aspect_a, aspect_b = la / max(sa, 1e-6), lb / max(sb, 1e-6)
+    shape = abs(aspect_a - aspect_b) / max(aspect_a, aspect_b) > SWAP_ASPECT or abs(tr_blob.fill - b.fill) > SWAP_FILL
+    size = any(abs(x - y) > SWAP_SIZE * max(x, y) for x, y in zip(sides, b.sides, strict=True))
+    return shape or size
 
 
 def grown(rect, pad: float):
@@ -813,6 +837,8 @@ class ObjectTracks:
             tr, b = self.tracks[i], blobs[j]
             if not b.near_hand and not same_size(tr.shown or tr.blob.sides, b.sides):
                 continue  # 2 Nov: a hammer track took over a wallet put down near where the hammer had been
+            if not b.near_hand and other_object(tr.blob, tr.shown or tr.blob.sides, b):
+                continue
             match[i] = j
             taken.add(j)
         keep: list[Track] = []
@@ -882,6 +908,8 @@ class ObjectTracks:
             tr, b = self.tracks[i], blobs[j]
             if not b.near_hand and not same_size(tr.shown or tr.blob.sides, b.sides):
                 continue
+            if not b.near_hand and other_object(tr.blob, tr.shown or tr.blob.sides, b):
+                continue  # a different thing put where it was: a new track (and a new name)
             match[i] = j
             taken.add(j)
         return match
@@ -1317,13 +1345,17 @@ class TableDashboard:
 
     geo: Geo
     buttons: list[Button] = field(default_factory=lambda: [
-        Button("learn", "LEARN", (COL_X1 / 2, 160.0), r=22.0), Button("scale", "SCALE", (COL_X1 / 2, 290.0), r=22.0),
+        Button("learn", "LEARN", (COL_X1 / 2, 170.0), r=BTN_R), Button("scale", "SCALE", (COL_X1 / 2, 270.0), r=BTN_R),
     ])
     note: str = ""
     note_role: str = "info"
     note_until: float = 0.0
     task_line: str | None = None  # the bench check's progress, in place of the object count
     task_role: str = "info"
+    lines: tuple[str, str, str] | None = None  # (first line, second line, role): a guided task's, or "planning"
+    voice: bool = False  # spoken questions are on: the idle hint says what to say
+    views: dict = field(default_factory=dict)  # uid -> (role, label lines) from a guided task
+    extra: object = None  # callable(canvas, now): a guided task's counter and timer, drawn over the table
 
     def notify(self, text: str, now: float, role: str = "info") -> None:
         self.note, self.note_role, self.note_until = text, role, now + NOTE_S
@@ -1365,36 +1397,67 @@ class TableDashboard:
         return hud.prims + objs.prims + hands.prims, objs.prims + hands.prims
 
     def _hud(self, c: Canvas, zone, tracks, slots, now, scanning: bool = False) -> None:
-        c.poly("hud-line", [(COL_X1, STATUS_Y1 + 10), (COL_X1, DESIGN_H - 10)], "info")
+        c.poly("hud-line", [(COL_X1, STATUS_Y1 + 6), (COL_X1, DESIGN_H - 10)], "info")
+        tips = slots.tips()
+        hover = None
         for b in self.buttons:
-            hot = any(math.dist(tip, b.c) <= b.r + 10 for tip in slots.tips())
+            hot = any(math.dist(tip, b.c) <= b.r + 10 for tip in tips)
+            hover = hover or (b.key if hot else None)
             role = "target" if now < b.flash_until else ("warn" if hot and b.armed else "info")
-            c.circle(f"btn-{b.key}", b.c, b.r, role, n=28)
-            c.arc(f"btn-{b.key}-arc", b.c, b.r + 8, b.dwell / DWELL.get(b.key, 1.0), "target")
-            c.label(f"btn-{b.key}-txt", (b.c[0] - LABEL_EM * self.font * len(b.text) / 2 + 4, b.c[1] + b.r + 22),
-                    b.text, "info")
-        x = COL_X1 + 16
+            c.circle(f"btn-{b.key}", b.c, b.r, role, n=24)
+            c.arc(f"btn-{b.key}-arc", b.c, b.r + 7, b.dwell / DWELL.get(b.key, 1.0), "target")
+            self._icon(c, b, role)
+        line1, line2, role = self._status(zone, tracks, slots, now, hover)
+        x = COL_X1 + 14
+        c.label("status", (x, STATUS_Y), line1[:STATUS_CHARS], role)
+        if line2:
+            c.label("status-2", (x, STATUS_Y2), line2[:STATUS_CHARS], role if role in ("error", "warn") else "info")
+
+    @staticmethod
+    def _icon(c: Canvas, b: Button, role: str) -> None:
+        """LEARN: a circular arrow (start again). SCALE: a card (sizes come from a bank card)."""
+        x, y, r = b.c[0], b.c[1], b.r
+        if b.key == "learn":
+            rr = 0.52 * r
+            pts = [(x + rr * math.cos(t), y + rr * math.sin(t)) for t in np.linspace(math.radians(60), math.radians(330), 12)]
+            c.poly(f"btn-{b.key}-ico", pts, role)
+            ex, ey = pts[-1]
+            c.poly(f"btn-{b.key}-ico2", [(ex - 0.34 * r, ey - 0.02 * r), (ex, ey), (ex + 0.02 * r, ey - 0.36 * r)], role)
+        else:
+            w, h = 0.6 * r, 0.38 * r
+            c.rect(f"btn-{b.key}-ico", x - w, y - h, x + w, y + h, role)
+            c.poly(f"btn-{b.key}-ico2", [(x - w, y - 0.1 * r), (x + w, y - 0.1 * r)], role)
+
+    def _status(self, zone, tracks, slots, now: float, hover: str | None) -> tuple[str, str, str]:
+        """The two lines along the far edge: what to do now, then progress or a hint."""
         if now < self.note_until:
-            c.label("status", (x, STATUS_Y), self.note, self.note_role)
-            return
+            return self.note, "", self.note_role
+        if hover is not None:
+            a, b = BUTTON_TIPS[hover]
+            return a, b, "warn"
         if zone is None or zone.status in ("learning", "light"):  # never projected onto the table being learned
-            text = {"learning": "CLEAR THE TABLE", "light": "LIGHT CHANGED..."}.get(getattr(zone, "status", ""),
-                                                                                 "TABLE NOT IN VIEW")
-            c.label("status", (x, STATUS_Y), text, "warn")
-            return
-        if scanning:
-            c.label("status", (x, STATUS_Y), "SCANNING", "info")
-            return
+            return {"learning": ("CLEAR THE TABLE: LEARNING IT EMPTY", "KEEP YOUR HANDS AWAY FOR A MOMENT", "warn"),
+                    "light": ("THE LIGHT CHANGED: ADJUSTING", "", "warn")}.get(
+                getattr(zone, "status", ""), ("TABLE NOT IN VIEW", "", "warn"))
+        if self.lines is not None:
+            return self.lines
         if self.task_line:
-            c.label("status", (x, STATUS_Y), self.task_line, self.task_role)
-            return
+            return self.task_line, "", self.task_role
         n = sum(tr.confirmed for tr in tracks)
+        if n == 0:
+            return ("PUT THINGS ON THE TABLE", "THEN SAY WHAT YOU WANT TO DO" if self.voice else "", "info")
+        what = f"{n} THING{'' if n == 1 else 'S'} ON THE TABLE"
+        if self.voice:
+            return what, "POINT AND ASK, OR SAY WHAT TO DO", "info"
         h = len(slots.active)
-        c.label("status", (x, STATUS_Y), f"{n} OBJECT{'' if n == 1 else 'S'}  {h} HAND{'' if h == 1 else 'S'}", "info")
+        return what, f"{h} HAND{'' if h == 1 else 'S'} IN VIEW" if h else "", "info"
 
     def _role(self, tr: Track, now: float) -> str:
         """White by default; yellow while held; green while a question about it is answered; with a task, green for
         a listed item and red for one that is not needed."""
+        v = self.views.get(tr.uid)
+        if v is not None:
+            return v[0]
         if tr.held:
             return "warn"
         if tr.asked_until > now:
@@ -1421,6 +1484,9 @@ class TableDashboard:
             sam = "-s" if tr.refined else ""  # a SAM outline is a new prim: it draws itself in place of the first one
             size = None if scale is None or tr.shown is None else scale.text(tr.shown)
             lines = [tr.name.upper(), size or str(tr.id)] if tr.name else [f"{tr.id}: {size}" if size else str(tr.id)]
+            v = self.views.get(tr.uid)
+            if v is not None and v[1]:
+                lines = [t for t in v[1] if t] or lines
             w = LABEL_EM * font * max(len(t) for t in lines)
             x0, y0, _, _ = self._place(boxes[tr.uid], w, step * len(lines), taken)  # laid out as always: no jumps
             rect = (x0, y0, x0 + w, y0 + step * len(lines))
@@ -1434,6 +1500,8 @@ class TableDashboard:
             for k, text in enumerate(lines):
                 c.label(f"obj-{tr.uid}-txt{k}", (x0, y0 + (k + 0.5) * step), text, "info",
                         type_ms=TYPE_MS_PER_CHAR * len(text))
+        if keep is None and callable(self.extra):
+            self.extra(c, now)
 
     @staticmethod
     def _place(box, w: float, h: float, taken: list) -> tuple[float, float, float, float]:
@@ -1518,7 +1586,8 @@ class TableSession:
 
     def __init__(self, geo: Geo, frame_size: tuple[int, int], *, threshold: int = 28, min_area: int = 400,
                  page_mm: float | None = None, state_dir: Path | None = None, namer=None, outliner=None, link=None,
-                 asker=None, task: BenchTask | None = None):
+                 asker=None, task: BenchTask | None = None, plan=None, brain=None, voice: bool = False,
+                 planner_model: str | None = None):
         self.namer = namer  # lightwork.namer: names each shown object once; None = no names
         self.asker = asker  # lightwork.asker: answers spoken questions about the table; None = none
         self.task = task  # lightwork.benchtask: what the job needs on the table; None = just name things
@@ -1570,7 +1639,178 @@ class TableSession:
         self.last_change_t = -1e9
         self.rescan_at: float | None = None  # look again then, changed or not (a light change, an arm across an edge)
         self._n = 0
+        self.guide: Guide | None = None  # lightwork.guide: a job the table walks through (--do, or asked for aloud)
+        self.brain = brain  # lightwork.brain: plans, checks; None = built-in plans only, no checks
+        self.planner_model = planner_model
+        self.jobs = None
+        if brain is not None:
+            from .brain import Jobs
+
+            self.jobs = Jobs("table-brain")
+        self._plan_job: tuple | None = None  # (key, request, since)
+        self._check_job: tuple | None = None  # (key, step number)
+        self._job_n = 0
+        self._pending_say: list[str] = []
+        self.dash.voice = voice
         self.set_geo(geo, None)
+        if plan is not None:
+            self._pending_say += self.start_guide(plan, time.monotonic())
+
+    @property
+    def _bench(self) -> BenchTask | None:
+        """What objects are matched against: the bench check's list, or the guided job's items."""
+        if self.task is not None:
+            return self.task
+        return self.guide.plan.bench if self.guide is not None else None
+
+    # ---- guided jobs (lightwork.guide)
+
+    def start_guide(self, plan, now: float) -> list[str]:
+        """Walk ``plan`` from now on; objects already on the table are matched against its items again."""
+        self.guide = Guide(plan, now)
+        self.task = None
+        self.dash.task_line = None
+        bench = plan.bench
+        rename = self.namer is not None and hasattr(self.namer, "task")
+        if rename:
+            self.namer.task = bench
+        for tr in self.tracks.tracks:  # by words at once; the namer, told the job, answers properly in a moment
+            tr.item = match_item(tr.name, bench.items) if tr.name else -1
+            if rename and tr.name_state == "done":
+                tr.name_state, tr.name_t = "none", -1e9
+        self.log.append(f"job: {plan.title} ({plan.source}): {len(plan.items)} items, {len(plan.steps)} steps")
+        return self.guide.start(now)
+
+    def request_plan(self, text: str, now: float) -> list[str]:
+        """A spoken request ("help me make pancakes for four"): a plan from the brain, or a built-in one."""
+        if self.brain is None or self.jobs is None:
+            found = find_builtin(text)
+            if found is None:
+                from .guide import builtin_plans
+
+                return ["Without a model I only know these jobs: " + spoken_list(
+                    [n.replace("-", " ") for n in builtin_plans()]) + "."]
+            return self.start_guide(scale_plan(*found), now)
+        if self._plan_job is not None:
+            return ["One moment, I'm still planning the last one."]
+        seen = [(tr.name or f"{tr.colour} object", self.scale.mm(tr.shown) if self.scale and tr.shown else None)
+                for tr in sorted(self.tracks.confirmed, key=lambda tr: tr.id)]
+        prompt = PLAN_PROMPT.format(request=text.strip(), context=plan_request_context(seen))
+        jpegs = []
+        if self.scan_image is not None:
+            view = self._table_jpeg(self.scan_image)
+            jpegs = [view] if view is not None else []
+        brain, model = self.brain, self.planner_model
+        self._job_n += 1
+        key = ("plan", self._job_n)
+        if not self.jobs.submit(key, lambda: brain.ask("plan", prompt, jpegs, schema=PLAN_SCHEMA, effort="minimal",
+                                                       max_out=6000, timeout_s=120.0, model=model)):
+            return ["Sorry, I'm busy. Ask me again in a moment."]
+        self._plan_job = (key, text.strip(), now)
+        self.sfx.append("listen")
+        return ["Okay. Let me plan that."]
+
+    def _plan_done(self, now: float) -> list[str]:
+        if self._plan_job is None or self.jobs is None:
+            return []
+        key, text, t0 = self._plan_job
+        done, reply, err = self.jobs.result(key)
+        if not done:
+            return []
+        self._plan_job = None
+        plan = None
+        if err is None and reply is not None and reply.data is not None:
+            try:
+                plan = parse_plan(reply.data, source=f"{reply.model} via {reply.provider}")
+            except ValueError as exc:
+                err = f"the plan did not hold together: {exc}"
+        if plan is None:
+            self.log.append(f"plan for {text!r} failed: {err}")
+            found = find_builtin(text)
+            if found is not None:
+                return ["The planner failed; using my saved plan."] + self.start_guide(scale_plan(*found), now)
+            self.sfx.append("error")
+            return ["Sorry, I couldn't plan that. Try saying it another way."]
+        self.log.append(f"planned {plan.title!r} in {now - t0:.1f} s: {reply.model} via {reply.provider}")
+        self.dash.notify(f"PLAN BY {model_tag(reply.model, reply.provider)} · {now - t0:.0f} S", now, "done")
+        return self.start_guide(plan, now)
+
+    def _guide_step(self, now: float) -> list[str]:
+        g = self.guide
+        say = g.update(now, self.seen(), self.hand_points())
+        self.sfx += g.sfx
+        g.sfx.clear()
+        self.log += g.log
+        g.log.clear()
+        if g.want_check is not None and self._check_job is None:
+            k, target = g.want_check
+            g.want_check = None
+            if self.brain is None or self.jobs is None:
+                return say + g.check_result(k, True, "No model to look with: I'll take your word for it.", now)
+            step = g.plan.steps[k]
+            by_uid = {tr.uid: tr for tr in self.tracks.confirmed}
+            jpegs: list[bytes] = []
+            if self.scan_image is not None:
+                for o in g.resolve(target)[:2]:
+                    tr = by_uid.get(o.uid)
+                    crop = self.crop(self.scan_image, tr) if tr is not None else None
+                    jpegs += [crop] if crop is not None else []
+                view = self._table_jpeg(self.scan_image)
+                jpegs += [view] if view is not None else []
+            prompt = CHECK_PROMPT.format(title=g.plan.title, step=step.say, question=step.question or step.say)
+            brain = self.brain
+            self._job_n += 1
+            key = ("check", self._job_n)
+            if self.jobs.submit(key, lambda: brain.ask("check", prompt, jpegs, schema=CHECK_SCHEMA, effort="low",
+                                                       max_out=3000, timeout_s=60.0)):
+                self._check_job = (key, k)
+        if self._check_job is not None:
+            key, k = self._check_job
+            done, reply, err = self.jobs.result(key)
+            if done:
+                self._check_job = None
+                data = reply.data if reply is not None and isinstance(reply.data, dict) else {}
+                if err:
+                    self.log.append(f"check failed: {err}")
+                    say += g.check_result(k, False, "I couldn't look just now.", now)
+                else:
+                    self.log.append(f"check: {data} ({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)")
+                    self.dash.notify(f"CHECKED BY {model_tag(reply.model, reply.provider)} · {reply.ms / 1000:.0f} S",
+                                     now, "done" if data.get("ok") is True else "warn")
+                    say += g.check_result(k, data.get("ok") is True, str(data.get("say") or ""), now)
+        return say
+
+    def seen(self) -> list[Seen]:
+        """The shown objects as the guide sees them (design px)."""
+        sc = self.scale
+        out = []
+        for tr in self.tracks.confirmed:
+            poly = np.array([self.geo.p2d(pt) for pt in tr.outline], dtype=np.float64)
+            out.append(Seen(uid=tr.uid, item=tr.item, name=tr.name, poly=poly, held=tr.held,
+                            sides_mm=sc.mm(tr.shown) if sc is not None and tr.shown is not None else None))
+        return out
+
+    def hand_points(self) -> list[list[tuple[float, float]]]:
+        """Per hand: wrist, thumb tip, index tip, middle tip and middle knuckle, design px."""
+        out = []
+        for s in self.slots.active:
+            img = s.shown if s.shown is not None else s.pose.img
+            out.append([self.geo.c2d(img[i]) for i in (0, 4, 8, 12, 9)])
+        return out
+
+    def _guide_news(self, due: list[Track]) -> list[str]:
+        """While the job's things are being put out: each one ticked off, and what is still missing."""
+        g = self.guide
+        if g.phase != "gather":
+            return []
+        ticked = [g.plan.items[tr.item - 1].name for tr in due if tr.item > 0]
+        if not ticked:
+            return []
+        missing = g.missing()
+        line = f"{spoken_list(ticked).capitalize()}, check."
+        if missing:
+            line += f" Still {'need' if len(missing) > 1 else 'needed'}: {spoken_list(missing)}."
+        return [line]
 
     @property
     def scale(self) -> Scale | None:
@@ -1677,6 +1917,11 @@ class TableSession:
         if self.scan is None and not self.dirty and self.scan_image is not None and self.namer is not None:
             self._ask(self.scan_image, now, names_only=True)  # a failed name is asked again from the same view
         say += self._collect(now)
+        if self._pending_say:
+            say, self._pending_say = self._pending_say + say, []
+        say += self._plan_done(now)
+        if self.guide is not None:
+            say += self._guide_step(now)
         return fired, say
 
     def _hands_moved(self, poses: list[HandPose]) -> bool:
@@ -1901,9 +2146,10 @@ class TableSession:
                     done, name = self.namer.result(tr.uid)
                     if done:
                         tr.name, tr.name_state = (name, "done") if name else (None, "none")
-                        if self.task is not None and name:
+                        bench = self._bench
+                        if bench is not None and name:
                             item = self.namer.match(tr.uid) if hasattr(self.namer, "match") else None
-                            tr.item = item if item is not None else match_item(name, self.task.items)
+                            tr.item = item if item is not None else match_item(name, bench.items)
                         err = f" ({self.namer.error})" if self.namer.error else ""
                         self.log.append(f"object {tr.id}: {name or 'no name'}{err} [{self.namer.summary()}]")
         if self.outliner is not None:
@@ -1925,7 +2171,9 @@ class TableSession:
             due = [tr for tr, deadline in self._announce if tr.name or now >= deadline]
             self._announce = [(tr, d) for tr, d in self._announce if tr not in due]
             due = [tr for tr in due if tr in self.tracks.tracks]
-            if self.task is None:
+            if self.guide is not None:
+                say += self._guide_news(due)
+            elif self.task is None:
                 say += [spoken_new(tr, self.scale) for tr in due][:3]
             else:
                 say += self._task_news(due)
@@ -1993,6 +2241,16 @@ class TableSession:
             return []
         self.dash.notify(f"HEARD: {q.upper()}"[:STATUS_CHARS], now)
         low = q.lower()
+        g = self.guide
+        verb = command_of(low)
+        if g is not None and g.phase in ("gather", "steps") and verb is not None:
+            self.sfx.append("press")
+            return g.command(verb, now)
+        if g is not None and g.phase == "gather" and any(w in low for w in ("missing", "what else", "still need")):
+            missing = g.missing()
+            return [f"Still missing {spoken_list(missing)}." if missing else "Nothing. Say start."]
+        if is_plan_request(low):
+            return self.request_plan(q, now)
         if self.task is not None and any(w in low for w in ("missing", "what else", "do i need", "still need")):
             missing = self.task.missing(set(self._present()))
             self.sfx.append("answer")
@@ -2006,6 +2264,11 @@ class TableSession:
         context = "Objects the camera found on the table: " + ("; ".join(names) if names else "none") + "."
         if self.task is not None:
             context += f" The person is getting ready for: {self.task.title} (needs {spoken_list(list(self.task.items))})."
+        if g is not None and g.phase == "steps":
+            step = g.plan.steps[g.k]
+            context += (f" They are doing: {g.plan.title} ({g.plan.note}), step {g.k + 1} of {len(g.plan.steps)}: "
+                        f"{step.say}. The plan's items: "
+                        + "; ".join(f"{it.name} {it.amount_text()}".strip() for it in g.plan.items) + ".")
         jpegs: list[bytes] = []
         if target is not None:
             context += f" They are pointing at object {target.id}" + (f" ({target.name})." if target.name else ".")
@@ -2134,11 +2397,61 @@ class TableSession:
             def label_ok(rect) -> bool:
                 x0, y0, x1, y1 = rect
                 return not self._in_region(g.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+        guide = self.guide
+        if guide is not None:
+            self.dash.views = {o.uid: v for o in self.seen() if (v := guide.view(o, now)) is not None}
+            self.dash.extra = guide.draw
+            self.dash.lines = guide.hud(now)
+        else:
+            self.dash.views, self.dash.extra = {}, None
+            self.dash.lines = None
+        if self._plan_job is not None:
+            self.dash.lines = (("PLANNING: " + self._plan_job[1].upper())[:STATUS_CHARS], "ONE MOMENT...", "info")
         prims, lit = self.dash.scene(self.zone, self.tracks.tracks, self.slots, self.scale, now,
                                      blank=self.scan is not None, scan_n=self.scans, keep=keep, label_ok=label_ok)
         if self.overlay is not None:
             self.overlay.set(lit + list(also_lit), now)
         return prims
+
+
+COMMANDS = (  # (spoken phrases, guide verb): a short sentence that is one of these drives the guided job
+    (("next step", "next", "done", "i'm done", "im done", "finished", "go on", "continue", "skip", "okay next",
+      "ok next"), "next"),
+    (("go back", "back", "previous", "previous step"), "back"),
+    (("repeat", "say again", "say that again", "again", "what was that", "what now", "what's next"), "repeat"),
+    (("let's start", "lets start", "start", "let's go", "lets go", "begin", "ready"), "start"),
+    (("stop", "cancel", "quit", "stop the job"), "stop"),
+    (("undo", "minus one", "that didn't count", "that one didn't count", "doesn't count"), "undo"),
+    (("how many", "count"), "how many"),
+    (("check", "check again", "look again", "check it", "have a look"), "check"),
+)
+PLAN_WORDS = ("help me", "i want to", "i'd like to", "id like to", "let's make", "lets make", "let's do", "lets do",
+              "let's cook", "let's bake", "how do i", "how to", "show me how", "i need to", "can you help",
+              "walk me through", "guide me", "teach me", "make me", "let's prepare", "i'm going to", "im going to")
+
+
+def model_tag(model: str, provider: str) -> str:
+    """"MUSE-SPARK-1.3" or "MUSE-SPARK-OPEN @ BASETEN": who did it, short enough for the status bar."""
+    name = model.rsplit("/", 1)[-1].upper()
+    return name if provider == "meta" else f"{name} @ {provider.upper()}"
+
+
+def command_of(low: str) -> str | None:
+    """The guide verb a short sentence is ("next", "go back", "how many?"), or None."""
+    t = re.sub(r"[^a-z' ]+", " ", low).strip()
+    t = re.sub(r"^(please|okay|ok|lightwork|hey lightwork)\s+", "", t).strip()
+    t = re.sub(r"\s+(please|now|then)$", "", t).strip()
+    if not t or len(t.split()) > 4:
+        return None
+    for phrases, verb in COMMANDS:
+        if t in phrases:
+            return verb
+    return None
+
+
+def is_plan_request(text: str) -> bool:
+    low = text.lower()
+    return any(w in low for w in PLAN_WORDS)
 
 
 def sam_fits(contour_page: np.ndarray, tr: Track) -> bool:

@@ -1,0 +1,24 @@
+{
+  "title": "Pancakes",
+  "serves": 2,
+  "items": [
+    {"id": "flour", "name": "flour", "kind": "material", "amount": 125, "unit": "g", "density": 0.53},
+    {"id": "egg", "name": "egg", "kind": "material", "amount": 1, "unit": "piece"},
+    {"id": "milk", "name": "milk", "kind": "material", "amount": 150, "unit": "ml"},
+    {"id": "sugar", "name": "sugar", "kind": "material", "amount": 1, "unit": "tbsp"},
+    {"id": "salt", "name": "salt", "kind": "material", "amount": 1, "unit": "pinch", "optional": true},
+    {"id": "bowl", "name": "mixing bowl", "kind": "container"},
+    {"id": "scoop", "name": "measuring scoop", "kind": "measure", "optional": true},
+    {"id": "whisk", "name": "whisk", "kind": "tool", "optional": true}
+  ],
+  "steps": [
+    {"do": "transfer", "say": "Add the flour", "item": "flour", "into": "bowl", "measure": "scoop"},
+    {"do": "transfer", "say": "Crack the eggs into the bowl", "item": "egg", "into": "bowl"},
+    {"do": "transfer", "say": "Add a spoon of sugar", "item": "sugar", "into": "bowl"},
+    {"do": "confirm", "say": "Pour in the milk", "item": "milk", "into": "bowl"},
+    {"do": "use", "say": "Pick up the whisk", "item": "whisk"},
+    {"do": "timer", "say": "Whisk until smooth", "item": "bowl", "seconds": 40},
+    {"do": "check", "say": "Let me look at the batter", "target": "bowl",
+     "question": "Looking down into the mixing bowl: is the batter smooth, with no dry flour or big lumps left?"}
+  ]
+}

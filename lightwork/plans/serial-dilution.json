@@ -1,0 +1,21 @@
+{
+  "title": "Serial dilution",
+  "note": "1 to 2 steps across six cups, food colouring",
+  "items": [
+    {"id": "cups", "name": "clear cup", "kind": "container", "count": 6},
+    {"id": "water", "name": "water bottle", "kind": "material"},
+    {"id": "dye", "name": "blue water", "kind": "material", "amount": 20, "unit": "ml"},
+    {"id": "syringe", "name": "syringe", "kind": "measure", "capacity_ml": 10}
+  ],
+  "steps": [
+    {"do": "transfer", "say": "Put 10 ml of water in cups 2 to 6", "item": "water", "into": "cups#2-6", "measure": "syringe"},
+    {"do": "transfer", "say": "Put 20 ml of blue water in cup 1", "item": "dye", "into": "cups#1", "measure": "syringe"},
+    {"do": "transfer", "say": "Move 10 ml from cup 1 to cup 2", "item": "cups#1", "into": "cups#2", "count": 1},
+    {"do": "transfer", "say": "Move 10 ml from cup 2 to cup 3", "item": "cups#2", "into": "cups#3", "count": 1},
+    {"do": "transfer", "say": "Move 10 ml from cup 3 to cup 4", "item": "cups#3", "into": "cups#4", "count": 1},
+    {"do": "transfer", "say": "Move 10 ml from cup 4 to cup 5", "item": "cups#4", "into": "cups#5", "count": 1},
+    {"do": "transfer", "say": "Move 10 ml from cup 5 to cup 6", "item": "cups#5", "into": "cups#6", "count": 1},
+    {"do": "check", "say": "Let me check the series",
+     "question": "Looking down at the six cups from left to right: does each cup look lighter blue than the one before it, from dark blue to very pale?"}
+  ]
+}

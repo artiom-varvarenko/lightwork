@@ -350,3 +350,58 @@ class MetaNamer(_Namer):
         super().close()
         for c in self._clients:
             c.close()
+
+
+class BrainNamer(_Namer):
+    """Names from any :class:`lightwork.brain.Brain`: with ``--names open``, Meta's open weights (Muse Spark Open on
+    Baseten or Fireworks, Muse Glimmer on Modal or our own hardware), recorded under the brain's call directory."""
+
+    batch_max = BATCH_MAX
+
+    def __init__(self, brain, *, workers: int = META_WORKERS):
+        self.brain = brain
+        self.label = brain.label
+        self.run_dir = getattr(brain, "run_dir", None)
+        self.task = None  # lightwork.benchtask.BenchTask, as for MetaNamer
+        super().__init__(workers=workers)
+
+    def check(self) -> str | None:
+        return self.brain.check()
+
+    def summary(self) -> str:
+        return self.brain.summary()
+
+    def _name(self, jpeg: bytes) -> str | None:
+        return clean_name(self.brain.ask("name", PROMPT, [jpeg], effort="low", max_out=META_MAX_OUTPUT * 2,
+                                         timeout_s=META_TIMEOUT_S).text)
+
+    def _name_batch(self, jpegs: list[bytes]) -> list:
+        if len(jpegs) == 1 and self.task is None:
+            return [self._name(jpegs[0])]
+        if self.task is not None:
+            items = "\n".join(f"{k}. {name}" for k, name in enumerate(self.task.items, 1))
+            prompt = TASK_PROMPT.format(title=self.task.title, items=items) + (
+                f"\nThere are {len(jpegs)} images, in order.")
+            reply = self.brain.ask("name", prompt, jpegs, schema=TASK_SCHEMA, effort="low",
+                                   max_out=META_MAX_OUTPUT * 2 + 60 * len(jpegs), timeout_s=META_TIMEOUT_S)
+            objs = reply.data.get("objects") if isinstance(reply.data, dict) else None
+            if not isinstance(objs, list):
+                raise TypeError("the reply has no objects list")
+            out = []
+            for o in objs[:len(jpegs)]:
+                name = clean_name(o.get("name")) if isinstance(o, dict) and isinstance(o.get("name"), str) else None
+                item = o.get("item") if isinstance(o, dict) else 0
+                item = item if isinstance(item, int) and 0 <= item <= len(self.task.items) else 0
+                out.append((name, item))
+            return out
+        prompt = BATCH_PROMPT + f"\nThere are {len(jpegs)} images, in order."
+        reply = self.brain.ask("name", prompt, jpegs, schema=BATCH_SCHEMA, effort="low",
+                               max_out=META_MAX_OUTPUT * 2 + 40 * len(jpegs), timeout_s=META_TIMEOUT_S)
+        names = reply.data.get("names") if isinstance(reply.data, dict) else None
+        if not isinstance(names, list):
+            raise TypeError("the reply has no names list")
+        return [clean_name(n) if isinstance(n, str) else None for n in names[:len(jpegs)]]
+
+    def close(self) -> None:
+        super().close()
+        self.brain.close()

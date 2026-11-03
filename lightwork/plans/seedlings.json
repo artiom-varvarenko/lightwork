@@ -1,0 +1,15 @@
+{
+  "title": "Sow seedlings",
+  "note": "two seeds in each of six pots",
+  "items": [
+    {"id": "pots", "name": "plant pot", "kind": "container", "count": 6},
+    {"id": "seeds", "name": "seed packet", "kind": "material"},
+    {"id": "labels", "name": "plant label", "kind": "tool", "optional": true}
+  ],
+  "steps": [
+    {"do": "transfer", "say": "Put two seeds in each pot", "item": "seeds", "into": "pots#1-6"},
+    {"do": "confirm", "say": "Cover the seeds with a little soil"},
+    {"do": "check", "say": "Let me look at the pots",
+     "question": "Looking down at the plant pots: are all six pots filled with soil and none of them empty?"}
+  ]
+}

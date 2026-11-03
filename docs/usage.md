@@ -97,6 +97,40 @@ uv run lightwork play --table --rotate 180 --names meta \
 - **Questions** (`--voice`): open `/screen` on the laptop and press Start for the microphone (Muse Voice Transcribe). Point at an object and ask "what is this?"; Muse Spark answers through the projector phone. "What's missing?" is answered from the checklist without a model call.
 - Model calls are recorded under `.lightwork/play-calls/` and held to `LW_BUDGET_USD`.
 
+### Guided jobs (`--do`, or ask out loud)
+
+The table is a general workbench helper: tell it what you are doing and it walks you through it on the real objects.
+
+```sh
+uv run lightwork play --table --rotate 180 --names meta --voice --do pancakes      # a built-in plan
+uv run lightwork play --table --rotate 180 --names meta --voice                    # then say "help me ..."
+uv run lightwork plan "help me pack my camera bag"                                 # see a plan without the rig
+```
+
+- **Plans** are a small, domain-neutral JSON (`lightwork/guide.py`): the items the job needs (materials, containers,
+  tools, measuring tools, with amounts) and steps from a fixed vocabulary the camera can follow: `transfer` (counted
+  trips of a hand from one item into another: scoops, eggs, 10 ml from cup 1 to cup 2, one into each pot), `use`,
+  `timer`, `check` (a Meta model looks and answers a yes/no question) and `confirm` (you say "done"). Built-in plans:
+  `pancakes`, `serial-dilution`, `seedlings`, `kit-return`. Anything else is planned from your words by Muse Spark
+  (`--planner muse-wonder-1.0` for Muse Wonder) or by Meta open weights (`--brain open`), in about 15 s.
+- **Numbers are computed, not guessed:** amounts scale with "for four", grams turn into millilitres with a density,
+  and millilitres into scoops from the measuring tool's capacity, from its name (tablespoon 15 ml) or its size on the
+  table (a round scoop of width d holds about pi d^3 / 12).
+- **Mistakes it catches:** picking up the wrong material during a step, a trip into the wrong container (cup 3
+  instead of cup 2), one too many, a pot filled twice. The object turns red and the table says why.
+- **Spoken commands:** next, back, repeat, start, stop, undo, how many, check. Anything else is a question about
+  the table (point at an object and ask).
+- The status bar at the far edge says what to do now and shows progress; the counter sits next to the container.
+
+### Meta open weights through the partners (`lightwork partners`)
+
+`--brain open` and `--names open` run Meta's open-weight models instead of the Meta Model API: Muse Spark Open on
+Baseten (`BASETEN_API_KEY`; the hackathon key needs `BASETEN_MODEL=meta-models/muse-spark-open-1026`) or Fireworks AI
+(`FIREWORKS_API_KEY`), Muse Glimmer on a Modal GPU (`scripts/modal_glimmer.py`, then `MODAL_LLM_URL` and
+`MODAL_LLM_KEY`) or on your own machine with llama.cpp (`LW_CHAT_BASE_URL`). Providers are tried in `LW_OPEN_ORDER`
+and a failing one is skipped for a minute. `uv run lightwork partners` sends each configured provider one recorded
+test call; every call (here and on the table) is recorded with provider, host, model and latency.
+
 For filming, keep the setup still: camera plugged into the laptop itself (not a hub; truncated frames are dropped and counted), steady room light (the camera gain is fixed after calibration in table mode), the tripod clear of the table, and dark or coloured matte objects with space between them. Reload the projector page and tap Start after updating, so the page picks up the new scripts and sound is unlocked.
 
 ## Author a procedure

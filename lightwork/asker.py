@@ -134,3 +134,42 @@ class MetaAsker:
             pass
         self._thread.join(timeout=2.0)
         self._client.close()
+
+
+class BrainAsker(MetaAsker):
+    """Spoken answers from any :class:`lightwork.brain.Brain` (``--brain open``: Meta's open weights via a partner)."""
+
+    def __init__(self, brain):  # noqa: D107 - shares MetaAsker's queue and worker, not its Meta client
+        self.brain = brain
+        self.model = self.label = brain.label
+        self.run_dir = getattr(brain, "run_dir", None)
+        self._q = queue.Queue(maxsize=4)
+        self._done = {}
+        self._lock = threading.Lock()
+        self._index = 0
+        self.error = None
+        self.calls = 0
+        self.cost_usd = 0.0
+        self.ms = deque(maxlen=20)
+        self._thread = threading.Thread(target=self._loop, name="table-asker", daemon=True)
+        self._thread.start()
+
+    def check(self) -> str | None:
+        return self.brain.check()
+
+    def _answer(self, question: str, jpegs: list[bytes], context: str) -> str | None:
+        reply = self.brain.ask("ask", PROMPT.format(question=question.strip(), context=context.strip()), jpegs,
+                               effort="low", max_out=MAX_OUTPUT * 2, timeout_s=TIMEOUT_S)
+        text = " ".join(reply.text.replace("*", "").split())
+        if len(text) > MAX_CHARS:
+            cut = max(text.rfind(c, 0, MAX_CHARS) for c in ".!?")
+            text = text[:cut + 1] if cut > 40 else text[:MAX_CHARS]
+        return text or None
+
+    def close(self) -> None:
+        try:
+            self._q.put_nowait(None)
+        except queue.Full:
+            pass
+        self._thread.join(timeout=2.0)
+        self.brain.close()

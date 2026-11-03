@@ -63,13 +63,24 @@ def configure(p) -> None:
                    help="turn the projection: 180 reads right from the far side of a table")
     p.add_argument("--page-mm", type=float,
                    help="table: measured width of the projected page on the table, mm (exact sizes without a card)")
-    p.add_argument("--names", choices=("off", "meta", "ollama"), default="off",
-                   help="table: name each object once: meta = Muse Spark (billed, recorded), ollama = local model")
+    p.add_argument("--names", choices=("off", "meta", "open", "ollama"), default="off",
+                   help="table: name each object once: meta = Muse Spark (billed, recorded), open = Meta open weights "
+                        "via the partners (Baseten/Fireworks/Modal, or own hardware; see `lightwork partners`), "
+                        "ollama = local model (not Meta)")
     p.add_argument("--names-model", help="model for --names (default: muse-spark-1.3-contributor / qwen3.5:4b)")
     p.add_argument("--sam", choices=("auto", "on", "off"), default="auto",
-                   help="table: outline objects from SAM 3.1 masks (billed, recorded; auto = with --names meta)")
+                   help="table: outline objects from SAM 3.1 masks (billed, recorded; auto = with --names meta/open)")
     p.add_argument("--task", help="table: a bench check: JSON {title, items}, a text file (title, then one item per "
                                   "line) or inline \"Title: item, item, ...\"; listed items turn green, others red")
+    p.add_argument("--do", metavar="JOB",
+                   help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
+                        "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
+                        "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
+    p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
+                   help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
+                        "weights via the partners, auto = open when a partner is configured, else meta")
+    p.add_argument("--planner", default=None,
+                   help="Meta model that writes plans (default muse-spark-1.3; muse-wonder-1.0 is slower)")
     p.add_argument("--voice", action="store_true",
                    help="table: ask out loud (Muse Voice Transcribe via the /screen page's microphone, press Start "
                         "there): point at an object and ask \"what is this?\"; Muse Spark answers on the projector")
@@ -143,6 +154,12 @@ def _namer(args):
         from ..config import load_settings
 
         namer = MetaNamer(load_settings(), model=args.names_model or META_MODEL)
+    elif args.names == "open":
+        from ..brain import make_brain
+        from ..config import load_settings
+        from ..namer import BrainNamer
+
+        namer = BrainNamer(make_brain("open", load_settings()))
     else:
         namer = OllamaNamer(model=args.names_model or OLLAMA_MODEL, url=args.ollama_url)
     problem = namer.check()
@@ -150,7 +167,7 @@ def _namer(args):
         print(f"object names off: {problem}")
         namer.close()
         return None
-    where = f"; calls recorded in {namer.run_dir}" if args.names == "meta" else ""
+    where = f"; calls recorded in {namer.run_dir}" if args.names in ("meta", "open") else ""
     print(f"object names: {namer.label}{where}")
     return namer
 
@@ -159,10 +176,15 @@ def _asker(args):
     """Muse Spark answers to spoken questions (--table --voice), or None."""
     if not args.table or not args.voice:
         return None
-    from ..asker import MetaAsker
+    from ..asker import BrainAsker, MetaAsker
     from ..config import load_settings
 
-    asker = MetaAsker(load_settings())
+    if args.brain == "open":  # answers from Meta's open weights too
+        from ..brain import make_brain
+
+        asker = BrainAsker(make_brain("open", load_settings()))
+    else:
+        asker = MetaAsker(load_settings())
     problem = asker.check()
     if problem:
         print(f"spoken questions off: {problem}")
@@ -184,15 +206,56 @@ def _voice(args, heard, control):
         if text:
             heard.put(text)
 
-    voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing"], on_event,
+    voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start",
+                                           "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop"],
+                         on_event,
                          on_hud=lambda hud: control.push_state({"hud": hud}))
     voice.start()
     return voice
 
 
+def _brain(args):
+    """Plans and checks for --table (--do / --voice): Meta Model API or Meta open weights, or None."""
+    if not args.table or args.brain == "off" or not (args.do or args.voice):
+        return None
+    from ..brain import make_brain
+    from ..config import load_settings
+
+    brain = make_brain(args.brain, load_settings(), model=args.planner)
+    problem = brain.check()
+    if problem and args.brain == "auto":  # no partner and no Meta key: try the other kind
+        brain.close()
+        brain = make_brain("meta", load_settings(), model=args.planner)
+        problem = brain.check()
+    if problem:
+        print(f"brain off ({problem}): built-in plans only, checks taken on your word")
+        brain.close()
+        return None
+    print(f"brain: {brain.label}; calls recorded in {brain.run_dir}")
+    return brain
+
+
+def _plan(args, brain):
+    """The --do job: a built-in plan or a file now; words go to the brain once the session runs (None here)."""
+    if not args.table or not args.do:
+        return None, None
+    from ..guide import find_builtin, load_plan, scale_plan
+
+    try:
+        return load_plan(args.do), None
+    except ValueError:
+        pass
+    found = find_builtin(args.do)  # "pancakes for 4": the built-in plan, scaled (instant, the same every time)
+    if found is not None:
+        return scale_plan(*found), None
+    if brain is None:
+        raise SystemExit(f"--do {args.do!r}: not a plan file or built-in plan, and no brain to plan it")
+    return None, args.do
+
+
 def _outliner(args):
     """SAM outlines for --table (``--sam``), or None."""
-    if not args.table or args.sam == "off" or (args.sam == "auto" and args.names != "meta"):
+    if not args.table or args.sam == "off" or (args.sam == "auto" and args.names not in ("meta", "open")):
         return None
     from ..config import load_settings
     from ..outliner import SamOutliner
@@ -254,13 +317,17 @@ def run(args) -> int:
         cam.close()
         print(f"server: {exc} (is `lightwork live`, `calibrate`, `replay` or another `play` still running?)")
         return 2
-    tracker = namer = outliner = asker = None
+    tracker = namer = outliner = asker = brain = None
     try:
         print(f"camera: {cam.status}")
         tracker = _tracker(args)
         namer = _namer(args)
         outliner = _outliner(args)
         asker = _asker(args)
+        brain = _brain(args)
+        plan, plan_words = _plan(args, brain)
+        if plan is not None:
+            print(f"job: {plan.title}: {', '.join(it.name for it in plan.items)}; {len(plan.steps)} steps")
         if args.ceiling and tracker is None:
             print("ceiling mode needs hand tracking")
             return 2
@@ -285,7 +352,7 @@ def run(args) -> int:
         print(f"projector page {page.innerWidth}x{page.innerHeight}{', turned 180 degrees' if args.rotate else ''}; "
               f"screen view: http://127.0.0.1:{args.port}/screen")
         play = Play(args, cam, hubs, tracker, frame_size, gain, namer=namer, outliner=outliner, asker=asker,
-                    task=task, heard=heard)
+                    task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain)
         # `systemctl --user kill -s USR1 lightwork-play` (or `kill -USR1 <pid>`): full calibration again
         signal.signal(signal.SIGUSR1, lambda *_: setattr(play, "recal", True))
         # `... -s USR2 ...`: --table debug snapshot under .lightwork/play-debug/ (frame, reference, masks, tracks)
@@ -317,6 +384,9 @@ def run(args) -> int:
         if asker is not None:
             print(asker.summary())
             asker.close()
+        if brain is not None:
+            print(brain.summary())
+            brain.close()
         if voice is not None:
             voice.close()
         server.stop()
@@ -332,11 +402,12 @@ class Play:
     dump = False  # SIGUSR2: write a --table debug snapshot
 
     def __init__(self, args, cam, hubs, tracker, frame_size, gain: int, namer=None, outliner=None, asker=None,
-                 task=None, heard=None):
+                 task=None, heard=None, plan=None, plan_words=None, brain=None):
         from ..sessioncal import CameraGain
 
         self.args, self.cam, self.tracker, self.frame_size = args, cam, tracker, frame_size
         self.namer, self.outliner, self.asker, self.task, self.heard = namer, outliner, asker, task, heard
+        self.plan, self.plan_words, self.brain = plan, plan_words, brain
         self.render, self.preview, self.control = hubs["render_hub"], hubs["preview_hub"], hubs["control_hub"]
         self.gain = CameraGain(cam, gain)
         self.auto_gain = args.gain is None and self.gain.available
@@ -407,8 +478,11 @@ class Play:
             a = self.args
             self.table = TableSession(self.geo, self.frame_size, threshold=a.threshold, min_area=a.min_area,
                                       page_mm=a.page_mm, state_dir=load_settings().state_dir, namer=self.namer,
-                                      outliner=self.outliner, link=self.render, asker=self.asker, task=self.task)
+                                      outliner=self.outliner, link=self.render, asker=self.asker, task=self.task,
+                                      plan=self.plan, brain=self.brain, voice=bool(a.voice), planner_model=a.planner)
             self.table.learn_at = time.monotonic() + 0.5
+            if self.plan_words:  # --do in words: planned once the table is up
+                self.table._pending_say += self.table.request_plan(self.plan_words, time.monotonic())
             scale = self.table.scale
             print("table scale: " + (f"{scale.source}, {scale.mm_per_px:.3f} mm per page px" if scale else
                                      "from the hands until a card is measured (SCALE)"))
@@ -850,6 +924,15 @@ class Play:
         if t.namer is not None:
             err = f" · last error: {t.namer.error}" if t.namer.error else ""
             rows.append({"id": "names", "say": t.namer.summary() + err, "state": "provisional" if err else "passed"})
+        g = t.guide
+        if g is not None:
+            l1, l2, _ = g.hud(time.monotonic())
+            rows.append({"id": "job", "say": f"{g.plan.title} ({g.plan.source}) · {l1.lower()} · {l2.lower()}",
+                         "state": "passed" if g.phase == "done" else "provisional"})
+        if t.brain is not None:
+            rows.append({"id": "brain", "say": t.brain.summary(), "state": "passed"})
+            for k, line in enumerate(list(t.brain.trace)[-4:]):
+                rows.append({"id": f"call {k + 1}", "say": line, "state": "passed"})
         if z is not None:
             rows.append({"id": "light", "say": "table light " + "/".join(f"{g:.2f}" for g in z.gain[::-1])
                          + f" (R/G/B) · {z.relearns} auto relearns · {z.healed} removed objects healed",

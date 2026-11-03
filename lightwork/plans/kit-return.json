@@ -1,0 +1,16 @@
+{
+  "title": "Projector kit return",
+  "note": "check it's complete before it goes back",
+  "items": [
+    {"id": "projector", "name": "projector", "kind": "tool"},
+    {"id": "remote", "name": "remote control", "kind": "tool"},
+    {"id": "power", "name": "power cable", "kind": "tool"},
+    {"id": "hdmi", "name": "hdmi cable", "kind": "tool"},
+    {"id": "batteries", "name": "batteries", "kind": "tool"}
+  ],
+  "steps": [
+    {"do": "check", "say": "Let me check the cables",
+     "question": "Are the cables on the table neatly coiled, not tangled?"},
+    {"do": "confirm", "say": "Pack everything into the case"}
+  ]
+}
