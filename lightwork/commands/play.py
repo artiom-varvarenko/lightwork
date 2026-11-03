@@ -641,8 +641,9 @@ class Play:
     def start_check(self, attempt: int = 1) -> None:
         from ..sessioncal import TARGETS, HandCheck
 
-        if self.args.no_hand_check or self.tracker is None:
+        if (self.args.no_hand_check and not getattr(self, "force_check", False)) or self.tracker is None:
             return
+        self.force_check = False
         mode = "point" if self.args.ceiling else "touch"
         self.check = HandCheck(self.geo, mode, attempt)
         self._speak("Touch the circles, one at a time." if mode == "touch" else "Point at the circles, one at a time.")
@@ -819,6 +820,9 @@ class Play:
                     fired = self._table(frame, obs, now, dt)
                 if fired:
                     print("pressed " + ", ".join(fired))
+                if "recal" in fired:  # the RECAL button: map the projector again, then line the cursor up
+                    self.recal, self.force_check = True, True
+                    self._speak("Recalibrating. Take everything off the table and keep your hands away.")
                 if self.args.table:
                     prims, obj_prims = self.table.scene(now, also_lit=self.frame), []
                 else:

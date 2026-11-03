@@ -533,6 +533,11 @@
           "title": "Rotate",
           "type": "integer"
         },
+        "smooth": {
+          "default": false,
+          "title": "Smooth",
+          "type": "boolean"
+        },
         "type": {
           "const": "view",
           "default": "view",

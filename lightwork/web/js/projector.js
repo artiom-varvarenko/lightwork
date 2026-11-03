@@ -32,6 +32,87 @@ let animating = false;
 let wake = null;
 let started = false;
 let rotate = 0; // C2 view: 0 or 180 degrees
+let smooth = false; // C2 view.smooth: ease moves between scenes, fade what comes and goes (hand games)
+
+// ---- smoothing (view.smooth). Scenes arrive up to 30 times a second over Wi-Fi with uneven gaps; drawn as they come,
+// moving things jump and a cursor blinks whenever the hand tracker misses a frame (3 Nov: "make the projector
+// smoother and less flickery"). With smoothing on, a prim that moved glides from where it was drawn to its new place
+// over TWEEN_MS, a new one fades in over FADE_IN_MS and one that left fades out over FADE_OUT_MS. Off while the
+// table is scanned: the server turns it off then (a fading outline would look like an object to the camera).
+const TWEEN_MS = 45;
+const FADE_IN_MS = 90;
+const FADE_OUT_MS = 180;
+let shown = new Map(); // key -> prim as drawn last frame (eased positions)
+let from = new Map(); // key -> prim where the current scene's ease starts
+let born = new Map(); // key -> ms the prim first appeared
+let ghosts = new Map(); // key -> {prim, t}: prims that left, fading out
+let easeT0 = 0;
+
+function keyOf(p) {
+  return `${p.kind} ${p.id}`;
+}
+
+function forgetSmooth() {
+  shown = new Map();
+  from = new Map();
+  born = new Map();
+  ghosts = new Map();
+}
+
+function sceneArrived(msg, now) {
+  if (msg.mode !== 'normal' || !scene || scene.mode !== 'normal') {
+    forgetSmooth();
+    return;
+  }
+  from = new Map(shown); // ease from what is on the table right now, not from the last scene: no jumps mid-ease
+  const next = new Set((msg.prims || []).map(keyOf));
+  for (const [k, p] of shown) if (!next.has(k)) ghosts.set(k, { prim: p, t: now });
+  easeT0 = now;
+}
+
+const lerp = (a, b, f) => a + (b - a) * f;
+const lerp2 = (a, b, f) => [lerp(a[0], b[0], f), lerp(a[1], b[1], f)];
+
+function eased(a, b, f) {
+  if (!a || a.kind !== b.kind) return b;
+  if (b.kind === 'poly' && a.pts && a.pts.length === b.pts.length) return { ...b, pts: b.pts.map((pt, i) => lerp2(a.pts[i], pt, f)) };
+  if (b.kind === 'ring' && a.c) return { ...b, c: lerp2(a.c, b.c, f), r: lerp(a.r, b.r, f) };
+  if (b.kind === 'dot' && a.c) return { ...b, c: lerp2(a.c, b.c, f) };
+  if (b.kind === 'label' && a.at) return { ...b, at: lerp2(a.at, b.at, f) };
+  if (b.kind === 'arrow' && a.a) return { ...b, a: lerp2(a.a, b.a, f), b: lerp2(a.b, b.b, f) };
+  return b;
+}
+
+// The scene to draw now, eased and faded, and whether it is still changing.
+function smoothScene(now) {
+  const f = Math.min(1, (now - easeT0) / TWEEN_MS);
+  const e = 1 - (1 - f) * (1 - f); // ease-out
+  let moving = f < 1;
+  const prims = [];
+  const drawn = new Map();
+  for (const p of scene.prims || []) {
+    const k = keyOf(p);
+    ghosts.delete(k);
+    if (!born.has(k)) born.set(k, now);
+    const q = eased(from.get(k), p, e);
+    drawn.set(k, q);
+    const a = Math.min(1, (now - born.get(k)) / FADE_IN_MS);
+    if (a < 1) moving = true;
+    prims.push(a < 1 ? { ...q, alpha: a } : q);
+  }
+  for (const [k, g] of ghosts) {
+    const a = 1 - (now - g.t) / FADE_OUT_MS;
+    if (a <= 0) {
+      ghosts.delete(k);
+      born.delete(k);
+      continue;
+    }
+    moving = true;
+    prims.unshift({ ...g.prim, alpha: a }); // under what is still there
+  }
+  shown = drawn;
+  return { scene: { ...scene, prims }, moving };
+}
 
 const speaker = new Speaker((m) => sock.send(m));
 
@@ -50,6 +131,7 @@ const sock = openSocket('/ws/render', {
     }
     const msg = JSON.parse(data);
     if (msg.type === 'scene') {
+      if (smooth) sceneArrived(msg, performance.now());
       scene = msg;
       requestDraw();
     } else if (msg.type === 'calib') {
@@ -60,6 +142,8 @@ const sock = openSocket('/ws/render', {
     } else if (msg.type === 'sfx') {
       sfx.play(msg.name, msg.gain); // silent until the tap to start unlocks audio
     } else if (msg.type === 'view') {
+      smooth = !!msg.smooth;
+      if (!smooth) forgetSmooth();
       rotate = msg.rotate === 180 ? 180 : 0;
       document.documentElement.classList.toggle('rot180', rotate === 180);
       requestDraw();
@@ -144,13 +228,16 @@ function draw(ts) {
   } else if (calib) {
     setView(dpr);
     const unit = Math.max(W / PROJ_W, H / PROJ_H);
-    animating = drawScene(ctx, scene, {
+    let toDraw = scene;
+    let moving = false;
+    if (smooth) ({ scene: toDraw, moving } = smoothScene(performance.now()));
+    animating = drawScene(ctx, toDraw, {
       map: calib.map,
       palette: PALETTES.projector,
       lineWidth: LINE_PROJ_PX * unit,
       fontPx: TEXT_PROJ_PX * unit,
       t: ts / 1000,
-    });
+    }) || moving;
   }
   if (scene.seq !== ackedSeq) {
     const ack = { type: 'ack', seq: scene.seq };

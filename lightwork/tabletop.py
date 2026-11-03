@@ -120,7 +120,7 @@ SHOW_PAGE = 2.0  # displayed sides change by at least this (page px) and SHOW_FR
 SHOW_FRAC = 0.03
 LEARN_QUIET_S = 1.0  # the table is learned once no hand was seen this long ...
 LEARN_GRACE_S = 3.0  # ... and no sooner than this after "clear the table" was said
-DWELL = {"learn": 1.0, "scale": 0.6, "home": 0.8}  # LEARN forgets every object: it takes a longer hold (3 Nov: 1.5/1.0 felt slow)
+DWELL = {"learn": 1.0, "scale": 0.6, "home": 0.8, "recal": 1.2}  # LEARN forgets every object: it takes a longer hold (3 Nov: 1.5/1.0 felt slow)
 ID1_MM = (85.60, 53.98)
 CARD_ASPECT_TOL = 0.08
 CARD_FILL = 0.85
@@ -191,7 +191,8 @@ LOOK_WORDS = ("look again", "look at the table", "what's on the table", "whats o
               "scan the table", "find everything", "look closer", "look closely", "you missed")
 BUTTON_TIPS = {"learn": ("HOLD TO LEARN THE EMPTY TABLE AGAIN", "TAKE EVERYTHING OFF IT FIRST"),
                "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE"),
-               "home": ("HOLD FOR THE GAMES MENU", "SAY 'STOP PLAYING' FOR THE TABLE", )}
+               "home": ("HOLD FOR THE GAMES MENU", "SAY 'STOP PLAYING' FOR THE TABLE", ),
+               "recal": ("HOLD TO RECALIBRATE: CLEAR THE TABLE", "THEN TOUCH THE THREE CIRCLES")}
 _uids = itertools.count(1)
 
 
@@ -1374,7 +1375,8 @@ class TableDashboard:
 
     geo: Geo
     buttons: list[Button] = field(default_factory=lambda: [
-        Button("learn", "LEARN", (COL_X1 / 2, 170.0), r=BTN_R), Button("scale", "SCALE", (COL_X1 / 2, 270.0), r=BTN_R),
+        Button("learn", "LEARN", (COL_X1 / 2, 150.0), r=BTN_R), Button("scale", "SCALE", (COL_X1 / 2, 235.0), r=BTN_R),
+        Button("recal", "RECAL", (COL_X1 / 2, 320.0), r=BTN_R),
     ])
     note: str = ""
     note_role: str = "info"
@@ -1391,7 +1393,8 @@ class TableDashboard:
         """While a game is on, the column holds one HOME button (the games menu) instead of LEARN and SCALE."""
         if on and not any(b.key == "home" for b in self.buttons):
             self.table_buttons = self.buttons
-            self.buttons = [Button("home", "HOME", (COL_X1 / 2, 220.0), r=BTN_R)]
+            self.buttons = [Button("home", "HOME", (COL_X1 / 2, 190.0), r=BTN_R),
+                            Button("recal", "RECAL", (COL_X1 / 2, 300.0), r=BTN_R)]
         elif not on and self.table_buttons:
             self.buttons, self.table_buttons = self.table_buttons, []
 
@@ -1465,6 +1468,12 @@ class TableDashboard:
     def _icon(c: Canvas, b: Button, role: str) -> None:
         """LEARN: a circular arrow (start again). SCALE: a card (sizes come from a bank card)."""
         x, y, r = b.c[0], b.c[1], b.r
+        if b.key == "recal":  # cross hairs: line the light up with the hand again
+            c.circle(f"btn-{b.key}-ico", (x, y), 0.42 * r, role, n=16)
+            for k, (dx, dy) in enumerate(((1, 0), (-1, 0), (0, 1), (0, -1))):
+                c.poly(f"btn-{b.key}-t{k}", [(x + dx * 0.2 * r, y + dy * 0.2 * r), (x + dx * 0.68 * r, y + dy * 0.68 * r)],
+                       role)
+            return
         if b.key == "home":  # a little house
             w = 0.5 * r
             c.poly(f"btn-{b.key}-ico", [(x - w, y + 0.1 * r), (x, y - 0.55 * r), (x + w, y + 0.1 * r)], role)
@@ -1721,15 +1730,21 @@ class TableSession:
 
     # ---- hand games (lightwork.games): the object scans pause while one is on
 
+    def _smooth(self, on: bool) -> None:
+        if self.link is not None and hasattr(self.link, "set_smooth"):
+            self.link.set_smooth(on)
+
     def start_game(self, key: str, now: float) -> list[str]:
         say = self.games.start(key, now)
         self.dash.game_mode(True)
+        self._smooth(True)
         self.scan = None
         self.log.append(f"game: {key}")
         return say
 
     def _leave_games(self, now: float) -> None:
         self.dash.game_mode(False)
+        self._smooth(False)
         self.dirty, self.anywhere, self.last_change_t = True, True, now  # look at the table again: things may
         if self.motion is not None:  # have been put down or taken while we played
             self.motion.reset()
@@ -1774,8 +1789,9 @@ class TableSession:
         points, segments = [], []
         prev = getattr(self, "_game_prev", {})
         fresh = {}
+        ox, oy = self.slots.offset  # the hand check's fingertip correction, as for the cursor
         for s in self.slots.active:
-            pts = [self.geo.c2d(s.pose.img[i]) for i in idx]
+            pts = [(x - ox, y - oy) for x, y in (self.geo.c2d(s.pose.img[i]) for i in idx)]
             points += pts
             if s.seen == now:
                 before = prev.get(s.k)
@@ -2530,6 +2546,7 @@ class TableSession:
         if said is not None:
             if self.games.active and not was_playing:
                 self.dash.game_mode(True)
+                self._smooth(True)
                 self.scan = None
             elif was_playing and not self.games.active:
                 self._leave_games(now)

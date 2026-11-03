@@ -226,6 +226,16 @@ class RenderHub:
             self._view_version += 1
             self._poke_all()
 
+    def set_smooth(self, on: bool) -> None:
+        """Turn the page's easing and fades on or off (C2 ``view.smooth``), keeping the rotation."""
+        with self._lock:
+            v = self._view or render.View()
+            if v.smooth == on:
+                return
+            self._view = v.model_copy(update={"smooth": on})
+            self._view_version += 1
+            self._poke_all()
+
     def say(self, text: str, priority: str = "normal") -> str:
         """Queue speech on the speaking page (newest projector, else newest screen). Dropped when neither is
         connected; the returned id then never appears in a ``tts`` report."""

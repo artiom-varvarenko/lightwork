@@ -134,6 +134,7 @@ export function drawScene(ctx, scene, opts) {
   ctx.lineJoin = 'round';
   for (const p of scene.prims || []) {
     const colour = palette[p.role] || palette.info;
+    ctx.globalAlpha = typeof p.alpha === 'number' ? Math.max(0, Math.min(1, p.alpha)) : 1; // fades (projector.js)
     if (p.kind === 'ring') {
       let w = lineWidth;
       if (p.pulse) {

@@ -147,3 +147,36 @@ def test_spoken_corrections_in_draw_and_guess():
     assert g.say[-1].startswith("A horse!") and g.guess == "HORSE"
     g.answer("horse", "A horse!", 6.0)
     assert g.hear("yes", 7.0) and g.say[-1] == "Yes! Draw another one."
+
+
+def test_recal_button_and_smooth_projection_with_games(tmp_path):
+    from .test_table_scans import Rig
+
+    rig = Rig(state_dir=tmp_path)
+    calls = []
+    rig.page.set_smooth = calls.append  # the render hub's switch for the page's easing and fades
+    assert {b.key for b in rig.ts.dash.buttons} == {"learn", "scale", "recal"}
+    rig.ts.start_game("catch", rig.t)
+    assert {b.key for b in rig.ts.dash.buttons} == {"home", "recal"} and calls == [True]
+    rig.ts.hear("stop playing", rig.t)
+    assert calls == [True, False] and "recal" in {b.key for b in rig.ts.dash.buttons}
+    recal = next(b for b in rig.ts.dash.buttons if b.key == "recal")
+    fired = rig.ts.dash.step([recal.c], 0.0, 0.05)
+    t, got = 0.0, []
+    while t < 1.5 and not got:
+        t += 0.05
+        got = rig.ts.dash.step([recal.c], t, 0.05)
+    assert got == ["recal"] and fired == []  # held 1.2 s: passed up to the play loop, which recalibrates
+
+
+def test_hub_smooth_keeps_the_rotation():
+    from lightwork.contracts.render import View
+    from lightwork.server.hub import RenderHub
+
+    hub = RenderHub()
+    hub.set_view(View(rotate=180))
+    hub.set_smooth(True)
+    assert hub._view.rotate == 180 and hub._view.smooth
+    assert '"smooth":true' in hub._view.model_dump_json()
+    hub.set_smooth(False)
+    assert '"smooth"' not in hub._view.model_dump_json()  # off: the message is as before smoothing existed

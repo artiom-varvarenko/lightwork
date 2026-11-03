@@ -161,6 +161,9 @@ class View(_M):
 
     type: Literal["view"] = "view"
     rotate: Literal[0, 180] = 0
+    # The page eases prims that moved between two scenes and fades ones that came or went (hand games, 3 Nov: "make
+    # the projector smoother"). Off whenever the table is scanned: a fading outline would be taken for an object.
+    smooth: bool = Field(False, exclude_if=_unset)
 
 
 PageToServer = Annotated[Hello | Ack | Tts, Field(discriminator="type")]
