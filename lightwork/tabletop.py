@@ -43,7 +43,7 @@ import math
 import re
 import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -165,6 +165,29 @@ POINT_RECENT_S = 3.0  # a question is about what a fingertip pointed at within t
 POINT_NEAR = 60.0  # ... within this many design px of the object's outline
 ASKED_GLOW_S = 6.0  # the object asked about stays lit (green) this long after the answer
 STATUS_CHARS = 44  # a status line holds about this many characters
+SWEEP_GAP_S = 12.0  # Muse Spark looks over the whole table at most this often ...
+SWEEP_IDLE_S = 3.0  # ... and, while a job still misses things, once the table has been still this long
+SWEEP_MAX_SHARE = 0.4  # a box over more of the table than this is not one object
+SWEEP_PROMPT = ("You are an object grounding expert. This is a top-down photo of a white work table. List every "
+                "separate physical object lying on it, including pale or white ones that are hard to see against the "
+                "table. Ignore the table itself, shadows, reflections, stains and any light or lines projected onto it. "
+                "Do not miss any object, and do not list one object twice. For each object give a short plain name "
+                "(1 to 3 words) and its bounding box. The coordinates should be in the 0-1000 range of this image, "
+                "x to the right and y down. Return a JSON object {\"objects\": [...]}.")
+SWEEP_SCHEMA = {
+    "type": "object",
+    "properties": {"objects": {"type": "array", "items": {
+        "type": "object",
+        "properties": {"name": {"type": "string"}, "x_min": {"type": "integer"}, "y_min": {"type": "integer"},
+                       "x_max": {"type": "integer"}, "y_max": {"type": "integer"}},
+        "required": ["name", "x_min", "y_min", "x_max", "y_max"],
+        "additionalProperties": False,
+    }}},
+    "required": ["objects"],
+    "additionalProperties": False,
+}
+LOOK_WORDS = ("look again", "look at the table", "what's on the table", "whats on the table", "what is on the table",
+              "scan the table", "find everything", "look closer", "look closely", "you missed")
 BUTTON_TIPS = {"learn": ("HOLD TO LEARN THE EMPTY TABLE AGAIN", "TAKE EVERYTHING OFF IT FIRST"),
                "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE")}
 _uids = itertools.count(1)
@@ -744,6 +767,8 @@ class Track:
     sam_rect: tuple | None = None  # the rect when SAM was asked: a reply for an object that moved since is dropped
     item: int = -1  # task item it is (1-based), 0 = not on the task's list, -1 = not known yet
     asked_until: float = -1e9  # lit while a spoken question about it is answered
+    sticky: bool = False  # found by a Muse Spark sweep, not by the scans (too pale to tell from the table): kept
+    # until something moves over it
 
     def __post_init__(self) -> None:
         if self.outline is None:
@@ -952,6 +977,8 @@ class ObjectTracks:
             elif touched(tr.blob.cam_poly):
                 tr.held, tr.held_t, tr.seen = True, t, t
                 keep.append(tr)
+            elif tr.sticky and not (allowed is not None and allowed(tr.blob.cam_poly)):
+                keep.append(tr)  # a model found it where the scans see nothing; nothing moved there since
             elif allowed is not None and not allowed(tr.blob.cam_poly) and tr.misses + 1 < MISS_SCANS:
                 tr.misses += 1
                 keep.append(tr)  # nothing moved there: still there, unless the next scan misses it too
@@ -1648,6 +1675,10 @@ class TableSession:
 
             self.jobs = Jobs("table-brain")
         self._plan_job: tuple | None = None  # (key, request, since)
+        self._sweep_job: tuple | None = None  # (key, view box in camera px, since)
+        self.last_sweep_t = -1e9
+        self.sweep_gap = SWEEP_GAP_S  # automatic sweeps: doubles after one that found nothing new
+        self.sweeps = 0
         self._check_job: tuple | None = None  # (key, step number)
         self._job_n = 0
         self._pending_say: list[str] = []
@@ -1812,6 +1843,117 @@ class TableSession:
             line += f" Still {'need' if len(missing) > 1 else 'needed'}: {spoken_list(missing)}."
         return [line]
 
+    # ---- Muse Spark looks over the whole table (objects too pale for the scans)
+
+    def request_sweep(self, now: float, *, why: str = "asked") -> bool:
+        """Send the clean view of the table to the brain for every object with a box; returns False when it cannot
+        (no brain, no clean view yet, one running, or the last one was too recent)."""
+        if self.brain is None or self.jobs is None or self.scan_image is None or self.zone is None:
+            return False
+        if self._sweep_job is not None or (why != "asked" and now - self.last_sweep_t < self.sweep_gap):
+            return False
+        x, y, w, h = self.zone.roi
+        jpeg = self._table_jpeg(self.scan_image)
+        if jpeg is None:
+            return False
+        brain = self.brain
+        self._job_n += 1
+        key = ("sweep", self._job_n)
+        if not self.jobs.submit(key, lambda: brain.ask("sweep", SWEEP_PROMPT, [jpeg], schema=SWEEP_SCHEMA,
+                                                       effort="minimal", max_out=3000, timeout_s=45.0)):
+            return False
+        self._sweep_job = (key, (x, y, w, h), now)
+        self.last_sweep_t = now
+        self.log.append(f"sweep ({why}): asking {getattr(brain, 'label', 'the brain')} for every object")
+        return True
+
+    def _sweep_done(self, now: float) -> list[str]:
+        if self._sweep_job is None or self.jobs is None:
+            return []
+        key, (x, y, w, h), t0 = self._sweep_job
+        done, reply, err = self.jobs.result(key)
+        if not done:
+            return []
+        self._sweep_job = None
+        self.sweeps += 1
+        objs = reply.data.get("objects") if reply is not None and isinstance(reply.data, dict) else None
+        if err or not isinstance(objs, list):
+            self.log.append(f"sweep failed: {err or 'no objects list'}")
+            return []
+        added = []
+        for o in objs[:24]:
+            if not isinstance(o, dict):
+                continue
+            try:
+                bx = [float(o[k]) for k in ("x_min", "y_min", "x_max", "y_max")]
+            except (KeyError, TypeError, ValueError):
+                continue
+            x0, x1 = sorted((min(max(bx[0], 0), 1000), min(max(bx[2], 0), 1000)))
+            y0, y1 = sorted((min(max(bx[1], 0), 1000), min(max(bx[3], 0), 1000)))
+            cam = np.array([(x + x0 * w / 1000, y + y0 * h / 1000), (x + x1 * w / 1000, y + y0 * h / 1000),
+                            (x + x1 * w / 1000, y + y1 * h / 1000), (x + x0 * w / 1000, y + y1 * h / 1000)])
+            tr = self._sweep_track(cam, str(o.get("name") or ""), now)
+            if tr is not None:
+                added.append(tr)
+        found = len(objs)
+        self.log.append(f"sweep: {found} objects seen by {reply.model} via {reply.provider} in {reply.ms / 1000:.1f} s;"
+                        f" {len(added)} new: {', '.join(tr.name or '?' for tr in added) or 'none'}")
+        self.sweep_gap = SWEEP_GAP_S if added else min(self.sweep_gap * 2, 120.0)
+        if not added:
+            return []
+        self.zone.set_objects([tr.cam_outline(self.geo) for tr in self.tracks.confirmed])
+        self.sfx.append("found")
+        self.dash.notify(f"{len(added)} MORE FOUND BY {model_tag(reply.model, reply.provider)}", now, "done")
+        if self.scan_image is not None:
+            self._ask(self.scan_image, now)  # SAM outlines (and names with the job's list) for them
+        if self.guide is not None:
+            return self._guide_news(added)
+        names = [tr.name for tr in added if tr.name]
+        return [f"I also see {spoken_list(['a ' + n for n in names])}."] if names else []
+
+    def _sweep_track(self, cam: np.ndarray, name: str, now: float) -> Track | None:
+        """A track for a box the model found, unless a shown object is already there or it is not one object."""
+        z = self.zone
+        page = apply_h(self.geo.H, cam)
+        rect = cv2.minAreaRect(page.astype(np.float32))
+        (cx, cy), (rw, rh), _ = rect
+        if min(rw, rh) < NAME_MIN_PAGE * 0.75:
+            return None
+        poly = z.poly_mask(cam)
+        area = int(np.count_nonzero(poly))
+        if area == 0 or np.count_nonzero(poly & z.inner) < 0.6 * area or area > SWEEP_MAX_SHARE * z.inner_px:
+            return None  # off the table, under the buttons or status bar, or the whole table
+        for tr in self.tracks.confirmed:
+            other = z.poly_mask(tr.cam_outline(self.geo))
+            inter = int(np.count_nonzero(poly & other))
+            if inter > 0.3 * min(area, max(1, int(np.count_nonzero(other)))):
+                return None  # already outlined
+        x0, y0 = np.floor(cam.min(axis=0)).astype(int)
+        x1, y1 = np.ceil(cam.max(axis=0)).astype(int)
+        mx, my = (x1 - x0) // 4, (y1 - y0) // 4
+        patch = self.scan_image[max(0, y0 + my):max(0, y1 - my), max(0, x0 + mx):max(0, x1 - mx)]
+        bgr = np.median(patch.reshape(-1, 3), axis=0) if patch.size else z.table_bgr
+        b = Blob(rect=rect, cam_poly=cam.astype(np.float64), area=float((x1 - x0) * (y1 - y0)), fill=0.8,
+                 bgr=np.asarray(bgr, np.float64), colour=rel_colour_name(bgr, z.table_bgr * z.gain), near_hand=False,
+                 contour=page.astype(np.float64))
+        tr = Track(blob=b, rect=rect, born=now, seen=now)
+        tr.observe(b, force=True)
+        tr.id = self.tracks._free_id_with([])
+        tr.sticky, tr.born_scan = True, self.scans
+        from .namer import clean_name
+
+        tr.name = clean_name(name) if name else None
+        bench = self._bench
+        if bench is not None and self.namer is not None and hasattr(self.namer, "task"):
+            tr.item = match_item(tr.name, bench.items) if tr.name else -1
+            tr.name_state = "none"  # the namer, told the job, says which item it is
+        else:
+            tr.name_state = "done" if tr.name else "none"
+            if bench is not None and tr.name:
+                tr.item = match_item(tr.name, bench.items)
+        self.tracks.tracks.append(tr)
+        return tr
+
     @property
     def scale(self) -> Scale | None:
         if self.page_mm:
@@ -1920,8 +2062,13 @@ class TableSession:
         if self._pending_say:
             say, self._pending_say = self._pending_say + say, []
         say += self._plan_done(now)
+        say += self._sweep_done(now)
         if self.guide is not None:
             say += self._guide_step(now)
+            if (self.guide.phase == "gather" and self.scan is None and not self.dirty
+                    and now - self.last_change_t >= SWEEP_IDLE_S and now - self.last_hand_t >= SWEEP_IDLE_S
+                    and self.guide.missing()):
+                self.request_sweep(now, why="job still misses " + ", ".join(self.guide.missing()))
         return fired, say
 
     def _hands_moved(self, poses: list[HandPose]) -> bool:
@@ -2132,8 +2279,11 @@ class TableSession:
                     tr.sam_state, tr.sam_rect = "pending", tr.rect
 
     def _cam_box(self, tr: Track) -> tuple[int, int, int, int]:
-        """Half-open camera-px box around the object, a little grown (a box prompt for SAM)."""
-        cam = apply_h(self.geo.Hi, cv2.boxPoints(grown(tr.rect, 0.3 * PAD_PAGE)))
+        """Half-open camera-px box around the object, a little grown (a box prompt for SAM). A box from a sweep is
+        grown by 30 %: Muse Spark's boxes are a few per cent of the view off, and SAM given a box that misses part of
+        the object outlines shadows instead (3 Nov, table photo: tight boxes 0/5 clean outlines, grown 5/5)."""
+        pad = 0.3 * max(tr.blob.sides) if tr.sticky and not tr.refined else 0.3 * PAD_PAGE
+        cam = apply_h(self.geo.Hi, cv2.boxPoints(grown(tr.rect, pad)))
         (x0, y0), (x1, y1) = np.floor(cam.min(axis=0)), np.ceil(cam.max(axis=0))
         w, h = self.frame_size
         return int(max(0, x0)), int(max(0, y0)), int(min(w, x1 + 1)), int(min(h, y1 + 1))
@@ -2163,7 +2313,19 @@ class TableSession:
                 if contour is None or tr.sam_rect is None or rect_changed(tr.sam_rect, tr.rect):
                     continue  # no mask, or the object moved since the scan it was asked for
                 page = apply_h(self.geo.H, contour)
-                if sam_fits(page, tr):
+                if tr.sticky and not tr.refined:
+                    if sweep_fits(page, tr):  # where SAM says the object really is, near the model's box
+                        rect = cv2.minAreaRect(page.astype(np.float32))
+                        tr.blob = replace(tr.blob, rect=rect, cam_poly=np.asarray(contour, np.float64),
+                                          contour=page.astype(np.float64))
+                        tr.rect = rect
+                        tr.refine(page)
+                        if self.zone is not None:
+                            self.zone.set_objects([t.cam_outline(self.geo) for t in self.tracks.confirmed])
+                        self.log.append(f"object {tr.id}: SAM outline (found by a sweep)")
+                    else:
+                        self.log.append(f"object {tr.id}: SAM outline does not fit the sweep's box; kept the box")
+                elif sam_fits(page, tr):
                     tr.refine(page)
                     self.log.append(f"object {tr.id}: SAM outline")
         say: list[str] = []
@@ -2249,6 +2411,12 @@ class TableSession:
         if g is not None and g.phase == "gather" and any(w in low for w in ("missing", "what else", "still need")):
             missing = g.missing()
             return [f"Still missing {spoken_list(missing)}." if missing else "Nothing. Say start."]
+        if any(w in low for w in LOOK_WORDS):
+            if self.request_sweep(now, why="asked"):
+                self.sfx.append("listen")
+                self.dash.notify("LOOKING OVER THE WHOLE TABLE", now)
+                return ["Looking."]
+            return ["I can't look closer right now." if self.brain is None else "Give me a moment."]
         if is_plan_request(low):
             return self.request_plan(q, now)
         if self.task is not None and any(w in low for w in ("missing", "what else", "do i need", "still need")):
@@ -2423,7 +2591,7 @@ COMMANDS = (  # (spoken phrases, guide verb): a short sentence that is one of th
     (("stop", "cancel", "quit", "stop the job"), "stop"),
     (("undo", "minus one", "that didn't count", "that one didn't count", "doesn't count"), "undo"),
     (("how many", "count"), "how many"),
-    (("check", "check again", "look again", "check it", "have a look"), "check"),
+    (("check", "check again", "check it", "have a look"), "check"),
 )
 PLAN_WORDS = ("help me", "i want to", "i'd like to", "id like to", "let's make", "lets make", "let's do", "lets do",
               "let's cook", "let's bake", "how do i", "how to", "show me how", "i need to", "can you help",
@@ -2452,6 +2620,19 @@ def command_of(low: str) -> str | None:
 def is_plan_request(text: str) -> bool:
     low = text.lower()
     return any(w in low for w in PLAN_WORDS)
+
+
+def sweep_fits(contour_page: np.ndarray, tr: Track) -> bool:
+    """A SAM contour for a box from a sweep: centred inside the (30 % grown) box, between a twentieth and 1.6 times its
+    area. Looser than ``sam_fits``: the box itself is only roughly where the object is."""
+    if len(contour_page) < 3:
+        return False
+    area = abs(float(cv2.contourArea(contour_page.astype(np.float32))))
+    long, short = tr.blob.sides
+    box = cv2.boxPoints(grown(tr.rect, 0.3 * long)).astype(np.float32)
+    centre = contour_page.mean(axis=0)
+    return (0.05 <= area / max(long * short, 1.0) <= 1.6
+            and cv2.pointPolygonTest(box.reshape(-1, 1, 2), (float(centre[0]), float(centre[1])), False) >= 0)
 
 
 def sam_fits(contour_page: np.ndarray, tr: Track) -> bool:

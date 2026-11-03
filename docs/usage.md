@@ -120,6 +120,9 @@ uv run lightwork plan "help me pack my camera bag"                              
   instead of cup 2), one too many, a pot filled twice. The object turns red and the table says why.
 - **Spoken commands:** next, back, repeat, start, stop, undo, how many, check. Anything else is a question about
   the table (point at an object and ask).
+- **"Look again"** (and by itself while a job still misses something): Muse Spark looks at the whole clean view of the
+  table and lists every object with a box; what the scans missed (a white egg on a white table) is added, and SAM 3.1,
+  given Spark's box grown by 30 %, traces its real outline. Such objects stay until something moves over them.
 - The status bar at the far edge says what to do now and shows progress; the counter sits next to the container.
 
 ### Meta open weights through the partners (`lightwork partners`)
