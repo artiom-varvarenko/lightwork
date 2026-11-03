@@ -79,13 +79,13 @@ def test_draw_then_hands_away_asks_for_a_guess():
     import random
 
     asked = []
-    g = DrawGuess(0.0, random.Random(0), ask=asked.append)
+    g = DrawGuess(0.0, random.Random(0), ask=lambda jpeg, not_these=(): asked.append((jpeg, not_these)))
     t = 0.0
     for k in range(30):  # a stroke across the table
         t += 0.05
         g.update(t, [(200 + 6 * k, 200.0)], [(200 + 6 * k, 200.0)])
     t, _ = frames(g, t, t + 2.5)
-    assert len(asked) == 1 and asked[0][:3] == b"\xff\xd8\xff"
+    assert len(asked) == 1 and asked[0][0][:3] == b"\xff\xd8\xff"
     g.answer("cat", "That's a cat!", t)
     assert g.guess == "CAT" and g.say[-1] == "That's a cat!"
     g.update(t + 1, [(300.0, 300.0)], [(300.0, 300.0)])  # drawing again: a new picture
@@ -116,3 +116,34 @@ def test_table_session_runs_a_game_without_scanning(tmp_path):
     rig.ts.hear("stop playing", rig.t)
     rig.run(3.0, scene)
     assert not rig.ts.games.active and rig.ts.scans >= 1 and len(rig.ts.tracks.confirmed) == 1
+
+
+def test_a_fast_hand_catches_a_light_it_crossed_between_frames():
+    import random
+
+    g = CatchLight(0.0, random.Random(2))
+    g.update(g.READY_S + 0.5, [], [])
+    tg = g.targets[0]
+    x, y = tg.c
+    a, b = (x - 150.0, y), (x + 150.0, y)  # seen left of it, then right of it: never on it
+    g.update(g.READY_S + 0.6, [a], [], [])
+    assert g.score == 0
+    g.update(g.READY_S + 0.65, [b], [], [(a, b)])
+    assert g.score >= 1
+
+
+def test_spoken_corrections_in_draw_and_guess():
+    import random
+
+    asked = []
+    g = DrawGuess(0.0, random.Random(0), ask=lambda jpeg, not_these=(): asked.append(list(not_these)))
+    g.strokes = [[(200.0, 200.0), (260.0, 220.0), (300.0, 260.0)]]
+    g._guess(1.0)
+    g.answer("sleeping dog", "A sleepy dog!", 2.0)
+    assert g.hear("no, it's not a sleeping dog", 3.0)
+    assert asked[-1] == ["sleeping dog"] and g.say[-1] == "Hmm, let me look again."
+    g.answer("cat", "A cat!", 4.0)
+    assert g.hear("no, it's a horse", 5.0)
+    assert g.say[-1].startswith("A horse!") and g.guess == "HORSE"
+    g.answer("horse", "A horse!", 6.0)
+    assert g.hear("yes", 7.0) and g.say[-1] == "Yes! Draw another one."

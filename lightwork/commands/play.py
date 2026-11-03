@@ -87,11 +87,16 @@ def configure(p) -> None:
     p.add_argument("--voice", action="store_true",
                    help="table: ask out loud (Muse Voice Transcribe via the /screen page's microphone, press Start "
                         "there): point at an object and ask \"what is this?\"; Muse Spark answers on the projector")
+    p.add_argument("--mic", default="auto",
+                   help="voice input: auto = the C920's microphone above the table, read by the server (no page "
+                        "needed); browser = the /screen page's Start button; or part of a PipeWire source name")
     p.add_argument("--ollama-url", default="http://127.0.0.1:11434", help="Ollama server for --names ollama")
     p.add_argument("--camera", help="by-id path, /dev/videoN or index (default: C920)")
     p.add_argument("--port", type=int, default=PORT)
     p.add_argument("--page-wait", type=float, default=60.0, help="seconds to wait for the projector page")
-    p.add_argument("--exposure", type=int, default=312, help="C920 exposure_time_absolute (156 or 312 take effect)")
+    p.add_argument("--exposure", type=int, default=None,
+                   help="C920 exposure_time_absolute in 100 us (default 312; 78 with --game: a quarter of the motion "
+                        "blur on a moving hand, written again once streaming, where the C920 applies it)")
     p.add_argument("--gain", type=int, help="fixed C920 gain 0-255 (default: chosen for the room and adjusted)")
     p.add_argument("--recal-every", type=float, default=None,
                    help="seconds between mapping checks (0 = off; default 300, table 0: the border watch still checks)")
@@ -134,6 +139,10 @@ def _tracker(args):
         if args.table:
             from ..vision.hands import CropHandTracker
 
+            if args.game:  # games: hands move fast; search harder, follow longer, accept blurrier hands
+                t = CropHandTracker(num_hands=2, search_per_frame=4, min_confidence=0.4)
+                t.LOST_FRAMES = 6
+                return t
             return CropHandTracker(num_hands=2)
         from ..vision.hands import HandTracker, TiledHandTracker
 
@@ -197,10 +206,12 @@ def _asker(args):
     return asker
 
 
-def _voice(args, heard, control):
-    """The Muse Voice Transcribe relay for --voice: sentences go to ``heard`` (a queue), the HUD to /screen."""
+def _voice(args, heard, control, listening=None):
+    """The Muse Voice Transcribe relay for --voice: sentences go to ``heard`` (a queue), the HUD to /screen, what is
+    being heard right now to ``listening`` (a dict the table shows), and the microphone is read by the server itself
+    (``--mic``) unless a browser page streams one."""
     if not args.table or not args.voice:
-        return None
+        return None, None
     from ..config import load_settings
     from ..voice import VoiceService
 
@@ -209,13 +220,37 @@ def _voice(args, heard, control):
         if text:
             heard.put(text)
 
+    def on_hud(hud: dict) -> None:
+        control.push_state({"hud": hud})
+        if listening is not None:
+            text = str(hud.get("heard") or "").strip()
+            if text and text != listening.get("text"):
+                listening.update(text=text, t=time.monotonic())
+
     voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start",
                                            "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop",
                                            "play", "catch the light", "follow the lights", "draw", "guess", "menu"],
-                         on_event,
-                         on_hud=lambda hud: control.push_state({"hud": hud}))
+                         on_event, on_hud=on_hud)
     voice.start()
-    return voice
+    mic = None
+    if args.mic != "browser":
+        from ..voice.capture import ServerMic, find_source, sources
+
+        source = find_source("C920" if args.mic == "auto" else args.mic)
+        if source is None:
+            print(f"voice: no microphone matching {args.mic!r} (sources: {', '.join(sources()) or 'none'}); "
+                  "open /screen and press Start for the browser's")
+        else:
+            mic = ServerMic(voice.feed_pcm, source, yield_to=voice.browser_active)
+            problem = mic.start()
+            if problem:
+                print(f"voice: {problem}; open /screen and press Start for the browser's microphone")
+                mic = None
+            else:
+                print(f"voice: listening on {source} (no page needed; a /screen Start takes over)")
+    else:
+        print("voice: open /screen and press Start for the microphone")
+    return voice, mic
 
 
 def _brain(args):
@@ -288,6 +323,8 @@ def run(args) -> int:
     signal.signal(signal.SIGTERM, _sigterm)  # `systemctl --user stop` cleans up like Ctrl-C
     if args.recal_every is None:
         args.recal_every = 0.0 if args.table else 300.0
+    if args.exposure is None:
+        args.exposure = 78 if args.game else 312
     gain = args.gain if args.gain is not None else START_GAIN
     lock = dict(load_lock())
     lock.update(exposure_time_absolute=args.exposure, gain=gain)
@@ -312,7 +349,8 @@ def run(args) -> int:
     hubs = make_hubs()
     hubs["render_hub"].set_view(View(rotate=args.rotate))  # before any pattern: the mapping must include the turn
     heard: queue.SimpleQueue[str] = queue.SimpleQueue()
-    voice = _voice(args, heard, hubs["control_hub"])
+    listening: dict = {"text": "", "t": -1e9}
+    voice, mic = _voice(args, heard, hubs["control_hub"], listening)
     if voice is not None:
         hubs["render_hub"].on_tts(voice.on_tts)  # the mic is muted while the projector phone speaks
     try:
@@ -356,7 +394,7 @@ def run(args) -> int:
         print(f"projector page {page.innerWidth}x{page.innerHeight}{', turned 180 degrees' if args.rotate else ''}; "
               f"screen view: http://127.0.0.1:{args.port}/screen")
         play = Play(args, cam, hubs, tracker, frame_size, gain, namer=namer, outliner=outliner, asker=asker,
-                    task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain)
+                    task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain, listening=listening)
         # `systemctl --user kill -s USR1 lightwork-play` (or `kill -USR1 <pid>`): full calibration again
         signal.signal(signal.SIGUSR1, lambda *_: setattr(play, "recal", True))
         # `... -s USR2 ...`: --table debug snapshot under .lightwork/play-debug/ (frame, reference, masks, tracks)
@@ -391,6 +429,9 @@ def run(args) -> int:
         if brain is not None:
             print(brain.summary())
             brain.close()
+        if mic is not None:
+            print(f"microphone: {mic.status()}")
+            mic.close()
         if voice is not None:
             voice.close()
         server.stop()
@@ -406,12 +447,14 @@ class Play:
     dump = False  # SIGUSR2: write a --table debug snapshot
 
     def __init__(self, args, cam, hubs, tracker, frame_size, gain: int, namer=None, outliner=None, asker=None,
-                 task=None, heard=None, plan=None, plan_words=None, brain=None):
+                 task=None, heard=None, plan=None, plan_words=None, brain=None, listening=None):
         from ..sessioncal import CameraGain
 
         self.args, self.cam, self.tracker, self.frame_size = args, cam, tracker, frame_size
         self.namer, self.outliner, self.asker, self.task, self.heard = namer, outliner, asker, task, heard
         self.plan, self.plan_words, self.brain = plan, plan_words, brain
+        self.listening = listening  # what the transcriber hears right now: shown on the table while you speak
+        self._shown_heard = ""
         self.render, self.preview, self.control = hubs["render_hub"], hubs["preview_hub"], hubs["control_hub"]
         self.gain = CameraGain(cam, gain)
         self.auto_gain = args.gain is None and self.gain.available
@@ -493,6 +536,9 @@ class Play:
                                      "from the hands until a card is measured (SCALE)"))
         else:
             self.table.set_geo(self.geo, self.last_image)
+        if self.args.game and self.gain.available:  # the C920 ignores some exposures at stream start: write it
+            err = self.gain.ctl.set("exposure_time_absolute", int(self.args.exposure))  # again now (3 Nov: 78 read
+            print(f"game exposure {self.args.exposure / 10:.1f} ms" + (f": {err}" if err else ""))  # back as 156)
         if self.table.zone_error:
             print(f"table: {self.table.zone_error}")
         else:
@@ -707,7 +753,14 @@ class Play:
                 pose = self.tracker.pose(frame)
                 tip_cam = None if pose is None else (float(pose.img[8][0]), float(pose.img[8][1]))
             elif self.args.table:
-                poses = self.tracker.poses(frame) if self.tracker is not None else []
+                if self.tracker is not None and getattr(self.tracker, "motion_aware", False):
+                    if getattr(self, "_motion", None) is None:
+                        from ..vision.hands import MotionBoxes
+
+                        self._motion = MotionBoxes()
+                    poses = self.tracker.poses(frame, motion=self._motion(frame.image))
+                else:
+                    poses = self.tracker.poses(frame) if self.tracker is not None else []
                 tip_cam = self._check_tip(poses)
             else:
                 obs = self.tracker.process(frame) if self.tracker is not None else None
@@ -805,6 +858,11 @@ class Play:
 
     def _table_step(self, frame, poses, now: float, dt: float) -> list[str]:
         fired, say = self.table.step(frame, poses, now, dt, detect=now >= self.zone_pause_until)
+        if self.listening is not None:  # live words on the table while you speak: it is hearing you
+            text, t = self.listening.get("text", ""), self.listening.get("t", -1e9)
+            if text and text != self._shown_heard and now - t < 3.0:
+                self._shown_heard = text
+                self.table.dash.notify(("HEARD: " + text.upper())[-44:], now)
         while self.heard is not None and not self.heard.empty():
             text = self.heard.get_nowait()
             print(f"heard: {text!r}")

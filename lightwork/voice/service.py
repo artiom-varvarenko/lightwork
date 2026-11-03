@@ -161,6 +161,14 @@ class VoiceService:
         self._call_in_loop(self._stop.set)
         self._thread.join(timeout)
 
+    def feed_browser_pcm(self, frame: bytes) -> None:
+        """A frame from a browser page's mic (``/ws/mic``): it takes over from a server mic while it streams."""
+        self._browser_t = time.monotonic()
+        self.feed_pcm(frame)
+
+    def browser_active(self, within_s: float = 1.0) -> bool:
+        return time.monotonic() - getattr(self, "_browser_t", -1e9) < within_s
+
     def feed_pcm(self, frame: bytes) -> None:
         now = time.monotonic()
         with self._lock:

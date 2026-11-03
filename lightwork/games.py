@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,7 +28,7 @@ AREA = (82.0, 74.0, 738.0, 410.0)  # design px: where game things go (right of t
 GAMES = ("catch", "follow", "draw")
 TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "draw": "DRAW AND GUESS"}
 DWELL_S = 0.9  # a fingertip held this long on a bubble picks it
-TOUCH_PAD = 12.0  # design px of slack around a target: hands are tracked, not exact
+TOUCH_PAD = 20.0  # design px of slack around a target: hands are tracked, not exact
 WORDS = {  # spoken: game key
     "catch": ("catch", "catch the light", "light game"),
     "follow": ("follow", "follow the lights", "simon", "memory game", "memory"),
@@ -49,6 +50,21 @@ def _near(points, c, r: float) -> bool:
     return any(math.dist(p, c) <= r for p in points)
 
 
+def _seg_dist(c, a, b) -> float:
+    """Distance from ``c`` to the segment a-b."""
+    ax, ay = a
+    bx, by = b
+    dx, dy = bx - ax, by - ay
+    n = dx * dx + dy * dy
+    t = 0.0 if n == 0 else max(0.0, min(1.0, ((c[0] - ax) * dx + (c[1] - ay) * dy) / n))
+    return math.dist(c, (ax + t * dx, ay + t * dy))
+
+
+def _swept(segments, c, r: float) -> bool:
+    """A hand passed over ``c`` between two frames (it moved too fast to be seen on it)."""
+    return any(_seg_dist(c, a, b) <= r for a, b in segments)
+
+
 def _fit(text: str, n: int = 44) -> str:
     return text if len(text) <= n else text[:n - 3] + "..."
 
@@ -64,7 +80,7 @@ class Game:
         self.score = 0
         self.over = False
 
-    def update(self, now: float, points: list, tips: list) -> None:
+    def update(self, now: float, points: list, tips: list, segments=()) -> None:
         raise NotImplementedError
 
     def draw(self, c, now: float) -> None:
@@ -125,7 +141,7 @@ class Menu(Game):
         self.choice: str | None = None
         self.last = now
 
-    def update(self, now, points, tips):
+    def update(self, now, points, tips, segments=()):
         dt = min(max(now - self.last, 0.0), 0.1)
         self.last = now
         for b in self.bubbles:
@@ -188,7 +204,7 @@ class CatchLight(Game):
         self.streak = 0
         self._t = 0.0
 
-    def update(self, now, points, tips):
+    def update(self, now, points, tips, segments=()):
         self._t = now - self.t0
         if self.over:
             return
@@ -206,7 +222,7 @@ class CatchLight(Game):
             self.sfx.append("answer")
             return
         for t in list(self.targets):
-            if _near(points, t.c, t.r + TOUCH_PAD):
+            if _near(points, t.c, t.r + TOUCH_PAD) or _swept(segments, t.c, t.r + TOUCH_PAD):
                 self.targets.remove(t)
                 fast = now - t.born < 0.9
                 self.score += 2 if fast else 1
@@ -220,14 +236,14 @@ class CatchLight(Game):
                 self.streak = 0
                 self.sfx.append("gone")
         self.pops = [p for p in self.pops if now - p[2] < 0.45]
-        want = 1 + min(2, self.score // 10)
+        want = 1 + min(2, self.score // 12)
         if len(self.targets) < want and now >= self.next_spawn:
             self._spawn(now, points)
             self.next_spawn = now + self.rng.uniform(0.25, 0.7)
 
     def _spawn(self, now, points) -> None:
-        r = max(17.0, 30.0 - 0.45 * self.score)
-        life = max(1.4, 3.2 - 0.06 * self.score)
+        r = max(24.0, 38.0 - 0.4 * self.score)  # big and slow at first (3 Nov: "too difficult")
+        life = max(2.2, 4.5 - 0.06 * self.score)
         x0, y0, x1, y1 = AREA
         for _ in range(30):
             c = (self.rng.uniform(x0 + r + 6, x1 - r - 6), self.rng.uniform(y0 + r + 6, y1 - r - 6))
@@ -303,7 +319,7 @@ class FollowLights(Game):
         on = max(0.32, 0.62 - 0.03 * len(self.seq))
         return on, on * 0.45
 
-    def update(self, now, points, tips):
+    def update(self, now, points, tips, segments=()):
         if self.over:
             return
         on, off = self._speed()
@@ -383,7 +399,8 @@ class DrawGuess(Game):
 
     def __init__(self, now, rng, ask=None):
         super().__init__(now, rng)
-        self.ask = ask  # callable(jpeg) -> None, starts a guess; ``answer`` gets (guess, say) or None
+        self.ask = ask  # callable(jpeg, not_these) -> None, starts a guess; ``answer`` gets (guess, say) or None
+        self.wrong: list[str] = []  # guesses the player said no to, for this drawing
         self.strokes: list[list[tuple[float, float]]] = []
         self.cur: list[tuple[float, float]] | None = None
         self.tip_t = -1e9
@@ -393,13 +410,13 @@ class DrawGuess(Game):
         self.guessed_n = 0  # strokes the last guess saw
         self.n_guesses = 0
 
-    def update(self, now, points, tips):
+    def update(self, now, points, tips, segments=()):
         if points:
             self.hand_t = now
         tip = tips[0] if tips else None
         if tip is not None:
             if self.guess is not None and self.cur is None:  # drawing again after a guess: a new picture
-                self.strokes, self.guess, self.guessed_n = [], None, 0
+                self.strokes, self.guess, self.guessed_n, self.wrong = [], None, 0, []
             self.tip_t = now
             if self.cur is None:
                 self.cur = [tip]
@@ -425,7 +442,7 @@ class DrawGuess(Game):
         self.guessing_since = now
         self.guessed_n = len(self.strokes)
         self.sfx.append("listen")
-        self.ask(self.picture())
+        self.ask(self.picture(), list(self.wrong))
 
     def answer(self, guess: str | None, say: str | None, now: float) -> None:
         self.guessing_since = None
@@ -456,10 +473,36 @@ class DrawGuess(Game):
         return buf.tobytes()
 
     def hear(self, low, now):
+        words = re.sub(r"[^a-z' ]+", " ", low).split()
         if any(w in low for w in ("clear", "start over", "erase", "new drawing", "draw again")):
-            self.strokes, self.cur, self.guess, self.guessed_n = [], None, None, 0
+            self.strokes, self.cur, self.guess, self.guessed_n, self.wrong = [], None, None, 0, []
             self.sfx.append("gone")
             return True
+        if self.guess is not None:
+            said = re.search(r"\b(?:it's|it is|its|that's|that is|this is) (?:a |an |the )?([a-z' ]{2,30})$", low.strip(" .!?"))
+            neg = bool(words) and (words[0] in ("no", "nope", "nah", "wrong") or "not" in words[:4]
+                                   or "guess again" in low or "try again" in low)
+            if neg and said and "not" not in said.group(1).split()[:1]:
+                neg = "not" in low.split(said.group(0))[0].split()[-2:] if said.group(0) in low else neg
+            if said and not neg:  # "it's a cat": the answer
+                thing = said.group(1).strip()
+                right = thing.lower() == self.guess.lower()
+                self.score += 1 if right else 0
+                self.sfx.append("answer")
+                self.say.append("Yes! I got it." if right else f"A {thing}! I'll remember that. Draw another one.")
+                self.guess = thing.upper() if not right else self.guess
+                return True
+            if neg:
+                self.wrong.append(self.guess.lower())
+                self.say.append("Hmm, let me look again.")
+                self.guess = None
+                self._guess(now)
+                return True
+            if words and words[0] in ("yes", "yeah", "yep", "correct", "right", "exactly") or "you got it" in low:
+                self.score += 1
+                self.sfx.append("answer")
+                self.say.append("Yes! Draw another one.")
+                return True
         if any(w in low for w in ("guess", "what is it", "what did i draw", "what's this", "what is this")):
             if self.strokes and self.guessing_since is None:
                 self._guess(now)
@@ -533,14 +576,15 @@ class GameHost:
     def stop(self) -> None:
         self.game = None
 
-    def update(self, now: float, points: list, tips: list) -> tuple[list[str], list[str]]:
-        """(lines to say, sounds) for this frame."""
+    def update(self, now: float, points: list, tips: list, segments=()) -> tuple[list[str], list[str]]:
+        """(lines to say, sounds) for this frame. ``segments``: where hand points moved since the frame before
+        (a fast hand passes over a target between two frames)."""
         g = self.game
         if g is None:
             return [], []
         dt = min(max(now - self.last, 0.0), 0.1)
         self.last = now
-        g.update(now, points, tips)
+        g.update(now, points, tips, segments)
         say, sfx = g.say, g.sfx
         g.say, g.sfx = [], []
         if isinstance(g, Menu) and g.choice:

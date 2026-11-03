@@ -144,3 +144,35 @@ def test_no_region_tiles_the_whole_frame():
         if t.poses(frame((100, 100), idx=i)):
             break
     assert t.following == 1 and len(t.tiles) == 15  # 5 x 3 over 1920 x 1080
+
+
+def test_motion_hints_search_where_something_moved_and_idle_frames_search_rarely():
+    t, log = tracker(search_per_frame=2)
+    t.IDLE_SEARCH_EVERY = 5
+    for i in range(10):  # an empty table, nothing moving: a search turn only every 5th frame
+        t.poses(frame(idx=i), motion=[])
+    assert sum(1 for kind, _ in log if kind == "search") == 2 * 2
+    log.clear()
+    hand = (1500.0, 700.0)
+    tile_k = next(k for k, (x0, y0, x1, y1) in enumerate(t.tiles) if x0 + 100 < hand[0] < x1 - 100
+                  and y0 + 100 < hand[1] < y1 - 100)
+    x0, y0, x1, y1 = t.tiles[tile_k]
+    poses = t.poses(frame(hand, idx=11), motion=[(int(hand[0]) - 80, int(hand[1]) - 80, int(hand[0]) + 80,
+                                                   int(hand[1]) + 80)])
+    assert poses and abs(poses[0].img[9][1] - (hand[1] - 36)) < 2  # found in the first frame it moved in
+    assert log[0][0] == "search"
+
+
+def test_motion_boxes_mark_what_changed():
+    from lightwork.vision.hands import MotionBoxes
+
+    mb = MotionBoxes()
+    a = np.zeros((1080, 1920, 3), np.uint8)
+    assert mb(a) is None
+    b = a.copy()
+    b[400:520, 800:960] = 200
+    boxes = mb(b)
+    assert len(boxes) == 1
+    x0, y0, x1, y1 = boxes[0]
+    assert x0 <= 800 and y0 <= 400 and x1 >= 960 and y1 >= 520
+    assert mb(b) == []

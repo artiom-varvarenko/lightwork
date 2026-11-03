@@ -32,6 +32,6 @@ async def mic(ws: WebSocket) -> None:
                 break
             data = msg.get("bytes")
             if data and state.mic_owner is token:
-                sink.feed_pcm(data)
+                getattr(sink, "feed_browser_pcm", sink.feed_pcm)(data)
     except WebSocketDisconnect:
         pass

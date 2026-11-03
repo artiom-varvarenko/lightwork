@@ -1734,14 +1734,17 @@ class TableSession:
         if self.motion is not None:  # have been put down or taken while we played
             self.motion.reset()
 
-    def _ask_guess(self, jpeg: bytes) -> None:
-        """Draw and guess: the drawing goes to the brain (Muse Spark) on the worker."""
+    def _ask_guess(self, jpeg: bytes, not_these=()) -> None:
+        """Draw and guess: the drawing goes to the brain (Muse Spark) on the worker; ``not_these``: guesses the player
+        already said no to."""
         if self.brain is None or self.jobs is None:
             return
         brain = self.brain
+        prompt = GUESS_PROMPT + (f" The player already said it is NOT: {', '.join(not_these)}. Guess something else."
+                                 if not_these else "")
         self._job_n += 1
         key = ("guess", self._job_n)
-        if self.jobs.submit(key, lambda: brain.ask("guess", GUESS_PROMPT, [jpeg], schema=GUESS_SCHEMA,
+        if self.jobs.submit(key, lambda: brain.ask("guess", prompt, [jpeg], schema=GUESS_SCHEMA,
                                                    effort="minimal", max_out=1500, timeout_s=30.0)):
             self._guess_job = (key, time.monotonic())
 
@@ -1764,6 +1767,24 @@ class TableSession:
             self.dash.notify(f"GUESSED BY {model_tag(reply.model, reply.provider)} · {reply.ms / 1000:.0f} S", now,
                              "done")
 
+    def _game_points(self, now: float) -> tuple[list, list]:
+        """Hand points for a game (raw landmarks: the steadied ones trail a fast hand) and, for hands seen in this and
+        a recent frame, the segments they moved along (wrist, finger tips, palm centre; design px)."""
+        idx = (0, 4, 8, 12, 16, 20, 9)
+        points, segments = [], []
+        prev = getattr(self, "_game_prev", {})
+        fresh = {}
+        for s in self.slots.active:
+            pts = [self.geo.c2d(s.pose.img[i]) for i in idx]
+            points += pts
+            if s.seen == now:
+                before = prev.get(s.k)
+                if before is not None and now - before[0] <= 0.35:
+                    segments += list(zip(before[1], pts, strict=True))
+                fresh[s.k] = (now, pts)
+        self._game_prev = {**{k: v for k, v in prev.items() if now - v[0] <= 0.35}, **fresh}
+        return points, segments
+
     def _game_step(self, now: float, dt: float) -> tuple[list[str], list[str]]:
         tips = self.slots.tips()
         fired = self.dash.step(tips, now, dt)
@@ -1773,8 +1794,8 @@ class TableSession:
         if "home" in fired:
             self.sfx.append("press")
             say += self.games.start("menu", now)
-        points = [p for h in self.hand_points() for p in h]
-        lines, sounds = self.games.update(now, points, tips)
+        points, segments = self._game_points(now)
+        lines, sounds = self.games.update(now, points, tips, segments)
         self.sfx += sounds
         self._guess_done(now)
         game = self.games.game

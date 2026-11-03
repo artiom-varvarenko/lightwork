@@ -547,6 +547,38 @@ class _Follower:
     age: int = 0  # frames followed
 
 
+def _hits(tile, boxes) -> bool:
+    x0, y0, x1, y1 = tile
+    return any(bx0 < x1 and bx1 > x0 and by0 < y1 and by1 > y0 for bx0, by0, bx1, by1 in boxes)
+
+
+def _hit_area(tile, boxes) -> float:
+    x0, y0, x1, y1 = tile
+    return sum(max(0, min(x1, bx1) - max(x0, bx0)) * max(0, min(y1, by1) - max(y0, by0)) for bx0, by0, bx1, by1 in boxes)
+
+
+class MotionBoxes:
+    """Where the camera image changed since the last frame: boxes in camera px from a tiny grey difference image
+    (1/8 scale, under a millisecond at 1080p). Hints for :meth:`CropHandTracker.poses`."""
+
+    def __init__(self, down: int = 8, threshold: int = 14, min_px: int = 3):
+        self.down, self.threshold, self.min_px = down, threshold, min_px
+        self.prev: np.ndarray | None = None
+
+    def __call__(self, image: np.ndarray) -> list[tuple[int, int, int, int]] | None:
+        d = self.down
+        small = cv2.resize(image, (image.shape[1] // d, image.shape[0] // d), interpolation=cv2.INTER_AREA)
+        g = cv2.GaussianBlur(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), (3, 3), 0)
+        prev, self.prev = self.prev, g
+        if prev is None or prev.shape != g.shape:
+            return None
+        m = (cv2.absdiff(g, prev) > self.threshold).astype(np.uint8)
+        m = cv2.dilate(m, np.ones((3, 3), np.uint8))
+        n, _, stats, _ = cv2.connectedComponentsWithStats(m)
+        return [(int(x * d), int(y * d), int((x + w) * d), int((y + h) * d))
+                for x, y, w, h, area in stats[1:] if area >= self.min_px]
+
+
 class CropHandTracker:
     """Up to ``num_hands`` hands at full camera resolution (``lightwork play --table``).
 
@@ -570,6 +602,9 @@ class CropHandTracker:
     CROP_PALMS = 4.5
     CROP_MIN, CROP_MAX = 288, 720
     LOST_FRAMES = 3
+    GROW_ON_MISS = 1.25  # the follow crop grows this much per missed frame
+    IDLE_SEARCH_EVERY = 6  # with motion hints and nothing moving: one round-robin search turn every this many frames
+    motion_aware = True  # poses() takes ``motion`` boxes
     SAME_HAND = 0.6  # palm lengths: wrists (or hand centres) closer than this are one hand
     LOST_FIRST_S = 1.0
 
@@ -603,8 +638,10 @@ class CropHandTracker:
     def following(self) -> int:
         return sum(f.active for f in self._followers)
 
-    def poses(self, frame: Frame) -> list[HandPose]:
-        """Every hand, camera px, most confident first."""
+    def poses(self, frame: Frame, motion: list | None = None) -> list[HandPose]:
+        """Every hand, camera px, most confident first. ``motion``: camera-px boxes where the image changed since the
+        last frame; a new hand is searched for there first, and while nothing moves only now and then (3 Nov games:
+        searching 4 tiles every frame cost 5 fps with no hand in view)."""
         h, w = frame.image.shape[:2]
         if self.region is None and self._tiles_for != (w, h):
             self.tiles, self._tiles_for = grid_tiles((0, 0, w, h), tile=self.tile), (w, h)
@@ -617,12 +654,26 @@ class CropHandTracker:
                 out.append((f, p))
             else:
                 f.misses += 1
+                if f.vel is not None and f.centre is not None:  # a fast, blurred hand: look where it was going,
+                    f.centre = f.centre + f.vel  # in a wider crop (3 Nov games: a moving hand was found in 5-35 %
+                if f.side:  # of frames, a still one in 100 %)
+                    f.side = int(min(f.side * self.GROW_ON_MISS, self.CROP_MAX))
                 if f.misses >= self.LOST_FRAMES:
                     self._release(f, frame.t_mono, lost=True)
         out = self._dedupe(out)
         free = [f for f in self._followers if not f.active]
         if free and self.tiles:
             order, rr = self._search_order(frame.t_mono)
+            if motion is not None:
+                lost_first = [k for k in order if k not in rr]
+                moving = sorted((k for k in range(len(self.tiles)) if _hits(self.tiles[k], motion)),
+                                key=lambda k: -_hit_area(self.tiles[k], motion))
+                self._idle = getattr(self, "_idle", 0) + 1
+                if moving or lost_first or self._idle % self.IDLE_SEARCH_EVERY == 0:
+                    first = lost_first + [k for k in moving if k not in lost_first]
+                    order = first + [k for k in order if k not in first]
+                else:
+                    order = []  # nothing moved and no hand was just lost: no new hand to look for
             searched_rr = 0
             budget = max(1, self.search_per_frame - len(out))  # each followed hand already costs a landmark pass
             for k in order[:budget]:
