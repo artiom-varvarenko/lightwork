@@ -51,7 +51,7 @@ import cv2
 import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
-from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen
+from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -75,7 +75,7 @@ from .playground import (
     Geo,
 )
 from .server import projector_style as style
-from .vision.hands import INDEX_TIP, HandPose, JitterMeter, Pinch, PoseFilter
+from .vision.hands import INDEX_TIP, HandPose, JitterMeter, Pinch, PoseFilter, ShapeVote, finger_bends
 from .vision.overlay_mask import SUPERSAMPLE
 from .vision.overlay_mask import _draw as draw_prim
 
@@ -1135,6 +1135,7 @@ class Slot:
     steady: PoseFilter = field(default_factory=PoseFilter)
     jitter: JitterMeter = field(default_factory=JitterMeter)
     pinch: Pinch = field(default_factory=Pinch)  # thumb and index finger together: the pen is down (draw and guess)
+    shape: ShapeVote = field(default_factory=ShapeVote)  # rock, paper, scissors or "" (rock paper scissors)
 
     def clear(self) -> None:
         self.pose, self.tip, self.side, self.shown = None, None, "", None
@@ -1142,6 +1143,7 @@ class Slot:
         self.steady.reset()
         self.jitter.clear()
         self.pinch.reset()
+        self.shape.reset()
 
 
 class HandSlots:
@@ -1205,6 +1207,7 @@ class HandSlots:
         s.shown = s.steady.update(p.img, t)
         s.jitter.add(p.img, s.shown)
         s.pinch.update(p)
+        s.shape.update(p)
         tip = self.geo.c2d(s.shown[INDEX_TIP])
         s.tip = (tip[0] - self.offset[0], tip[1] - self.offset[1])
 
@@ -1830,11 +1833,15 @@ class TableSession:
             self.sfx.append("press")
             say += self.games.start("menu", now)
         points, segments = self._game_points(now, slots)
-        pens = [Pen(s.tip, s.pinch.down, s.k) for s in slots]
+        pens = [Pen(s.tip, s.pinch.down, s.k, s.shape.name) for s in slots]
         if isinstance(self.games.game, DrawGuess):
             self._pinch_log(now, slots)
         lines, sounds = self.games.update(now, points, tips, segments, pens)
         self.sfx += sounds
+        if isinstance(self.games.game, RockPaperScissors):
+            self._shape_log(slots)
+            self.log += self.games.game.log
+            self.games.game.log = []
         if not self.games.active:  # OBJECTS picked on the menu: the object board
             lines = [line for line in lines if not line.startswith("Object board")] + self._leave_games(now)
         self._guess_done(now)
@@ -1878,6 +1885,18 @@ class TableSession:
                                 f"{r[-1]:.2f} max (down below {self.slots.slots[0].pinch.down_at:.2f}, "
                                 f"up above {self.slots.slots[0].pinch.up_at:.2f})")
             seen["t"], seen["r"] = now, []
+
+    def _shape_log(self, slots: list) -> None:
+        """Rock paper scissors: each hand's shape in the log as it changes, with what its fingers read (bend at the
+        middle joint in degrees / reach, index to little finger), so the thresholds can be set from this camera."""
+        seen = getattr(self, "_shape_seen", None)
+        if seen is None:
+            seen = self._shape_seen = {}
+        for s in slots:
+            if seen.get(s.k) != s.shape.name:
+                seen[s.k] = s.shape.name
+                fingers = " ".join(f"{b:.0f}/{r:.2f}" for b, r in finger_bends(s.pose))
+                self.log.append(f"hand {s.side or '?'}: {s.shape.name or 'no shape'} (fingers {fingers})")
 
     @property
     def _bench(self) -> BenchTask | None:
