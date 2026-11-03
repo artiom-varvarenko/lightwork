@@ -77,9 +77,10 @@ def configure(p) -> None:
                    help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
                         "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
                         "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
-    p.add_argument("--game", choices=("menu", "catch", "follow", "draw"),
+    p.add_argument("--game", choices=("menu", "catch", "follow", "draw", "rps"),
                    help="table: start with a hand game (nothing to set up): menu, catch (catch the light), follow "
-                        "(follow the lights) or draw (draw and guess, Muse Spark guesses). Also by voice: \"let's play\"")
+                        "(follow the lights), draw (draw and guess, Muse Spark guesses) or rps (rock paper scissors "
+                        "against the table). Also by voice: \"let's play\"")
     p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
                    help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
                         "weights via the partners, auto = open when a partner is configured, else meta")
@@ -237,7 +238,8 @@ def _voice(args, heard, control, listening=None):
 
     voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start",
                                            "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop",
-                                           "play", "catch the light", "follow the lights", "draw", "guess", "menu"],
+                                           "play", "catch the light", "follow the lights", "draw", "guess", "menu",
+                                           "rock paper scissors"],
                          on_event, on_hud=on_hud)
     voice.start()
     mic = None

@@ -6,6 +6,7 @@ verify and export never touch this class.
 ``TiledHandTracker`` also searches overlapping tiles over a region, for hands far from the camera (``lightwork play``).
 ``RegionHandTracker`` follows up to two hands, with all landmarks, in a crop around the projected page.
 ``CropHandTracker`` (``play --table``) finds up to two hands in full-resolution tiles and follows each in its own crop.
+``hand_shape`` reads rock, paper or scissors from a hand's 3-D landmarks; ``ShapeVote`` steadies it over frames.
 
 ``HandEvents`` turns observations into C1 ``hands`` payloads ``{over_regions, tip_xy}``:
 
@@ -28,6 +29,7 @@ import hashlib
 import math
 import os
 import sys
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -53,6 +55,16 @@ THUMB_TIP = 4
 PINCH_DOWN = 0.25  # closer than this is a pinch (the pen goes down) ...
 PINCH_UP = 0.35  # ... and only past this is it let go: in between nothing changes, so a shaky pinch does not flicker
 PINCH_UP_FRAMES = 3  # frames in a row apart before it is let go: 1- and 2-frame blips came 14 times in that session
+# Rock, paper, scissors: each finger (MCP, PIP, DIP, tip landmarks) out or curled, from the 3-D world landmarks.
+# Synthetic hands (tests/vision_hands/test_shape.py): straight fingers bend 10 degrees, relaxed open ones 30-35, half
+# curled ones about 64 (reach 1.1), a fist 100-130 (reach 0.6-0.8). Not yet measured on the rig.
+FINGERS = ((5, 6, 7, 8), (9, 10, 11, 12), (13, 14, 15, 16), (17, 18, 19, 20))  # index, middle, ring, little finger
+OUT_BEND = 55.0  # degrees: a finger bent less than this at its middle joint (MCP->PIP against PIP->tip) ...
+OUT_REACH = 1.15  # ... whose tip is this many times further from the wrist than that joint is out (straight: 1.3-1.4)
+CURL_BEND = 75.0  # bent more than this, ...
+CURL_REACH = 1.0  # ... or its tip no further from the wrist than that joint: curled. In between: unsure
+SHAPE_FRAMES = 5  # a hand's shape is the one most of its last 5 frames read ...
+SHAPE_NEED = 3  # ... at least 3 of them
 
 
 class HandsUnavailable(RuntimeError):
@@ -194,6 +206,72 @@ class Pinch:
 
     def reset(self) -> None:
         self.down, self.ratio, self._run = False, math.inf, 0
+
+
+def finger_bends(pose: HandPose) -> list[tuple[float, float]]:
+    """(bend in degrees, reach) of the index, middle, ring and little finger: the bend is the angle at the middle
+    joint between the finger's first bone (MCP to PIP) and the rest of it (PIP to tip), the reach is how much further
+    the tip is from the wrist than the middle joint. From the 3-D world landmarks (synthetic poses without them: image
+    px), because the camera looks down on the back of the hand: a finger curled under the palm and one pointing down
+    at the table are both short in the image, and the thumb tucked over a fist lies across the fingers there."""
+    pts = pose.world if float(np.linalg.norm(pose.world[9] - pose.world[0])) > 1e-6 else pose.img
+    out = []
+    for mcp, pip, _, tip in FINGERS:
+        a, b = pts[pip] - pts[mcp], pts[tip] - pts[pip]
+        na, nb = float(np.linalg.norm(a)), float(np.linalg.norm(b))
+        bend = math.degrees(math.acos(max(-1.0, min(1.0, float(a @ b) / (na * nb))))) if na * nb > 1e-12 else 0.0
+        near = float(np.linalg.norm(pts[pip] - pts[0]))
+        out.append((bend, float(np.linalg.norm(pts[tip] - pts[0])) / near if near > 1e-9 else 0.0))
+    return out
+
+
+def finger_states(pose: HandPose) -> list[int]:
+    """Index, middle, ring and little finger: 1 out (straight and reaching), -1 curled, 0 in between (unsure)."""
+    return [1 if bend < OUT_BEND and reach > OUT_REACH else -1 if bend > CURL_BEND or reach < CURL_REACH else 0
+            for bend, reach in finger_bends(pose)]
+
+
+def hand_shape(pose: HandPose) -> str:
+    """"rock", "paper" or "scissors" from the four fingers (the thumb is ignored: it may be anywhere in all three), or
+    "" when unsure. Rock: no finger out, three or four curled. Scissors: index and middle finger out, ring and little
+    finger curled. Paper: index and middle finger out and at least one more. Anything else (one finger pointing, a
+    half curled hand) is ""."""
+    s = finger_states(pose)
+    out = sum(v == 1 for v in s)
+    if out == 0:
+        return "rock" if sum(v == -1 for v in s) >= 3 else ""
+    if s[0] == 1 and s[1] == 1:
+        if out >= 3:
+            return "paper"
+        if s[2] == -1 and s[3] == -1:
+            return "scissors"
+    return ""
+
+
+class ShapeVote:
+    """One hand's rock, paper or scissors: the shape most of its last ``n`` frames read, once at least ``need`` of them
+    agree (landmarks flicker, and a hand moving into a shape passes others), else ""."""
+
+    def __init__(self, n: int = SHAPE_FRAMES, need: int = SHAPE_NEED):
+        self.need = need
+        self.recent: deque[str] = deque(maxlen=n)
+        self.name = ""  # the voted shape
+        self.raw = ""  # the last frame's reading
+
+    def update(self, pose: HandPose) -> str:
+        self.raw = hand_shape(pose)
+        self.recent.append(self.raw)
+        best, top = "", 0
+        for s in reversed(self.recent):  # most votes; a tie goes to the latest
+            n = self.recent.count(s)
+            if s and n > top:
+                best, top = s, n
+        self.name = best if top >= self.need else ""
+        return self.name
+
+    def reset(self) -> None:
+        self.recent.clear()
+        self.name = self.raw = ""
 
 
 def _alpha(cutoff_hz, dt: float):

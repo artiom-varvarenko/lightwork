@@ -4,6 +4,8 @@
 ``follow``  Follow the lights: four pads light up in a sequence; touch them back in the same order. It grows.
 ``draw``    Draw and guess: pinch thumb and index finger together and draw in light (open them to lift the pen);
             take your hands away and Muse Spark guesses what it is.
+``rps``     Rock paper scissors against the table: 3, 2, 1, SHOOT, then show rock, paper or scissors over the table;
+            the camera reads the hand (3-D landmarks), the table shows its own move and keeps score. First to 5.
 ``menu``    Bubbles to pick one by holding a fingertip on it, and OBJECTS: back to the object board, where things put on
             the table are found, named (Muse Spark), outlined (SAM 3.1) and measured.
 
@@ -20,6 +22,7 @@ import math
 import random
 import re
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -27,14 +30,19 @@ import cv2
 import numpy as np
 
 AREA = (82.0, 74.0, 738.0, 410.0)  # design px: where game things go (right of the button column, under the status bar)
-GAMES = ("catch", "follow", "draw")
-TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "draw": "DRAW AND GUESS"}
+GAMES = ("catch", "follow", "draw", "rps")
+TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "draw": "DRAW AND GUESS",
+          "rps": "ROCK PAPER SCISSORS"}
 DWELL_S = 0.9  # a fingertip held this long on a bubble picks it
 TOUCH_PAD = 20.0  # design px of slack around a target: hands are tracked, not exact
+EM = 14.8  # design px per character of a label (bold capitals, about 24.6 design px high), for centring
 WORDS = {  # spoken: game key
     "catch": ("catch", "catch the light", "light game"),
     "follow": ("follow", "follow the lights", "simon", "memory game", "memory"),
     "draw": ("draw", "drawing", "guess what i draw", "pictionary", "let's draw"),
+    # never "rock" or "scissors" alone: "it's a rock" answers draw and guess
+    "rps": ("rock paper scissors", "rock, paper, scissors", "rock-paper-scissors", "rock, paper and scissors",
+            "rock paper and scissors"),
 }
 GUESS_PROMPT = ("Someone drew this on a table with a fingertip; the lines are the drawing (the light trail of the "
                 "finger, a little shaky). What did they draw? Make your best guess even if it is rough. Reply with "
@@ -69,11 +77,21 @@ def _swept(segments, c, r: float) -> bool:
 
 @dataclass(frozen=True)
 class Pen:
-    """A hand as a pen: its index fingertip (design px, the cursor) and whether thumb and index finger touch."""
+    """A hand as a pen: its index fingertip (design px, the cursor), whether thumb and index finger touch, and the
+    shape it makes."""
 
     at: tuple[float, float]
     down: bool
     hand: int = 0  # the table's hand slot: a line stays with the hand that started it
+    shape: str = ""  # "rock", "paper", "scissors" or "" (lightwork.vision.hands.ShapeVote, over the last frames)
+
+
+def _unsaid(line: str) -> str:
+    """``line`` without its spoken alternative, for when nothing listens: "HOLD PLAY AGAIN, OR SAY MENU" -> "HOLD PLAY
+    AGAIN"; a line that is only one ("OR SAY ITS NAME, OR OBJECTS") -> ""."""
+    if line.startswith("OR SAY"):
+        return ""
+    return re.sub(r",? OR SAY\b.*$", "", line)
 
 
 def _fit(text: str, n: int = 44) -> str:
@@ -149,11 +167,12 @@ class Menu(Game):
     def __init__(self, now, rng, best: dict):
         super().__init__(now, rng)
         self.best = best
-        y = 200.0
-        self.bubbles = [Bubble("catch", "CATCH\nTHE LIGHT", (165.0, y), 46.0),
-                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (330.0, y), 46.0),
-                        Bubble("draw", "DRAW\nAND GUESS", (495.0, y), 46.0),
-                        Bubble("objects", "OBJECT\nBOARD", (660.0, y), 46.0)]
+        hi, lo = 145.0, 255.0  # a zig-zag: five two-line labels side by side would run into each other
+        self.bubbles = [Bubble("catch", "CATCH\nTHE LIGHT", (150.0, hi), 44.0),
+                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (280.0, lo), 44.0),
+                        Bubble("draw", "DRAW\nAND GUESS", (410.0, hi), 44.0),
+                        Bubble("rps", "ROCK PAPER\nSCISSORS", (540.0, lo), 44.0),
+                        Bubble("objects", "OBJECT\nBOARD", (670.0, hi), 44.0)]
         self.choice: str | None = None
         self.last = now
 
@@ -166,7 +185,7 @@ class Menu(Game):
                 self.sfx.append("press")
 
     def draw(self, c, now):
-        roles = {"catch": "target", "follow": "source", "draw": "warn", "objects": "info"}
+        roles = {"catch": "target", "follow": "source", "draw": "warn", "rps": "error", "objects": "info"}
         for b in self.bubbles:
             best = self.best.get(b.key)
             b.draw(c, roles[b.key], f"BEST {best}" if best else "")
@@ -186,12 +205,15 @@ class Menu(Game):
         elif b.key == "draw":  # a squiggle
             pts = [(x - 24 + 4 * i, y + 10 * math.sin(i * 0.9 + now * 3)) for i in range(13)]
             c.poly("ico-draw", pts, role)
+        elif b.key == "rps":  # rock, then paper, then scissors
+            move = MOVES[int(now / 0.9) % 3]
+            move_icon(c, f"ico-rps-{move}", move, x, y, 22.0, role)
         else:  # two things on a table, each outlined
             c.rect("ico-obj-a", x - 22, y - 14, x - 2, y + 6, role)
             c.circle("ico-obj-b", (x + 13, y + 6), 10, role, n=16)
 
     def hud(self, now, best):
-        return "PICK ONE: HOLD A FINGER ON IT", "OR SAY: CATCH, FOLLOW, DRAW OR OBJECTS", "info"
+        return "PICK ONE: HOLD A FINGER ON IT", "OR SAY ITS NAME, OR OBJECTS", "info"
 
 
 # ---------------------------------------------------------------------------------------------------- catch
@@ -578,6 +600,278 @@ class DrawGuess(Game):
         return "PINCH THUMB AND FINGER TOGETHER TO DRAW", "OPEN THEM TO STOP. HANDS AWAY: I GUESS", "info"
 
 
+# ---------------------------------------------------------------------------------------------------- rock paper scissors
+
+MOVES = ("rock", "paper", "scissors")
+BEATS = {"rock": "scissors", "paper": "rock", "scissors": "paper"}  # what each move beats
+VERBS = {"rock": "beats", "paper": "covers", "scissors": "cut"}  # "Paper covers rock."
+
+
+def _ring(x: float, y: float, r: float, n: int = 24) -> list[tuple[float, float]]:
+    return [(x + r * math.cos(a), y + r * math.sin(a)) for a in np.linspace(0, 2 * math.pi, n, endpoint=False)]
+
+
+def move_icon(c, id: str, move: str, x: float, y: float, s: float, role: str, glow: bool = False) -> None:
+    """Rock (a boulder), paper (a sheet with a folded corner) or scissors as a line drawing about ``2 s`` across,
+    centred on (x, y)."""
+    if move == "rock":  # a boulder, flat underneath, with facets
+        outline = ((-1.0, 0.55), (-0.95, 0.05), (-0.7, -0.35), (-0.3, -0.52), (0.1, -0.62), (0.55, -0.48), (0.85, -0.1),
+                   (1.0, 0.3), (0.9, 0.55))
+        facets = (((-0.7, -0.35), (-0.25, 0.05), (-0.45, 0.55)), ((-0.25, 0.05), (0.4, -0.05)),
+                  ((0.55, -0.48), (0.4, -0.05), (1.0, 0.3)))
+        c.poly(id, [(x + s * u, y + s * v) for u, v in outline], role, closed=True, glow=glow)
+        for k, f in enumerate(facets):
+            c.poly(f"{id}-f{k}", [(x + s * u, y + s * v) for u, v in f], role)
+    elif move == "paper":
+        w, h, e = 0.7 * s, 0.95 * s, 0.34 * s  # half width, half height, the folded corner
+        c.poly(id, [(x - w, y - h), (x + w - e, y - h), (x + w, y - h + e), (x + w, y + h), (x - w, y + h)], role,
+               closed=True, glow=glow)
+        c.poly(f"{id}-fold", [(x + w - e, y - h), (x + w - e, y - h + e), (x + w, y - h + e)], role)
+        for k in range(3):  # lines of writing
+            yy = y - 0.2 * s + 0.36 * s * k
+            c.poly(f"{id}-l{k}", [(x - 0.42 * s, yy), (x + (0.42 if k < 2 else 0.05) * s, yy)], role)
+    else:  # scissors: two blades crossed at a pivot, two finger loops
+        for k, side in enumerate((-1.0, 1.0)):
+            c.poly(f"{id}-loop{k}", _ring(x + side * 0.42 * s, y + 0.64 * s, 0.27 * s), role, closed=True, glow=glow)
+            c.poly(f"{id}-blade{k}", [(x + side * 0.26 * s, y + 0.42 * s), (x - side * 0.5 * s, y - 0.95 * s)], role,
+                   glow=glow)
+        c.dot(f"{id}-pivot", (x, y - 0.05 * s), role)
+
+
+def _question(c, id: str, x: float, y: float, s: float, role: str) -> None:
+    """A question mark about ``2 s`` tall, centred on (x, y)."""
+    r = 0.42 * s
+    hook = [(x + r * math.cos(a), y - 0.48 * s + r * math.sin(a)) for a in np.radians(np.linspace(190, 430, 16))]
+    c.poly(id, hook + [(x, y + 0.32 * s)], role, glow=True)
+    c.dot(f"{id}-dot", (x, y + 0.8 * s), role)
+
+
+def _label_c(c, id: str, x: float, y: float, text: str, role: str) -> None:
+    """A label centred on ``x`` (``y`` is its vertical middle)."""
+    c.label(id, (x - EM * len(text) / 2, y), text, role)
+
+
+class RockPaperScissors(Game):
+    """3, 2, 1, SHOOT against the table. The table picks its move when the count starts (before it sees the hand),
+    then reads the player's: the shape most frames showed from just after SHOOT (``THROW_S``, the throw itself) to
+    ``READ_S`` after it, over every hand on the page (``Pen.shape``). Nothing read: it says so and counts again, the
+    score as it was. First to ``FIRST_TO`` wins the match; ``score`` is the player's points."""
+
+    key = "rps"
+    COUNT = (3, 2, 1)  # one number per beat, then SHOOT; (1, 2, 3) would count up
+    BEAT_S = 0.8
+    THROW_S = 0.2  # just after SHOOT the hand is still moving into its shape: not read yet ...
+    READ_S = 1.0  # ... then read until this long after SHOOT
+    HOLD_S = 0.3  # a hand over the table this long starts a count
+    RESULT_S = 2.5  # the result stays up this long before the next count
+    AGAIN_S = 1.5  # after a move it could not read
+    FIRST_TO = 5
+    # Design px. A hand is about 170 x 100 of them (the rig's page: 1.1 mm per px): the ring shows where to hold it,
+    # in front of the player, and the count, SHOOT and the table's move go beyond it, between the scores.
+    STAGE = (410.0, 165.0)
+    SIDES = (172.0, 648.0)  # x of the player's score and the table's
+    RING = (410.0, 330.0, 60.0)  # where to hold the hand (shown while waiting for it): centre, radius
+    ROLES = {"win": "target", "lose": "error", "draw": "warn"}  # the result, for the player
+    SOUNDS = {"win": "found", "lose": "gone", "draw": "answer"}
+
+    def __init__(self, now, rng):
+        super().__init__(now, rng)
+        self.state = "wait"  # wait | count | shoot | result | noread
+        self.t = now  # when the state began (shoot: the moment of SHOOT)
+        self.beat = -1  # the count's last ticked beat
+        self.hand_t: float | None = None  # a hand has been on the page since then
+        self.you = self.me = 0  # points: the player's, the table's
+        self.mine = self.yours = ""  # this round's moves: the table's, the player's as read
+        self.outcome = ""  # win | lose | draw, for the player
+        self.headline = ""  # the result for the status line
+        self.votes: list[str] = []  # shapes read since SHOOT, one per hand per frame
+        self.saw_hand = False  # a hand was on the page while reading
+        self.played: tuple[int, tuple[float, float]] | None = None  # (hand slot, fingertip) of the move read
+        self.pens: list = []
+        self.log: list[str] = []  # for the terminal: what was read (the table session prints these)
+
+    def update(self, now, points, tips, segments=(), pens=()):
+        self.pens = list(pens)
+        here = bool(pens or points)
+        self.hand_t = (self.hand_t if self.hand_t is not None else now) if here else None
+        if self.over:
+            return
+        held = here and now - self.hand_t >= self.HOLD_S
+        if self.state == "wait":
+            if held:
+                self._count(now)
+        elif self.state == "count":
+            k = int((now - self.t) // self.BEAT_S)
+            if k >= len(self.COUNT):  # SHOOT, on the beat (not on the frame that noticed it)
+                self.state, self.t = "shoot", self.t + len(self.COUNT) * self.BEAT_S
+                self.votes, self.saw_hand = [], False
+                self.sfx.append("scan")
+            elif k != self.beat:
+                self.beat = k
+                self.sfx.append("press")
+        elif self.state == "shoot":
+            if now - self.t >= self.THROW_S:
+                self.saw_hand |= bool(pens)
+                for p in pens:
+                    if p.shape:
+                        self.votes.append(p.shape)
+                        self.played = (p.hand, p.at)
+            if now - self.t >= self.READ_S:
+                self._judge(now)
+        elif now - self.t >= (self.RESULT_S if self.state == "result" else self.AGAIN_S):
+            if max(self.you, self.me) >= self.FIRST_TO:
+                # PLAY AGAIN and MENU come up beside the ring once the hand is away: a hand left there could pick one
+                self.over = not here
+            elif held:
+                self._count(now)
+            else:
+                self.state, self.t = "wait", now
+
+    def _count(self, now: float) -> None:
+        """A new round: the table picks its move now, before it has seen the hand."""
+        self.state, self.t, self.beat = "count", now, 0
+        self.mine = self.rng.choice(MOVES)
+        self.yours = self.outcome = ""
+        self.played = None
+        self.sfx.append("press")
+
+    def _judge(self, now: float) -> None:
+        self.t = now
+        if not self.votes:
+            self.state = "noread"
+            self.sfx.append("error")
+            self.say.append("I couldn't read your hand. Again!" if self.saw_hand else "I can't see your hand. Again!")
+            self.log.append(f"rps: no move read ({'a hand, no shape' if self.saw_hand else 'no hand'}), table had "
+                            f"{self.mine}")
+            return
+        counts = Counter(self.votes)
+        top = max(counts.values())
+        self.yours = yours = next(s for s in reversed(self.votes) if counts[s] == top)  # a tie: the shape shown last
+        mine = self.mine
+        if yours == mine:
+            self.outcome, said, shown = "draw", f"Both {yours}. Draw!", f"BOTH {yours.upper()}: DRAW"
+        elif BEATS[yours] == mine:
+            self.you += 1
+            self.outcome, said = "win", f"{yours.capitalize()} {VERBS[yours]} {mine}."
+            shown = said[:-1].upper() + ": YOU WIN"
+        else:
+            self.me += 1
+            self.outcome, said = "lose", f"{mine.capitalize()} {VERBS[mine]} {yours}."
+            shown = said[:-1].upper() + ": TABLE WINS"
+        if self.outcome != "draw":
+            done = max(self.you, self.me) >= self.FIRST_TO
+            a, b = (self.you, self.me) if self.outcome == "win" else (self.me, self.you)
+            said += (f" {'You win' if self.outcome == 'win' else 'I win'} the match, {a} to {b}!" if done else
+                     " You win!" if self.outcome == "win" else " I win!")
+            shown += " THE MATCH!" if done else "!" if self.outcome == "win" else ""
+        self.state, self.headline, self.score = "result", shown, self.you
+        self.sfx.append(self.SOUNDS[self.outcome])
+        self.say.append(said)
+        self.log.append(f"rps: read {yours} ({', '.join(f'{s} {n}' for s, n in counts.most_common())} frames), table "
+                        f"{mine}: {self.outcome}, {self.you}:{self.me}")
+
+    def draw(self, c, now):
+        x, y = self.STAGE
+        if self.over:
+            self._final(c)
+            return
+        self._scores(c)
+        if self.state == "wait":  # the three moves, to show what to make, and where to hold the hand
+            for k, move in enumerate(MOVES):
+                mx = x + 112 * (k - 1)
+                move_icon(c, f"rps-hint-{move}", move, mx, y - 14, 30.0, "info")
+                _label_c(c, f"rps-hint-{move}-t", mx, y + 46, move.upper(), "info")
+            rx, ry, rr = self.RING
+            rr += 4 * math.sin(now * 4)
+            for k in range(12):  # a dashed ring
+                a0 = 2 * math.pi * k / 12
+                c.poly(f"rps-ring-{k}", [(rx + rr * math.cos(a), ry + rr * math.sin(a))
+                                         for a in np.linspace(a0, a0 + 0.3, 4)], "target")
+            _label_c(c, "rps-ring-t", rx, ry, "HAND", "target")
+        elif self.state == "count":
+            k = min(int((now - self.t) // self.BEAT_S), len(self.COUNT) - 1)
+            c.number("rps-count", str(self.COUNT[k]), x - 26, y - 52, 52.0, "warn")
+            c.arc("rps-count-arc", (x, y), 80.0, (now - self.t) / (len(self.COUNT) * self.BEAT_S), "warn")
+        elif self.state == "shoot":  # a burst around the word
+            f = min(1.0, (now - self.t) / 0.3)
+            for k in range(12):
+                a = 2 * math.pi * (k + 0.5) / 12
+                r0, r1 = 56 + 16 * f, 72 + 24 * f
+                c.poly(f"rps-burst-{k}", [(x + r0 * math.cos(a), y + r0 * math.sin(a)),
+                                          (x + r1 * math.cos(a), y + r1 * math.sin(a))], "target")
+            _label_c(c, "rps-shoot", x, y, "SHOOT!", "target")
+            p = next((p for p in self.pens if p.shape), None)
+            if p is not None:  # what the camera reads, as it reads it
+                self._at_hand(c, p.at, f"{p.shape.upper()}?", "info")
+        elif self.state == "result":
+            role = self.ROLES[self.outcome]
+            move_icon(c, "rps-mine", self.mine, x, y - 10, 56.0, role, glow=True)
+            _label_c(c, "rps-mine-t", x, y + 78, f"TABLE: {self.mine.upper()}", role)
+            if self.played is not None:  # the player's move, at the hand that made it (or where it was)
+                at = next((p.at for p in self.pens if p.hand == self.played[0]), self.played[1])
+                self._at_hand(c, at, f"YOU: {self.yours.upper()}", role)
+        else:  # noread
+            _question(c, "rps-what", x, y, 52.0, "warn")
+
+    def _scores(self, c) -> None:
+        """YOU and the player's points at the left, TABLE and the table's at the right; the side that just scored lit
+        in the result's colour."""
+        lit = {"win": "you", "lose": "table"}.get(self.outcome) if self.state == "result" else None
+        for name, x, n in (("you", self.SIDES[0], self.you), ("table", self.SIDES[1], self.me)):
+            role = self.ROLES[self.outcome] if name == lit else "info"
+            _label_c(c, f"rps-{name}", x, 108.0, name.upper(), role)
+            c.number(f"rps-{name}-n", str(n), x - 16, 128.0, 32.0, role)
+
+    def _final(self, c) -> None:
+        """The match: YOU n : m TABLE, big, above the PLAY AGAIN and MENU bubbles."""
+        x, y, w = 410.0, 168.0, 42.0
+        role = "target" if self.you > self.me else "error"
+        c.number("rps-final-you", str(self.you), x - 36 - w, y - w, w, role)
+        c.number("rps-final-table", str(self.me), x + 36, y - w, w, role)
+        c.dot("rps-final-c1", (x, y - 18), role)
+        c.dot("rps-final-c2", (x, y + 18), role)
+        _label_c(c, "rps-final-y", x - 36 - w - 50, y, "YOU", "info")
+        _label_c(c, "rps-final-t", x + 36 + w + 62, y, "TABLE", "info")
+
+    def _at_hand(self, c, at, text: str, role: str) -> None:
+        """``text`` by the hand whose fingertip is at ``at``: beyond the fingertip (the hand and arm cover the near
+        side), else beside the hand, else in front of the player; the first spot that covers neither the stage, a
+        score nor the hand (else the one that covers least)."""
+        w, h = EM * len(text), 26.0
+        x, y = at
+        sx, sy = self.STAGE
+        taken = [(sx - 112, sy - 98, sx + 112, sy + 92), (x - 45, y - 8, x + 45, y + 160)]  # the stage, the hand
+        taken += [(s - 40, 92.0, s + 40, 222.0) for s in self.SIDES]  # the scores: just under one, it reads as theirs
+        best, least = (0.0, 0.0), math.inf
+        for cx, cy in ((x, y - 36), (x - 53 - w / 2, y + 12), (x + 53 + w / 2, y + 12), (self.RING[0], AREA[3])):
+            lx = min(max(cx - w / 2, AREA[0]), AREA[2] - w)
+            ly = min(max(cy, AREA[1] + h / 2), AREA[3] - h / 2)
+            cover = sum(max(0.0, min(lx + w, x1) - max(lx, x0)) * max(0.0, min(ly + h / 2, y1) - max(ly - h / 2, y0))
+                        for x0, y0, x1, y1 in taken)
+            if cover < least:
+                best, least = (lx, ly), cover
+            if cover == 0:
+                break
+        c.label("rps-yours", best, text, role)
+
+    def hud(self, now, best):
+        score = f"YOU {self.you} : {self.me} TABLE"
+        if self.over:
+            if self.you > self.me:
+                return f"YOU WIN THE MATCH · {score}", "HOLD PLAY AGAIN, OR SAY MENU", "target"
+            return f"TABLE WINS THE MATCH · {score}", "HOLD PLAY AGAIN, OR SAY MENU", "error"
+        if self.state == "count":
+            return "GET READY: SHOW YOUR MOVE ON SHOOT", f"{score} · FIRST TO {self.FIRST_TO}", "warn"
+        if self.state == "shoot":
+            return "SHOOT! HOLD YOUR MOVE STILL", f"{score} · FIRST TO {self.FIRST_TO}", "target"
+        if self.state == "result":
+            more = "TAKE YOUR HAND AWAY" if max(self.you, self.me) >= self.FIRST_TO else f"FIRST TO {self.FIRST_TO}"
+            return self.headline, f"{score} · {more}", self.ROLES[self.outcome]
+        if self.state == "noread":
+            return "I COULDN'T SEE YOUR MOVE", "AGAIN: SHOW IT ON SHOOT AND HOLD IT", "warn"
+        return "HOLD YOUR HAND OVER THE RING", f"FIRST TO {self.FIRST_TO} WINS · {score}", "info"
+
+
 # ---------------------------------------------------------------------------------------------------- host
 
 
@@ -588,6 +882,7 @@ class GameHost:
     state_dir: Path | None = None
     seed: int | None = None
     ask_guess: object = None  # callable(jpeg) -> None (the session's brain job)
+    voice: bool = True  # something listens: hints may say "or say menu" (3 Nov: voice off on the rig for now)
     game: Game | None = None
     best: dict = field(default_factory=dict)
     again: Bubble | None = None
@@ -624,6 +919,9 @@ class GameHost:
             self.game = DrawGuess(now, self.rng, ask=self.ask_guess)
             return [("Pinch your thumb and finger together to draw, and open them to stop. "
                      "Take your hands away and I'll guess.")]
+        if key == "rps":
+            self.game = RockPaperScissors(now, self.rng)
+            return ["Rock, paper, scissors! First to five wins. Hold your hand over the ring."]
         raise ValueError(f"unknown game {key!r}")
 
     def stop(self) -> None:
@@ -678,6 +976,8 @@ class GameHost:
     def hud(self, now: float) -> tuple[str, str, str]:
         g = self.game
         line1, line2, role = g.hud(now, int(self.best.get(g.key, 0)))
+        if not self.voice:
+            line1, line2 = _unsaid(line1), _unsaid(line2)
         return _fit(line1), _fit(line2), role
 
     def hear(self, text: str, now: float) -> list[str] | None:
