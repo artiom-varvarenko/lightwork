@@ -76,6 +76,9 @@ def configure(p) -> None:
                    help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
                         "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
                         "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
+    p.add_argument("--game", choices=("menu", "catch", "follow", "draw"),
+                   help="table: start with a hand game (nothing to set up): menu, catch (catch the light), follow "
+                        "(follow the lights) or draw (draw and guess, Muse Spark guesses). Also by voice: \"let's play\"")
     p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
                    help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
                         "weights via the partners, auto = open when a partner is configured, else meta")
@@ -207,7 +210,8 @@ def _voice(args, heard, control):
             heard.put(text)
 
     voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start",
-                                           "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop"],
+                                           "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop",
+                                           "play", "catch the light", "follow the lights", "draw", "guess", "menu"],
                          on_event,
                          on_hud=lambda hud: control.push_state({"hud": hud}))
     voice.start()
@@ -216,7 +220,7 @@ def _voice(args, heard, control):
 
 def _brain(args):
     """Plans and checks for --table (--do / --voice): Meta Model API or Meta open weights, or None."""
-    if not args.table or args.brain == "off" or not (args.do or args.voice):
+    if not args.table or args.brain == "off" or not (args.do or args.voice or args.game):
         return None
     from ..brain import make_brain
     from ..config import load_settings
@@ -479,7 +483,8 @@ class Play:
             self.table = TableSession(self.geo, self.frame_size, threshold=a.threshold, min_area=a.min_area,
                                       page_mm=a.page_mm, state_dir=load_settings().state_dir, namer=self.namer,
                                       outliner=self.outliner, link=self.render, asker=self.asker, task=self.task,
-                                      plan=self.plan, brain=self.brain, voice=bool(a.voice), planner_model=a.planner)
+                                      plan=self.plan, brain=self.brain, voice=bool(a.voice), planner_model=a.planner,
+                                      game=a.game)
             self.table.learn_at = time.monotonic() + 0.5
             if self.plan_words:  # --do in words: planned once the table is up
                 self.table._pending_say += self.table.request_plan(self.plan_words, time.monotonic())

@@ -51,6 +51,7 @@ import cv2
 import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
+from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -119,7 +120,7 @@ SHOW_PAGE = 2.0  # displayed sides change by at least this (page px) and SHOW_FR
 SHOW_FRAC = 0.03
 LEARN_QUIET_S = 1.0  # the table is learned once no hand was seen this long ...
 LEARN_GRACE_S = 3.0  # ... and no sooner than this after "clear the table" was said
-DWELL = {"learn": 1.0, "scale": 0.6}  # LEARN forgets every object: it takes a longer hold (3 Nov: 1.5/1.0 felt slow)
+DWELL = {"learn": 1.0, "scale": 0.6, "home": 0.8}  # LEARN forgets every object: it takes a longer hold (3 Nov: 1.5/1.0 felt slow)
 ID1_MM = (85.60, 53.98)
 CARD_ASPECT_TOL = 0.08
 CARD_FILL = 0.85
@@ -189,7 +190,8 @@ SWEEP_SCHEMA = {
 LOOK_WORDS = ("look again", "look at the table", "what's on the table", "whats on the table", "what is on the table",
               "scan the table", "find everything", "look closer", "look closely", "you missed")
 BUTTON_TIPS = {"learn": ("HOLD TO LEARN THE EMPTY TABLE AGAIN", "TAKE EVERYTHING OFF IT FIRST"),
-               "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE")}
+               "scale": ("HOLD, THEN PUT A BANK CARD DOWN", "THE CARD SETS THE MM SCALE"),
+               "home": ("HOLD FOR THE GAMES MENU", "SAY 'STOP PLAYING' FOR THE TABLE", )}
 _uids = itertools.count(1)
 
 
@@ -1383,6 +1385,25 @@ class TableDashboard:
     voice: bool = False  # spoken questions are on: the idle hint says what to say
     views: dict = field(default_factory=dict)  # uid -> (role, label lines) from a guided task
     extra: object = None  # callable(canvas, now): a guided task's counter and timer, drawn over the table
+    table_buttons: list = field(default_factory=list)  # LEARN/SCALE, put away while a game is on
+
+    def game_mode(self, on: bool) -> None:
+        """While a game is on, the column holds one HOME button (the games menu) instead of LEARN and SCALE."""
+        if on and not any(b.key == "home" for b in self.buttons):
+            self.table_buttons = self.buttons
+            self.buttons = [Button("home", "HOME", (COL_X1 / 2, 220.0), r=BTN_R)]
+        elif not on and self.table_buttons:
+            self.buttons, self.table_buttons = self.table_buttons, []
+
+    def game_scene(self, slots: HandSlots, now: float, draw) -> list:
+        """The status bar, the HOME button, the game (``draw(canvas, now)``) and a dot under each fingertip."""
+        hud, game = Canvas(self.geo), Canvas(self.geo)
+        self._hud(hud, True, [], slots, now)
+        draw(game, now)
+        for s in slots.active:
+            if s.tip is not None:
+                game.circle(f"h{s.k}-tip", s.tip, 9, "info", n=16)
+        return hud.prims + game.prims
 
     def notify(self, text: str, now: float, role: str = "info") -> None:
         self.note, self.note_role, self.note_until = text, role, now + NOTE_S
@@ -1444,6 +1465,12 @@ class TableDashboard:
     def _icon(c: Canvas, b: Button, role: str) -> None:
         """LEARN: a circular arrow (start again). SCALE: a card (sizes come from a bank card)."""
         x, y, r = b.c[0], b.c[1], b.r
+        if b.key == "home":  # a little house
+            w = 0.5 * r
+            c.poly(f"btn-{b.key}-ico", [(x - w, y + 0.1 * r), (x, y - 0.55 * r), (x + w, y + 0.1 * r)], role)
+            c.poly(f"btn-{b.key}-ico2", [(x - 0.7 * w, y), (x - 0.7 * w, y + 0.5 * r), (x + 0.7 * w, y + 0.5 * r),
+                                         (x + 0.7 * w, y)], role)
+            return
         if b.key == "learn":
             rr = 0.52 * r
             pts = [(x + rr * math.cos(t), y + rr * math.sin(t)) for t in np.linspace(math.radians(60), math.radians(330), 12)]
@@ -1462,6 +1489,8 @@ class TableDashboard:
         if hover is not None:
             a, b = BUTTON_TIPS[hover]
             return a, b, "warn"
+        if zone is True:  # a game: its own lines
+            return self.lines or ("", "", "info")
         if zone is None or zone.status in ("learning", "light"):  # never projected onto the table being learned
             return {"learning": ("CLEAR THE TABLE: LEARNING IT EMPTY", "KEEP YOUR HANDS AWAY FOR A MOMENT", "warn"),
                     "light": ("THE LIGHT CHANGED: ADJUSTING", "", "warn")}.get(
@@ -1614,7 +1643,7 @@ class TableSession:
     def __init__(self, geo: Geo, frame_size: tuple[int, int], *, threshold: int = 28, min_area: int = 400,
                  page_mm: float | None = None, state_dir: Path | None = None, namer=None, outliner=None, link=None,
                  asker=None, task: BenchTask | None = None, plan=None, brain=None, voice: bool = False,
-                 planner_model: str | None = None):
+                 planner_model: str | None = None, game: str | None = None):
         self.namer = namer  # lightwork.namer: names each shown object once; None = no names
         self.asker = asker  # lightwork.asker: answers spoken questions about the table; None = none
         self.task = task  # lightwork.benchtask: what the job needs on the table; None = just name things
@@ -1683,9 +1712,76 @@ class TableSession:
         self._job_n = 0
         self._pending_say: list[str] = []
         self.dash.voice = voice
+        self.games = GameHost(state_dir=state_dir, ask_guess=self._ask_guess if brain is not None else None)
+        self._guess_job: tuple | None = None
         self.set_geo(geo, None)
         if plan is not None:
             self._pending_say += self.start_guide(plan, time.monotonic())
+        self._first_game = game  # started on the first frame, on the frames' clock
+
+    # ---- hand games (lightwork.games): the object scans pause while one is on
+
+    def start_game(self, key: str, now: float) -> list[str]:
+        say = self.games.start(key, now)
+        self.dash.game_mode(True)
+        self.scan = None
+        self.log.append(f"game: {key}")
+        return say
+
+    def _leave_games(self, now: float) -> None:
+        self.dash.game_mode(False)
+        self.dirty, self.anywhere, self.last_change_t = True, True, now  # look at the table again: things may
+        if self.motion is not None:  # have been put down or taken while we played
+            self.motion.reset()
+
+    def _ask_guess(self, jpeg: bytes) -> None:
+        """Draw and guess: the drawing goes to the brain (Muse Spark) on the worker."""
+        if self.brain is None or self.jobs is None:
+            return
+        brain = self.brain
+        self._job_n += 1
+        key = ("guess", self._job_n)
+        if self.jobs.submit(key, lambda: brain.ask("guess", GUESS_PROMPT, [jpeg], schema=GUESS_SCHEMA,
+                                                   effort="minimal", max_out=1500, timeout_s=30.0)):
+            self._guess_job = (key, time.monotonic())
+
+    def _guess_done(self, now: float) -> None:
+        if self._guess_job is None or self.jobs is None:
+            return
+        key, t0 = self._guess_job
+        done, reply, err = self.jobs.result(key)
+        if not done:
+            return
+        self._guess_job = None
+        data = reply.data if reply is not None and isinstance(reply.data, dict) else {}
+        game = self.games.game
+        if isinstance(game, DrawGuess):
+            game.answer(str(data.get("guess") or "").strip() or None, str(data.get("say") or "").strip() or None, now)
+        if err:
+            self.log.append(f"guess failed: {err}")
+        else:
+            self.log.append(f"guess: {data} ({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)")
+            self.dash.notify(f"GUESSED BY {model_tag(reply.model, reply.provider)} · {reply.ms / 1000:.0f} S", now,
+                             "done")
+
+    def _game_step(self, now: float, dt: float) -> tuple[list[str], list[str]]:
+        tips = self.slots.tips()
+        fired = self.dash.step(tips, now, dt)
+        say: list[str] = []
+        if self._pending_say:
+            say, self._pending_say = self._pending_say, []
+        if "home" in fired:
+            self.sfx.append("press")
+            say += self.games.start("menu", now)
+        points = [p for h in self.hand_points() for p in h]
+        lines, sounds = self.games.update(now, points, tips)
+        self.sfx += sounds
+        self._guess_done(now)
+        game = self.games.game
+        if game is not None and game.say:
+            lines += game.say
+            game.say = []
+        return fired, say + lines
 
     @property
     def _bench(self) -> BenchTask | None:
@@ -2014,6 +2110,11 @@ class TableSession:
         tips = self.slots.tips()
         if tips:
             self._tips_seen = (now, tips)
+        if self._first_game is not None:
+            self._pending_say += self.start_game(self._first_game, now)
+            self._first_game = None
+        if self.games.active:
+            return self._game_step(now, dt)
         fired = self.dash.step(tips, now, dt)
         if fired:
             self.sfx.append("press")
@@ -2403,6 +2504,16 @@ class TableSession:
             return []
         self.dash.notify(f"HEARD: {q.upper()}"[:STATUS_CHARS], now)
         low = q.lower()
+        was_playing = self.games.active
+        said = self.games.hear(q, now)
+        if said is not None:
+            if self.games.active and not was_playing:
+                self.dash.game_mode(True)
+                self.scan = None
+            elif was_playing and not self.games.active:
+                self._leave_games(now)
+            self.sfx.append("press")
+            return said
         g = self.guide
         verb = command_of(low)
         if g is not None and g.phase in ("gather", "steps") and verb is not None:
@@ -2565,6 +2676,9 @@ class TableSession:
             def label_ok(rect) -> bool:
                 x0, y0, x1, y1 = rect
                 return not self._in_region(g.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+        if self.games.active:
+            self.dash.lines = self.games.hud(now)
+            return self.dash.game_scene(self.slots, now, self.games.draw)
         guide = self.guide
         if guide is not None:
             self.dash.views = {o.uid: v for o in self.seen() if (v := guide.view(o, now)) is not None}
