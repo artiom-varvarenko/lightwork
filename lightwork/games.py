@@ -2,7 +2,8 @@
 
 ``catch``   Catch the light: glowing targets appear anywhere on the table; touch them before they fade. 45 s.
 ``follow``  Follow the lights: four pads light up in a sequence; touch them back in the same order. It grows.
-``draw``    Draw and guess: draw with a fingertip in light; take your hands away and Muse Spark guesses what it is.
+``draw``    Draw and guess: pinch thumb and index finger together and draw in light (open them to lift the pen);
+            take your hands away and Muse Spark guesses what it is.
 ``menu``    Bubbles to pick one by holding a fingertip on it, and OBJECTS: back to the object board, where things put on
             the table are found, named (Muse Spark), outlined (SAM 3.1) and measured.
 
@@ -66,6 +67,15 @@ def _swept(segments, c, r: float) -> bool:
     return any(_seg_dist(c, a, b) <= r for a, b in segments)
 
 
+@dataclass(frozen=True)
+class Pen:
+    """A hand as a pen: its index fingertip (design px, the cursor) and whether thumb and index finger touch."""
+
+    at: tuple[float, float]
+    down: bool
+    hand: int = 0  # the table's hand slot: a line stays with the hand that started it
+
+
 def _fit(text: str, n: int = 44) -> str:
     return text if len(text) <= n else text[:n - 3] + "..."
 
@@ -81,7 +91,11 @@ class Game:
         self.score = 0
         self.over = False
 
-    def update(self, now: float, points: list, tips: list, segments=()) -> None:
+    draws_hands = False  # the game draws its own cursor for each hand (the table then draws none)
+
+    def update(self, now: float, points: list, tips: list, segments=(), pens=()) -> None:
+        """``points``: hand landmarks, ``tips``: index fingertips, ``segments``: where points moved since the frame
+        before, ``pens``: one :class:`Pen` per hand (design px)."""
         raise NotImplementedError
 
     def draw(self, c, now: float) -> None:
@@ -143,7 +157,7 @@ class Menu(Game):
         self.choice: str | None = None
         self.last = now
 
-    def update(self, now, points, tips, segments=()):
+    def update(self, now, points, tips, segments=(), pens=()):
         dt = min(max(now - self.last, 0.0), 0.1)
         self.last = now
         for b in self.bubbles:
@@ -209,7 +223,7 @@ class CatchLight(Game):
         self.streak = 0
         self._t = 0.0
 
-    def update(self, now, points, tips, segments=()):
+    def update(self, now, points, tips, segments=(), pens=()):
         self._t = now - self.t0
         if self.over:
             return
@@ -324,7 +338,7 @@ class FollowLights(Game):
         on = max(0.32, 0.62 - 0.03 * len(self.seq))
         return on, on * 0.45
 
-    def update(self, now, points, tips, segments=()):
+    def update(self, now, points, tips, segments=(), pens=()):
         if self.over:
             return
         on, off = self._speed()
@@ -398,7 +412,9 @@ class FollowLights(Game):
 
 class DrawGuess(Game):
     key = "draw"
-    LIFT_S = 0.35  # no fingertip this long ends a stroke
+    draws_hands = True
+    LIFT_S = 0.6  # the drawing hand unseen this long ends its line (hands are found in only some frames)
+    REJOIN = 90.0  # design px: a pinched hand found again this close to where the line stopped carries it on
     IDLE_S = 1.8  # hands away this long after drawing: guess
     STEP = 4.0  # design px between stroke points
 
@@ -408,36 +424,55 @@ class DrawGuess(Game):
         self.wrong: list[str] = []  # guesses the player said no to, for this drawing
         self.strokes: list[list[tuple[float, float]]] = []
         self.cur: list[tuple[float, float]] | None = None
+        self.cur_hand = -1  # the hand drawing ``cur``
         self.tip_t = -1e9
         self.hand_t = now
+        self.pens: list = []  # this frame's, for the cursors
         self.guessing_since: float | None = None
         self.guess: str | None = None
         self.guessed_n = 0  # strokes the last guess saw
         self.n_guesses = 0
 
-    def update(self, now, points, tips, segments=()):
+    def update(self, now, points, tips, segments=(), pens=()):
+        """Thumb and index finger together put the pen down; the line follows the index fingertip until they open."""
         if points:
             self.hand_t = now
-        tip = tips[0] if tips else None
-        if tip is not None:
-            if self.guess is not None and self.cur is None:  # drawing again after a guess: a new picture
-                self.strokes, self.guess, self.guessed_n, self.wrong = [], None, 0, []
-            self.tip_t = now
-            if self.cur is None:
-                self.cur = [tip]
+        self.pens = list(pens)
+        if self.cur is not None:
+            pen = next((p for p in pens if p.hand == self.cur_hand), None)
+            if pen is None:  # its hand lost and found again, maybe as another hand slot: still pinched, close by
+                back = [p for p in pens if p.down and math.dist(p.at, self.cur[-1]) <= self.REJOIN]
+                pen = min(back, key=lambda p: math.dist(p.at, self.cur[-1]), default=None)
+                if pen is not None:
+                    self.cur_hand = pen.hand
+            if pen is not None and not pen.down:  # fingers opened: the line ends here
+                self._lift()
+            elif pen is None:  # the hand is not seen: wait a moment before ending its line
+                if now - self.tip_t > self.LIFT_S:
+                    self._lift()
+            else:
+                self.tip_t = now
+                if math.dist(self.cur[-1], pen.at) >= self.STEP:
+                    self.cur.append(pen.at)
+                    if len(self.cur) > 400:  # very long: a new stroke, same hand, carries on from here
+                        self.cur = [pen.at]
+                        self.strokes.append(self.cur)
+        if self.cur is None:
+            pen = next((p for p in pens if p.down), None)
+            if pen is not None:
+                if self.guess is not None:  # drawing again after a guess: a new picture
+                    self.strokes, self.guess, self.guessed_n, self.wrong = [], None, 0, []
+                self.cur, self.cur_hand, self.tip_t = [pen.at], pen.hand, now
                 self.strokes.append(self.cur)
-            elif math.dist(self.cur[-1], tip) >= self.STEP:
-                self.cur.append(tip)
-                if len(self.cur) > 400:
-                    self.cur = None
-        elif self.cur is not None and now - self.tip_t > self.LIFT_S:
-            if len(self.cur) < 2:
-                self.strokes.remove(self.cur)
-            self.cur = None
         ink = sum(len(s) for s in self.strokes)
         if (self.guessing_since is None and self.cur is None and ink >= 6 and len(self.strokes) != self.guessed_n
                 and now - self.hand_t >= self.IDLE_S):
             self._guess(now)
+
+    def _lift(self) -> None:
+        if self.cur is not None and len(self.cur) < 2:
+            self.strokes.remove(self.cur)
+        self.cur, self.cur_hand = None, -1
 
     def _guess(self, now) -> None:
         if self.ask is None:
@@ -480,7 +515,7 @@ class DrawGuess(Game):
     def hear(self, low, now):
         words = re.sub(r"[^a-z' ]+", " ", low).split()
         if any(w in low for w in ("clear", "start over", "erase", "new drawing", "draw again")):
-            self.strokes, self.cur, self.guess, self.guessed_n, self.wrong = [], None, None, 0, []
+            self.strokes, self.cur, self.cur_hand, self.guess, self.guessed_n, self.wrong = [], None, -1, None, 0, []
             self.sfx.append("gone")
             return True
         if self.guess is not None:
@@ -523,15 +558,21 @@ class DrawGuess(Game):
             x = float(np.clip(pts[:, 0].mean() - 7.4 * len(self.guess), AREA[0], AREA[2] - 15 * len(self.guess)))
             y = float(np.clip(pts[:, 1].max() + 30, AREA[1] + 20, AREA[3] - 10))
             c.label("guess", (x, y), self.guess + "?", "done", type_ms=40 * len(self.guess))
+        for p in self.pens:  # the cursor: a ring while the fingers are open, a bright dot in a ring while drawing
+            if p.down:
+                c.dot(f"pen{p.hand}-dot", p.at, "target")
+            c.circle(f"pen{p.hand}", p.at, 6 if p.down else 9, "target" if p.down else "info", n=16)
 
     def hud(self, now, best):
         if self.guessing_since is not None:
             return "HMM... MUSE SPARK IS LOOKING", "", "warn"
         if self.guess:
-            return f"IT'S A {self.guess}!"[:44], "DRAW AGAIN, OR SAY MENU", "done"
+            return f"IT'S A {self.guess}!"[:44], "PINCH TO DRAW AGAIN, OR SAY MENU", "done"
+        if self.cur is not None:
+            return "DRAWING: OPEN YOUR FINGERS TO STOP", "HANDS AWAY WHEN DONE, AND I'LL GUESS", "target"
         if self.strokes:
-            return "KEEP DRAWING, THEN TAKE YOUR HANDS AWAY", "AND I'LL GUESS WHAT IT IS", "info"
-        return "DRAW SOMETHING WITH ONE FINGER", "TAKE YOUR HANDS AWAY AND I'LL GUESS", "info"
+            return "PINCH TO DRAW MORE, OR TAKE YOUR HANDS", "AWAY AND I'LL GUESS WHAT IT IS", "info"
+        return "PINCH THUMB AND FINGER TOGETHER TO DRAW", "OPEN THEM TO STOP. HANDS AWAY: I GUESS", "info"
 
 
 # ---------------------------------------------------------------------------------------------------- host
@@ -578,21 +619,22 @@ class GameHost:
             return ["Follow the lights. Watch, then touch them in the same order."]
         if key == "draw":
             self.game = DrawGuess(now, self.rng, ask=self.ask_guess)
-            return ["Draw something with one finger, then take your hands away. I'll guess."]
+            return [("Pinch your thumb and finger together to draw, and open them to stop. "
+                     "Take your hands away and I'll guess.")]
         raise ValueError(f"unknown game {key!r}")
 
     def stop(self) -> None:
         self.game = None
 
-    def update(self, now: float, points: list, tips: list, segments=()) -> tuple[list[str], list[str]]:
+    def update(self, now: float, points: list, tips: list, segments=(), pens=()) -> tuple[list[str], list[str]]:
         """(lines to say, sounds) for this frame. ``segments``: where hand points moved since the frame before
-        (a fast hand passes over a target between two frames)."""
+        (a fast hand passes over a target between two frames); ``pens``: each hand as a :class:`Pen`."""
         g = self.game
         if g is None:
             return [], []
         dt = min(max(now - self.last, 0.0), 0.1)
         self.last = now
-        g.update(now, points, tips, segments)
+        g.update(now, points, tips, segments, pens)
         say, sfx = g.say, g.sfx
         g.say, g.sfx = [], []
         if isinstance(g, Menu) and g.choice:

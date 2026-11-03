@@ -51,7 +51,7 @@ import cv2
 import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
-from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost
+from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -75,7 +75,7 @@ from .playground import (
     Geo,
 )
 from .server import projector_style as style
-from .vision.hands import INDEX_TIP, HandPose, JitterMeter, PoseFilter
+from .vision.hands import INDEX_TIP, HandPose, JitterMeter, Pinch, PoseFilter
 from .vision.overlay_mask import SUPERSAMPLE
 from .vision.overlay_mask import _draw as draw_prim
 
@@ -95,6 +95,8 @@ STATUS_Y1 = 62.0  # design px: the two status lines run along the far edge down 
 STATUS_Y = 17.0  # first line (what to do), vertical middle
 STATUS_Y2 = 45.0  # second line (progress, a hint)
 BTN_R = 15.0  # button radius: an icon, no word under it (the status bar says what a hovered button does)
+ON_PAGE_PAD = 30.0  # design px: a hand whose fingertip is further off the page plays no part in a game (3 Nov: a plush
+# toy beside the table was "a hand" at 0.5-0.99 confidence, and draw and guess, seeing a hand, never guessed)
 HUD_RECTS = ((0.0, 0.0, COL_X1 + 4.0, DESIGN_H), (0.0, 0.0, DESIGN_W, STATUS_Y1 + 4.0))  # cut out of detection
 PAD_PAGE = 7.0  # page px between an object and its projected outline (3 Nov: 14 read as "the outline is too big")
 OUTLINE_EPS = 0.75  # page px: the outline polygon keeps the contour to this tolerance
@@ -1132,12 +1134,14 @@ class Slot:
     shown: np.ndarray | None = None  # landmarks to draw, camera px: steadied (PoseFilter)
     steady: PoseFilter = field(default_factory=PoseFilter)
     jitter: JitterMeter = field(default_factory=JitterMeter)
+    pinch: Pinch = field(default_factory=Pinch)  # thumb and index finger together: the pen is down (draw and guess)
 
     def clear(self) -> None:
         self.pose, self.tip, self.side, self.shown = None, None, "", None
         self.votes.clear()
         self.steady.reset()
         self.jitter.clear()
+        self.pinch.reset()
 
 
 class HandSlots:
@@ -1200,6 +1204,7 @@ class HandSlots:
         s.votes.append("R" if p.side == "Left" else "L" if p.side == "Right" else "")
         s.shown = s.steady.update(p.img, t)
         s.jitter.add(p.img, s.shown)
+        s.pinch.update(p)
         tip = self.geo.c2d(s.shown[INDEX_TIP])
         s.tip = (tip[0] - self.offset[0], tip[1] - self.offset[1])
 
@@ -1398,13 +1403,14 @@ class TableDashboard:
         elif not on and self.table_buttons:
             self.buttons, self.table_buttons = self.table_buttons, []
 
-    def game_scene(self, slots: HandSlots, now: float, draw) -> list:
-        """The status bar, the HOME button, the game (``draw(canvas, now)``) and a dot under each fingertip."""
+    def game_scene(self, slots: HandSlots, now: float, draw, cursors: bool = True) -> list:
+        """The status bar, the HOME button, the game (``draw(canvas, now)``) and, unless the game draws its own
+        (``cursors`` False), a ring under each fingertip."""
         hud, game = Canvas(self.geo), Canvas(self.geo)
         self._hud(hud, True, [], slots, now)
         draw(game, now)
         for s in slots.active:
-            if s.tip is not None:
+            if cursors and s.tip is not None:
                 game.circle(f"h{s.k}-tip", s.tip, 9, "info", n=16)
         return hud.prims + game.prims
 
@@ -1788,7 +1794,13 @@ class TableSession:
             self.dash.notify(f"GUESSED BY {model_tag(reply.model, reply.provider)} · {reply.ms / 1000:.0f} S", now,
                              "done")
 
-    def _game_points(self, now: float) -> tuple[list, list]:
+    def _game_slots(self) -> list:
+        """The hands that play: fingertip on the page or just off it."""
+        pad = ON_PAGE_PAD
+        return [s for s in self.slots.active if s.tip is not None
+                and -pad <= s.tip[0] <= DESIGN_W + pad and -pad <= s.tip[1] <= DESIGN_H + pad]
+
+    def _game_points(self, now: float, slots: list) -> tuple[list, list]:
         """Hand points for a game (raw landmarks: the steadied ones trail a fast hand) and, for hands seen in this and
         a recent frame, the segments they moved along (wrist, finger tips, palm centre; design px)."""
         idx = (0, 4, 8, 12, 16, 20, 9)
@@ -1796,7 +1808,7 @@ class TableSession:
         prev = getattr(self, "_game_prev", {})
         fresh = {}
         ox, oy = self.slots.offset  # the hand check's fingertip correction, as for the cursor
-        for s in self.slots.active:
+        for s in slots:
             pts = [(x - ox, y - oy) for x, y in (self.geo.c2d(s.pose.img[i]) for i in idx)]
             points += pts
             if s.seen == now:
@@ -1808,7 +1820,8 @@ class TableSession:
         return points, segments
 
     def _game_step(self, now: float, dt: float) -> tuple[list[str], list[str]]:
-        tips = self.slots.tips()
+        slots = self._game_slots()
+        tips = [s.tip for s in slots]
         fired = self.dash.step(tips, now, dt)
         say: list[str] = []
         if self._pending_say:
@@ -1816,8 +1829,11 @@ class TableSession:
         if "home" in fired:
             self.sfx.append("press")
             say += self.games.start("menu", now)
-        points, segments = self._game_points(now)
-        lines, sounds = self.games.update(now, points, tips, segments)
+        points, segments = self._game_points(now, slots)
+        pens = [Pen(s.tip, s.pinch.down, s.k) for s in slots]
+        if isinstance(self.games.game, DrawGuess):
+            self._pinch_log(now, slots)
+        lines, sounds = self.games.update(now, points, tips, segments, pens)
         self.sfx += sounds
         if not self.games.active:  # OBJECTS picked on the menu: the object board
             lines = [line for line in lines if not line.startswith("Object board")] + self._leave_games(now)
@@ -1826,7 +1842,42 @@ class TableSession:
         if game is not None and game.say:
             lines += game.say
             game.say = []
-        return fired, say + lines
+        return fired, say + lines + self._answers(now)  # a question asked during a game is answered during it
+
+    def _pinch_log(self, now: float, slots: list) -> None:
+        """Draw and guess: each pen down and up in the log, with the thumb-to-finger distance (palm lengths), and
+        the readings of the last second, so the pinch thresholds can be set from what this camera sees."""
+        seen = getattr(self, "_pinch_seen", None)
+        if seen is None:
+            seen = self._pinch_seen = {"down": {}, "t": now, "r": [], "csv": None}
+            if self.state_dir is not None:  # every reading, for setting the thresholds from this camera's pinches
+                try:
+                    path = self.state_dir / "play-debug" / f"pinch-{time.strftime('%Y%m%dT%H%M%S')}.csv"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    seen["csv"] = path.open("a", encoding="utf-8", buffering=1)
+                    seen["csv"].write("t,hand,side,ratio_3d,ratio_img,down,tip_x,tip_y,score\n")
+                except OSError:
+                    seen["csv"] = None
+        for s in slots:
+            if s.seen == now:
+                seen["r"].append(s.pinch.ratio)
+                if seen["csv"] is not None:
+                    img = s.pose.img
+                    r_img = float(np.linalg.norm(img[4] - img[8])) / max(float(np.linalg.norm(img[9] - img[0])), 1e-6)
+                    tip = s.tip or (math.nan, math.nan)
+                    seen["csv"].write(f"{now:.3f},{s.k},{s.side},{s.pinch.ratio:.3f},{r_img:.3f},{int(s.pinch.down)},"
+                                      f"{tip[0]:.1f},{tip[1]:.1f},{s.pose.score:.2f}\n")
+            if seen["down"].get(s.k, False) != s.pinch.down:
+                seen["down"][s.k] = s.pinch.down
+                self.log.append(f"pen {'down' if s.pinch.down else 'up'}: hand {s.side or '?'}, thumb to finger "
+                                f"{s.pinch.ratio:.2f} palm")
+        if now - seen["t"] >= 1.0:
+            if seen["r"]:
+                r = sorted(seen["r"])
+                self.log.append(f"pinch readings: {len(r)} frames, {r[0]:.2f} min, {r[len(r) // 2]:.2f} median, "
+                                f"{r[-1]:.2f} max (down below {self.slots.slots[0].pinch.down_at:.2f}, "
+                                f"up above {self.slots.slots[0].pinch.up_at:.2f})")
+            seen["t"], seen["r"] = now, []
 
     @property
     def _bench(self) -> BenchTask | None:
@@ -2583,7 +2634,7 @@ class TableSession:
             missing = self.task.missing(set(self._present()))
             self.sfx.append("answer")
             return [f"Still missing: {spoken_list(missing)}." if missing else f"Nothing. Everything for {self.task.title} is here."]
-        if self.asker is None:
+        if self.asker is None or is_filler(low) or (self.games.active and not is_question(low)):
             return []
         if self._asking is not None:
             return ["One moment, I am still answering the last question."]
@@ -2699,6 +2750,9 @@ class TableSession:
         """Debug snapshot: the camera frame, the last clean scan, the zone's view and every track."""
         path.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(path / "frame.jpg"), img, [cv2.IMWRITE_JPEG_QUALITY, 92])
+        hands = [{"slot": s.k, "side": s.side, "seen": s.seen, "img": s.pose.img.round(1).tolist(),
+                  "pinch": round(s.pinch.ratio, 3), "down": s.pinch.down} for s in self.slots.active]
+        (path / "hands.json").write_text(json.dumps(hands) + "\n", encoding="utf-8")
         if self.scan_image is not None:
             cv2.imwrite(str(path / "scan.jpg"), self.scan_image, [cv2.IMWRITE_JPEG_QUALITY, 92])
         if self.zone is not None:
@@ -2727,7 +2781,8 @@ class TableSession:
                 return not self._in_region(g.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
         if self.games.active:
             self.dash.lines = self.games.hud(now)
-            return self.dash.game_scene(self.slots, now, self.games.draw)
+            return self.dash.game_scene(self.slots, now, self.games.draw,
+                                        cursors=not getattr(self.games.game, "draws_hands", False))
         guide = self.guide
         if guide is not None:
             self.dash.views = {o.uid: v for o in self.seen() if (v := guide.view(o, now)) is not None}
@@ -2783,6 +2838,25 @@ def command_of(low: str) -> str | None:
 def is_plan_request(text: str) -> bool:
     low = text.lower()
     return any(w in low for w in PLAN_WORDS)
+
+
+FILLERS = {"um", "umm", "uh", "uhm", "erm", "er", "hmm", "hm", "mm", "mhm", "ah", "oh", "eh", "huh"}
+QUESTION_WORDS = ("what", "what's", "whats", "how", "where", "why", "who", "which", "when", "can", "could", "is",
+                  "are", "do", "does", "should", "will", "would", "tell", "show", "explain")
+
+
+def is_filler(text: str) -> bool:
+    """Nothing but "um", "hmm"... (3 Nov: "um" went to Muse Spark as a question)."""
+    words = re.sub(r"[^\w' ]+", " ", text.lower()).split()
+    return all(w in FILLERS for w in words)
+
+
+def is_question(text: str) -> bool:
+    """A sentence that asks something: it ends with a question mark or starts with a question word. During a game only
+    these go to the asker (3 Nov: talk at the table, in English or Russian, came back as answers mid-game)."""
+    low = text.lower().strip()
+    words = re.sub(r"[^\w' ]+", " ", low).split()
+    return bool(words) and not is_filler(low) and (low.endswith("?") or words[0] in QUESTION_WORDS)
 
 
 def sweep_fits(contour_page: np.ndarray, tr: Track) -> bool:

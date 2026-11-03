@@ -46,6 +46,12 @@ MODEL_SIZE = 7_819_105
 MODEL_FILE = "hand_landmarker.task"
 INFER_W = 640
 INDEX_TIP = 8  # MediaPipe hand landmark index of the index fingertip
+THUMB_TIP = 4
+# Thumb tip to index fingertip, palm lengths. 3 Nov rig, draw and guess: pinches read 0.13-0.27, open hands 0.45-0.77,
+# a thumb tucked beside a pointing finger 0.35-0.41.
+PINCH_DOWN = 0.30  # closer than this is a pinch (the pen goes down) ...
+PINCH_UP = 0.40  # ... and only past this is it let go: in between nothing changes, so a shaky pinch does not flicker
+PINCH_UP_FRAMES = 2  # frames in a row apart before it is let go (one blurred frame does not break a line)
 
 
 class HandsUnavailable(RuntimeError):
@@ -144,6 +150,43 @@ class HandPose:
 def palm_px(img: np.ndarray) -> float:
     """Palm length in image px: wrist to middle-finger knuckle (landmarks 0 and 9)."""
     return float(np.linalg.norm(img[9] - img[0]))
+
+
+def pinch_ratio(pose: HandPose) -> float:
+    """Thumb tip to index fingertip over the palm length (wrist to middle knuckle), from MediaPipe's 3-D world
+    landmarks when there are any (synthetic poses have none: image px then). In 3-D because the camera looks down on
+    the back of the hand: a thumb tucked beside a pointing finger is close in the image (0.2-0.3 palm lengths) but
+    3-4 cm away in 3-D (0.35-0.41; a 3 Nov rig frame of a hand pressing a button)."""
+    for pts in (pose.world, pose.img):
+        palm = float(np.linalg.norm(pts[9] - pts[0]))
+        if palm > 1e-6:
+            return float(np.linalg.norm(pts[THUMB_TIP] - pts[INDEX_TIP])) / palm
+    return math.inf
+
+
+class Pinch:
+    """Thumb and index finger held together, for one hand: down at once below ``down`` palm lengths apart (hands are
+    found in only some frames: waiting for a second one lost pinches, 3 Nov), up again only above ``up`` and only once
+    ``up_frames`` frames in a row agree (one bad frame does not break a line)."""
+
+    def __init__(self, down: float = PINCH_DOWN, up: float = PINCH_UP, up_frames: int = PINCH_UP_FRAMES):
+        self.down_at, self.up_at, self.up_frames = down, up, up_frames
+        self.down = False
+        self.ratio = math.inf  # the last frame's ``pinch_ratio``
+        self._run = 0
+
+    def update(self, pose: HandPose) -> bool:
+        self.ratio = r = pinch_ratio(pose)
+        if not self.down:
+            self.down, self._run = r < self.down_at, 0
+            return self.down
+        self._run = self._run + 1 if r > self.up_at else 0
+        if self._run >= self.up_frames:
+            self.down, self._run = False, 0
+        return self.down
+
+    def reset(self) -> None:
+        self.down, self.ratio, self._run = False, math.inf, 0
 
 
 def _alpha(cutoff_hz, dt: float):
