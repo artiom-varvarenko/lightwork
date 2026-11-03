@@ -334,3 +334,43 @@ def test_a_hand_off_the_page_plays_no_part(tmp_path):
     assert rig.ts.slots.active and rig.ts._game_slots() == []  # tracked, but not playing
     assert g.guessed_n == 1  # no hand on the page: it guessed (no brain in this rig, so it says it needs one)
     assert "pen0" not in {p.id for p in rig.page.history[-1][2]}
+
+
+def test_a_tracking_slip_starts_a_new_line_instead_of_a_long_straight_one():
+    import random
+
+    g = DrawGuess(0.0, random.Random(0))
+    t = draw_frames(g, 0.0, range(200, 240, 6), 200, down=True)
+    t = draw_frames(g, t, [240 + g.REJOIN + 5], 200, down=True)  # one frame later, a hand's width away
+    assert len(g.strokes) == 2 and g.strokes[1] == [(240 + g.REJOIN + 5, 200.0)]
+
+
+def test_letting_go_leaves_no_hook_and_a_blip_does_not_break_the_line(tmp_path):
+    """The pen holds still while fingers that were together read apart: a blip of a frame or two carries on, and
+    letting go ends the line where the fingers were last together."""
+    from lightwork.vision.hands import PINCH_UP_FRAMES
+
+    from .test_table_scans import Rig
+    from .test_tabletop import pose, table
+
+    rig = Rig(game="draw", state_dir=tmp_path)
+    t0 = rig.t
+
+    def hand(t):
+        return pose((560 + 80 * (t - t0), 640), (590 + 80 * (t - t0), 540))
+
+    rig.run(0.8, table(), poses=lambda t: [pinched(hand(t))])
+    g = rig.ts.games.game
+    assert len(g.strokes) == 1
+    n = 0
+
+    def blip(t):
+        nonlocal n
+        n += 1
+        return [hand(t) if n < PINCH_UP_FRAMES else pinched(hand(t))]  # apart for PINCH_UP_FRAMES - 1 frames
+
+    rig.run(0.5, table(), poses=blip)
+    assert len(g.strokes) == 1 and g.cur is not None
+    last = g.cur[-1]
+    rig.run(0.5, table(), poses=lambda t: [hand(t)])  # let go and keep moving
+    assert g.cur is None and len(g.strokes) == 1 and g.strokes[0][-1] == last

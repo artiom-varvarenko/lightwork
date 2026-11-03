@@ -75,7 +75,7 @@ from .playground import (
     Geo,
 )
 from .server import projector_style as style
-from .vision.hands import INDEX_TIP, HandPose, JitterMeter, Pinch, PoseFilter
+from .vision.hands import INDEX_TIP, HandPose, JitterMeter, Pinch, PoseFilter, pinch_ratio_3d
 from .vision.overlay_mask import SUPERSAMPLE
 from .vision.overlay_mask import _draw as draw_prim
 
@@ -1830,7 +1830,15 @@ class TableSession:
             self.sfx.append("press")
             say += self.games.start("menu", now)
         points, segments = self._game_points(now, slots)
-        pens = [Pen(s.tip, s.pinch.down, s.k) for s in slots]
+        pens = []
+        held = getattr(self, "_pen_at", {})
+        for s in slots:  # while fingers that were together read apart (letting go, or a blip) the pen holds still:
+            if s.pinch.apart and s.k in held:  # no little hook at the end of every line
+                pens.append(Pen(held[s.k], True, s.k))
+                continue
+            held[s.k] = s.tip
+            pens.append(Pen(s.tip, s.pinch.down, s.k))
+        self._pen_at = held
         if isinstance(self.games.game, DrawGuess):
             self._pinch_log(now, slots)
         lines, sounds = self.games.update(now, points, tips, segments, pens)
@@ -1862,11 +1870,9 @@ class TableSession:
             if s.seen == now:
                 seen["r"].append(s.pinch.ratio)
                 if seen["csv"] is not None:
-                    img = s.pose.img
-                    r_img = float(np.linalg.norm(img[4] - img[8])) / max(float(np.linalg.norm(img[9] - img[0])), 1e-6)
                     tip = s.tip or (math.nan, math.nan)
-                    seen["csv"].write(f"{now:.3f},{s.k},{s.side},{s.pinch.ratio:.3f},{r_img:.3f},{int(s.pinch.down)},"
-                                      f"{tip[0]:.1f},{tip[1]:.1f},{s.pose.score:.2f}\n")
+                    seen["csv"].write(f"{now:.3f},{s.k},{s.side},{pinch_ratio_3d(s.pose):.3f},{s.pinch.ratio:.3f},"
+                                      f"{int(s.pinch.down)},{tip[0]:.1f},{tip[1]:.1f},{s.pose.score:.2f}\n")
             if seen["down"].get(s.k, False) != s.pinch.down:
                 seen["down"][s.k] = s.pinch.down
                 self.log.append(f"pen {'down' if s.pinch.down else 'up'}: hand {s.side or '?'}, thumb to finger "

@@ -414,7 +414,8 @@ class DrawGuess(Game):
     key = "draw"
     draws_hands = True
     LIFT_S = 0.6  # the drawing hand unseen this long ends its line (hands are found in only some frames)
-    REJOIN = 90.0  # design px: a pinched hand found again this close to where the line stopped carries it on
+    REJOIN = 80.0  # design px: a pinched hand found again this close to where the line stopped carries it on;
+    # a pen that moves further than this between two frames slipped (tracking), and starts a new line there
     IDLE_S = 1.8  # hands away this long after drawing: guess
     STEP = 4.0  # design px between stroke points
 
@@ -452,11 +453,13 @@ class DrawGuess(Game):
                     self._lift()
             else:
                 self.tip_t = now
-                if math.dist(self.cur[-1], pen.at) >= self.STEP:
+                d = math.dist(self.cur[-1], pen.at)
+                if d > self.REJOIN or len(self.cur) > 400:  # a slip, or very long: a new line, same hand, from here
+                    self._lift()
+                    self.cur, self.cur_hand = [pen.at], pen.hand
+                    self.strokes.append(self.cur)
+                elif d >= self.STEP:
                     self.cur.append(pen.at)
-                    if len(self.cur) > 400:  # very long: a new stroke, same hand, carries on from here
-                        self.cur = [pen.at]
-                        self.strokes.append(self.cur)
         if self.cur is None:
             pen = next((p for p in pens if p.down), None)
             if pen is not None:
