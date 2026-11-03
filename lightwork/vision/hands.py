@@ -261,21 +261,35 @@ class HandTracker:
     """
 
     def __init__(self, model_path: Path | None = None, *, num_hands: int = 1, min_confidence: float = 0.5,
-                 infer_w: int | None = INFER_W, image_mode: bool = False):
+                 infer_w: int | None = INFER_W, image_mode: bool = False, gpu: bool = False):
         """``infer_w``: width every input is resized to first (None: as given, at full resolution). ``image_mode``:
-        each call stands alone (MediaPipe IMAGE mode, palm detection every time) instead of tracking (VIDEO mode)."""
+        each call stands alone (MediaPipe IMAGE mode, palm detection every time) instead of tracking (VIDEO mode).
+        ``gpu``: MediaPipe's GPU delegate (OpenGL ES through Mesa on this laptop's Radeon: a 540 px palm search in
+        4.2 ms instead of 9.7 ms on the CPU, 3 Nov); falls back to the CPU when it cannot start."""
         mp, vision, BaseOptions = _import_mediapipe()
         path = ensure_model(Path(model_path) if model_path is not None else default_model_path())
-        opts = vision.HandLandmarkerOptions(
-            base_options=BaseOptions(model_asset_path=str(path)),
-            running_mode=vision.RunningMode.IMAGE if image_mode else vision.RunningMode.VIDEO,
-            num_hands=num_hands,
-            min_hand_detection_confidence=min_confidence,
-            min_hand_presence_confidence=min_confidence,
-            min_tracking_confidence=min_confidence,
-        )
+
+        def options(delegate):
+            return vision.HandLandmarkerOptions(
+                base_options=BaseOptions(model_asset_path=str(path), delegate=delegate),
+                running_mode=vision.RunningMode.IMAGE if image_mode else vision.RunningMode.VIDEO,
+                num_hands=num_hands,
+                min_hand_detection_confidence=min_confidence,
+                min_hand_presence_confidence=min_confidence,
+                min_tracking_confidence=min_confidence,
+            )
+
         self._mp = mp
-        self._lm = vision.HandLandmarker.create_from_options(opts)
+        self.delegate = "CPU"
+        self.gpu_error: str | None = None
+        if gpu:
+            try:
+                self._lm = vision.HandLandmarker.create_from_options(options(BaseOptions.Delegate.GPU))
+                self.delegate = "GPU"
+            except Exception as exc:  # noqa: BLE001 - no GPU context: the CPU path always works
+                self.gpu_error = f"{type(exc).__name__}: {exc}"
+        if self.delegate == "CPU":
+            self._lm = vision.HandLandmarker.create_from_options(options(BaseOptions.Delegate.CPU))
         self._last_ms = -1
         self._infer_w = infer_w
         self._image_mode = image_mode
@@ -610,10 +624,11 @@ class CropHandTracker:
 
     def __init__(self, region: Rect | None = None, *, num_hands: int = 2, search_per_frame: int = 2,
                  tile: int = TILE_PX, model_path: Path | None = None, min_confidence: float = 0.5, factory=None,
-                 search_factory=None):
-        follow = factory or (lambda: HandTracker(model_path, num_hands=1, min_confidence=min_confidence, infer_w=None))
+                 search_factory=None, gpu: bool = False):
+        follow = factory or (lambda: HandTracker(model_path, num_hands=1, min_confidence=min_confidence, infer_w=None,
+                                                 gpu=gpu))
         search = search_factory or (lambda: HandTracker(model_path, num_hands=2, min_confidence=min_confidence,
-                                                         infer_w=None, image_mode=True))
+                                                         infer_w=None, image_mode=True, gpu=gpu))
         self._followers = [_Follower(follow()) for _ in range(num_hands)]
         self._search = search()
         self.search_per_frame = search_per_frame
@@ -633,6 +648,12 @@ class CropHandTracker:
         self._tiles_for = None
         self._next = 0
         return self.tiles
+
+    @property
+    def delegate(self) -> str:
+        """"GPU", "CPU" or "GPU+CPU" (what the search and the followers got)."""
+        kinds = {getattr(t, "delegate", "CPU") for t in [self._search] + [f.lm for f in self._followers]}
+        return "+".join(sorted(kinds, reverse=True))
 
     @property
     def following(self) -> int:

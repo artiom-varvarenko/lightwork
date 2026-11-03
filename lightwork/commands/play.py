@@ -96,7 +96,7 @@ def configure(p) -> None:
     p.add_argument("--page-wait", type=float, default=60.0, help="seconds to wait for the projector page")
     p.add_argument("--exposure", type=int, default=None,
                    help="C920 exposure_time_absolute in 100 us (default 312; 78 with --game: a quarter of the motion "
-                        "blur on a moving hand, written again once streaming, where the C920 applies it)")
+                        "blur on a moving hand, written again once streaming, with the gain raised to keep the light)")
     p.add_argument("--gain", type=int, help="fixed C920 gain 0-255 (default: chosen for the room and adjusted)")
     p.add_argument("--recal-every", type=float, default=None,
                    help="seconds between mapping checks (0 = off; default 300, table 0: the border watch still checks)")
@@ -105,6 +105,8 @@ def configure(p) -> None:
     p.add_argument("--threshold", type=int, default=28, help="drop-zone change threshold, 0-255")
     p.add_argument("--min-area", type=int, default=500, help="smallest object in the drop zone (table: on the table), camera px")
     p.add_argument("--no-hands", action="store_true", help="no hand tracking (table drop zone only)")
+    p.add_argument("--hands-gpu", choices=("auto", "off"), default="auto",
+                   help="table: MediaPipe on the GPU (OpenGL ES; about 2x faster here), falling back to the CPU")
     p.add_argument("--hand-tiles", type=int, default=3,
                    help="table/wall: most tiles the hand search splits the projected page into, so hands far from the "
                         "camera are found (0 = whole frame only)")
@@ -139,11 +141,15 @@ def _tracker(args):
         if args.table:
             from ..vision.hands import CropHandTracker
 
+            gpu = args.hands_gpu != "off"
             if args.game:  # games: hands move fast; search harder, follow longer, accept blurrier hands
-                t = CropHandTracker(num_hands=2, search_per_frame=4, min_confidence=0.4)
+                t = CropHandTracker(num_hands=2, search_per_frame=4, min_confidence=0.4, gpu=gpu)
                 t.LOST_FRAMES = 6
-                return t
-            return CropHandTracker(num_hands=2)
+            else:
+                t = CropHandTracker(num_hands=2, gpu=gpu)
+            print(f"hand tracking on the {t.delegate}" + (" (GPU unavailable)" if gpu and "GPU" not in t.delegate
+                                                           else ""))
+            return t
         from ..vision.hands import HandTracker, TiledHandTracker
 
         return TiledHandTracker(max_tiles=args.hand_tiles) if args.hand_tiles > 0 else HandTracker()
@@ -324,7 +330,7 @@ def run(args) -> int:
     if args.recal_every is None:
         args.recal_every = 0.0 if args.table else 300.0
     if args.exposure is None:
-        args.exposure = 78 if args.game else 312
+        args.exposure = 78 if args.game else 312  # 3 Nov: 39 applied once, then the C920 kept 78
     gain = args.gain if args.gain is not None else START_GAIN
     lock = dict(load_lock())
     lock.update(exposure_time_absolute=args.exposure, gain=gain)
@@ -536,14 +542,40 @@ class Play:
                                      "from the hands until a card is measured (SCALE)"))
         else:
             self.table.set_geo(self.geo, self.last_image)
-        if self.args.game and self.gain.available:  # the C920 ignores some exposures at stream start: write it
-            err = self.gain.ctl.set("exposure_time_absolute", int(self.args.exposure))  # again now (3 Nov: 78 read
-            print(f"game exposure {self.args.exposure / 10:.1f} ms" + (f": {err}" if err else ""))  # back as 156)
+        if self.args.game and self.gain.available and not getattr(self, "_game_exposed", False):
+            self._game_exposure()
         if self.table.zone_error:
             print(f"table: {self.table.zone_error}")
         else:
             x, y, w, h = self.table.zone.roi
             print(f"table area: {w}x{h} camera px at {x},{y}, detection at 1/{self.table.zone.down}")
+
+    def _game_exposure(self) -> None:
+        """Games: the short exposure (the C920 ignores some at stream start: written again now, 3 Nov: 78 read back as
+        156), then the gain raised until the table is about as bright as it was calibrated (3 Nov, more room light:
+        3.9 ms at gain 48 = 7.8 ms at gain 16, same noise, half the blur)."""
+        from ..sessioncal import surface_level
+
+        self._game_exposed = True
+        before = surface_level(self.cam)[0]
+        err = self.gain.ctl.set("exposure_time_absolute", int(self.args.exposure))
+        if err:
+            print(f"game exposure: {err}")
+            return
+        g = self.gain.gain
+        level = surface_level(self.cam)[0]
+        for _ in range(8):
+            if level >= 0.9 * before or g >= 200:
+                break
+            g = min(200, int(g * 1.4) + 8)
+            self.gain.set(g)
+            level = surface_level(self.cam)[0]
+        try:
+            got = self.gain.ctl.get(["exposure_time_absolute"]).get("exposure_time_absolute", self.args.exposure)
+        except Exception:  # noqa: BLE001 - a readback is only for the log
+            got = self.args.exposure
+        print(f"game exposure {got / 10:.1f} ms (asked {self.args.exposure / 10:.1f}), gain {g}: table level {level:.0f} "
+              f"(calibrated {before:.0f})")
 
     def _hand_region(self) -> None:
         """Point the tiled hand search at the projected page (plus ``HAND_MARGIN``) in camera px."""
