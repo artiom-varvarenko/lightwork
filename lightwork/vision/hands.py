@@ -671,6 +671,8 @@ class CropHandTracker:
     motion_aware = True  # poses() takes ``motion`` boxes
     SAME_HAND = 0.6  # palm lengths: wrists (or hand centres) closer than this are one hand
     LOST_FIRST_S = 1.0
+    keep = None  # callable(HandPose) -> bool: hands it refuses are neither followed nor returned (they would take a
+    # hand slot: 3 Nov, a plush toy beside the table was "a hand" at 0.5-0.99 confidence, and only one real hand fit)
 
     def __init__(self, region: Rect | None = None, *, num_hands: int = 2, search_per_frame: int = 2,
                  tile: int = TILE_PX, model_path: Path | None = None, min_confidence: float = 0.5, factory=None,
@@ -721,6 +723,9 @@ class CropHandTracker:
             if not f.active:
                 continue
             p = self._follow(f, frame)
+            if p is not None and self.keep is not None and not self.keep(p):
+                self._release(f, frame.t_mono, lost=False)
+                continue
             if p is not None:
                 out.append((f, p))
             else:
@@ -750,6 +755,8 @@ class CropHandTracker:
             for k in order[:budget]:
                 searched_rr += k in rr
                 for p in self._search_tile(self.tiles[k], frame):
+                    if self.keep is not None and not self.keep(p):
+                        continue
                     if free and not any(self._same(p, q) for _, q in out):
                         f = free.pop(0)
                         self._start(f, p)

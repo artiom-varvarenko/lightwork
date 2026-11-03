@@ -176,3 +176,16 @@ def test_motion_boxes_mark_what_changed():
     x0, y0, x1, y1 = boxes[0]
     assert x0 <= 800 and y0 <= 400 and x1 >= 960 and y1 >= 520
     assert mb(b) == []
+
+
+def test_hands_the_caller_refuses_take_no_hand_slot():
+    """3 Nov: a plush toy beside the table was tracked as a hand; with two slots, only one real hand then fit."""
+    t, _ = tracker(search_per_frame=8)
+    t.keep = lambda p: p.img[8][1] > 300  # "on the page": below y = 300 here
+    toy, hand_a, hand_b = (700.0, 200.0), (900.0, 600.0), (1400.0, 700.0)
+    for i in range(6):
+        got = t.poses(frame(toy, hand_a, hand_b, idx=i))
+    assert len(got) == 2 and all(p.img[8][1] > 300 for p in got)  # both real hands, the toy in neither slot
+    t.keep = lambda p: p.img[8][1] > 620  # hand_a (fingertip y 546) now "off the page": its follower lets it go
+    got = t.poses(frame(toy, hand_a, hand_b, idx=7))
+    assert len(got) == 1 and got[0].img[8][1] > 620  # hand_b (646) stays

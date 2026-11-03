@@ -49,6 +49,7 @@ HANDS_AWAY_S = 0.8  # requested recalibrations wait this long for hands to leave
 HANDS_AWAY_MIN_S = 4.0  # ... and at least this long after the request: a person in the light is no hand to the tracker
 HANDS_AWAY_MAX_S = 8.0  # ... but not longer
 CALIB_RETRIES = 2  # a recalibration that fails during the session is tried again this often, then the mapping is kept
+KEEP_HAND_PAD = 40.0  # design px: hands whose index fingertip is further off the page are not tracked (a toy beside it)
 HAND_MARGIN = 0.1  # hand search tiles cover the projected page plus this share of its size: a palm beside the edge
 
 
@@ -597,6 +598,8 @@ class Play:
         fw, fh = self.frame_size
         region = (max(0, int(x0 - m)), max(0, int(y0 - m)), min(fw, int(x1 + m)), min(fh, int(y1 + m)))
         tiles = self.tracker.set_region(region)
+        if self.args.table and hasattr(self.tracker, "keep"):
+            self.tracker.keep = self._keep_hand
         if tiles and tiles != self.tiles_shown:
             self.tiles_shown = tiles
             sizes = [(t[2] - t[0], t[3] - t[1]) for t in tiles]
@@ -605,6 +608,13 @@ class Play:
                      f"whole frame + {len(tiles)} tile{'s' if len(tiles) > 1 else ''} over the page")
             print(f"hand search: {where} ({', '.join(f'{w}x{h}' for w, h in sizes)} px): palms "
                   f"{max(fw, fh) / max(max(s) for s in sizes):.1f}x larger to the detector")
+
+    def _keep_hand(self, pose) -> bool:
+        """A hand whose index fingertip is on the page or near it (``KEEP_HAND_PAD`` design px)."""
+        from ..playground import DESIGN_H, DESIGN_W
+
+        x, y = self.geo.c2d(pose.img[8])
+        return (-KEEP_HAND_PAD <= x <= DESIGN_W + KEEP_HAND_PAD) and (-KEEP_HAND_PAD <= y <= DESIGN_H + KEEP_HAND_PAD)
 
     def _watch_border(self) -> None:
         """(Re)draw the border for the current mapping and take a new baseline once it is seen."""
@@ -774,7 +784,10 @@ class Play:
         last_t, last_step = 0.0, time.monotonic()
         n_frames, hand_frames = 0, 0
         fps_t0 = last_status = last_page_check = time.monotonic()
+        spent = {"wait": 0.0, "hands": 0.0, "table": 0.0, "rest": 0.0}  # seconds per stage since the last status line
+        cam_frames, last_idx = 0, None  # frames the camera delivered (the loop may skip some)
         while True:
+            t_wait = time.monotonic()
             frame = self.cam.wait_frame(last_t, 1.0)
             if frame is None:
                 continue
@@ -782,8 +795,12 @@ class Play:
             if newest is not None and newest.t_mono > frame.t_mono:
                 frame = newest
             last_t = frame.t_mono
+            if last_idx is not None:
+                cam_frames += max(0, frame.idx - last_idx)
+            last_idx = frame.idx
             self.last_image = frame.image
             now = time.monotonic()
+            spent["wait"] += now - t_wait
             n_frames += 1
             dt, last_step = now - last_step, now
 
@@ -808,6 +825,8 @@ class Play:
             if tip_cam is not None:
                 self.last_hand_t = now
                 hand_frames += 1
+            t_hands = time.monotonic()
+            spent["hands"] += t_hands - now
 
             if self.check is not None:
                 res = self.check.step(None if tip_cam is None else self.geo.c2d(tip_cam), now)
@@ -834,6 +853,8 @@ class Play:
                     prims, obj_prims = self.table.scene(now, also_lit=self.frame), []
                 else:
                     prims, obj_prims = self.dash.scene(self.zone, time.strftime("%H:%M:%S"))
+            t_table = time.monotonic()
+            spent["table"] += t_table - t_hands
             if self.pending in ("full", "retry"):
                 c = Canvas(self.geo)
                 c.label("hands-away", (250, 210), "KEEP CLEAR: CALIBRATING", "warn")
@@ -896,8 +917,15 @@ class Play:
                 last_status = now
                 self.control.push_state({"steps": self._readouts(now), "last_say": self.say or None})
                 if now - fps_t0 >= STATUS_EVERY_S:
-                    print(f"{n_frames / (now - fps_t0):.1f} fps; hand in {hand_frames}/{n_frames} frames; {self._summary()}")
-                    n_frames, hand_frames, fps_t0 = 0, 0, now
+                    per = {k: 1000 * v / max(n_frames, 1) for k, v in spent.items()}
+                    age = self.cam.stats().get("age_ms_p50") if hasattr(self.cam, "stats") else None
+                    print(f"{n_frames / (now - fps_t0):.1f} fps (camera {cam_frames / (now - fps_t0):.1f}"
+                          + (f", frames {age:.0f} ms old" if age is not None else "")
+                          + f"; per frame {per['wait']:.0f} ms waiting, {per['hands']:.0f} hands, {per['table']:.0f} "
+                          f"table, {per['rest']:.0f} rest); hand in {hand_frames}/{n_frames} frames; {self._summary()}")
+                    n_frames, hand_frames, fps_t0, cam_frames = 0, 0, now, 0
+                    spent = dict.fromkeys(spent, 0.0)
+            spent["rest"] += time.monotonic() - t_table
 
     def _table_step(self, frame, poses, now: float, dt: float) -> list[str]:
         fired, say = self.table.step(frame, poses, now, dt, detect=now >= self.zone_pause_until)

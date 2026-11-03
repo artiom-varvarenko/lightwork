@@ -51,6 +51,8 @@ log = logging.getLogger(__name__)
 RING_LEN = 8  # ~0.27 s at 30 fps: enough for the keyframe choreography (ACK + 120 ms, then 2 frames)
 REOPEN_INTERVAL_S = 0.5
 READ_TIMEOUT_MS = 2000
+DRIVER_BUFFERS = 2  # 3 Nov: with 1 the C920 gave 15-20 fps during table games once the picture was bright (it gave 30
+# alone): while the capture thread waited for Python's lock the only buffer was taken and the next frame was lost
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".bmp")
 
 
@@ -149,7 +151,7 @@ class DeviceBackend:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self._size[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self._size[1])
         cap.set(cv2.CAP_PROP_FPS, self._fps)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, DRIVER_BUFFERS)
         if self._api == cv2.CAP_V4L2:
             cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, READ_TIMEOUT_MS)
         ok, img = cap.read()  # starts the stream; controls are applied after this (briefs/rig.md §3.1)

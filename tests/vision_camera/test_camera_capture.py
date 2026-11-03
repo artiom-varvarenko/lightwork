@@ -20,6 +20,7 @@ from lightwork.vision.camera import (
     list_devices,
 )
 from lightwork.vision.capture import (
+    DRIVER_BUFFERS,
     CameraNotFound,
     DeviceBackend,
     LiveCamera,
@@ -218,7 +219,7 @@ def test_device_lock_applied_and_reapplied_after_reopen(tmp_path, monkeypatch, f
     backend = DeviceBackend(c920(tmp_path), width=1920, height=1080, fps=30, lock=lock, run=fake.run, capture_factory=caps)
     with LiveCamera(backend) as cam:
         assert cam.controlled and cam.status.startswith("controlled camera")
-        assert caps.props[cv2.CAP_PROP_BUFFERSIZE] == 1 and caps.props[cv2.CAP_PROP_FPS] == 30
+        assert caps.props[cv2.CAP_PROP_BUFFERSIZE] == DRIVER_BUFFERS == 2 and caps.props[cv2.CAP_PROP_FPS] == 30
         assert caps.props[cv2.CAP_PROP_FRAME_WIDTH] == 1920
         assert caps.props[cv2.CAP_PROP_FOURCC] == cv2.VideoWriter_fourcc(*"MJPG")
         assert caps.opened[0] == (str(tmp_path / "fake-node"), cv2.CAP_V4L2)
