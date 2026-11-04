@@ -484,6 +484,25 @@ def test_the_tables_move_is_done_only_when_what_stands_there_says_so():
     assert read_expected(changes(b8=12.0, c6=28.0), where, None, contents).kind == "partial"
 
 
+def test_a_nudged_piece_is_not_a_wrong_move(tmp_path):
+    run = Run(tmp_path, ["e7e5"])
+    run.to_play()
+    g = run.g
+    cur = g.refs[-1].copy()
+    from lightwork.chesstable import EYE
+
+    for name in ("g1", "e2"):  # the pieces there turned a little: their squares change, both still hold a piece
+        q = square(name)
+        y, x = (7 - (q >> 4)) * EYE, (q & 7) * EYE
+        cur[y:y + EYE, x:x + EYE] = np.roll(cur[y:y + EYE, x:x + EYE], 9, axis=1)
+    g._read_yours(cur, run.t)
+    g._read_yours(cur, run.t)
+    assert not g.trouble and g.moves == [], g.log[-3:]
+    assert any("nudged" in line for line in g.log)
+    run.you("e2e4")  # and the next move reads against the board as it stands now
+    assert g.moves == ["e4"], g.log[-3:]
+
+
 def test_board_ok_makes_what_stands_there_the_position(tmp_path):
     run = Run(tmp_path)
     run.to_play()

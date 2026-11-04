@@ -635,6 +635,21 @@ class ChessTable(Game):
                 base[q] = min(base.get(q, math.inf), raw[q])
         return {q: raw[q] - max(0.0, min(base.get(q, 0.0), EMPTY_MAX) - EMPTY_TYPICAL) for q in SQUARES}
 
+    def _nudged(self, squares, contents: dict[int, float]) -> bool:
+        """Every one of these squares still holds a piece where the position has one and none where it has none: they
+        changed because a piece was nudged on its square (rig, 4 Nov: knight and pawns beside a castling king), not
+        because anything moved. A move always empties the square it starts from."""
+        return bool(squares) and all((contents[q] >= FILLED) == bool(self.board.b[q]) for q in squares)
+
+    def _take_as_is(self, view: np.ndarray, squares) -> None:
+        """These squares of the reference become what they look like now."""
+        ref = self.refs[-1].copy()
+        for q in squares:
+            y, x = (7 - (q >> 4)) * EYE, (q & 7) * EYE
+            ref[y:y + EYE, x:x + EYE] = view[y:y + EYE, x:x + EYE]
+        self.refs[-1] = ref
+        self.log.append("chess: nudged, not moved: " + " ".join(square_name(q) for q in squares))
+
     def _log_change(self, change: dict[int, float], text: str) -> None:
         top = sorted(change, key=change.get, reverse=True)[:6]
         self.log.append(f"chess: {text}; level {hot_level(change):.0f}, " +
@@ -663,8 +678,13 @@ class ChessTable(Game):
 
     def _read_yours(self, view: np.ndarray, now: float) -> None:
         change = square_changes(self.refs[-1], view)
-        r = read_move(change, self.board, self._contents(view), self.nadir, unknown=self.unknown)
+        contents = self._contents(view)
+        r = read_move(change, self.board, contents, self.nadir, unknown=self.unknown)
         self._log_change(change, f"read {r.kind} {uci(r.move) if r.move else ''}")
+        if r.kind in ("wrong", "partial") and not self.back_hint and self._nudged(r.hot, contents):
+            self._take_as_is(view, r.hot)
+            self.candidate, self.confirm_at, self.partial, self.trouble = None, None, False, ()
+            return
         if self.back_hint:  # taken back: nothing counts until the board is back as it was
             self.partial = False
             if r.kind == "none":
@@ -743,8 +763,13 @@ class ChessTable(Game):
     def _read_mine(self, view: np.ndarray, now: float) -> None:
         change = square_changes(self.refs[-1], view)
         where = self.board.changes(self.reply)
-        r = read_expected(change, where, self.nadir, self._contents(view), self.board.is_capture(self.reply))
+        contents = self._contents(view)
+        r = read_expected(change, where, self.nadir, contents, self.board.is_capture(self.reply))
         self._log_change(change, f"check {uci(self.reply)}: {r.kind}")
+        if r.kind == "wrong" and self._nudged(r.hot, contents):  # its move not made yet, and something only nudged
+            self._take_as_is(view, r.hot)
+            self.candidate, self.confirm_at, self.trouble = None, None, ()
+            return
         if r.kind == "none" or r.kind == "partial":
             self.candidate, self.confirm_at = None, None
             self.trouble = ()
