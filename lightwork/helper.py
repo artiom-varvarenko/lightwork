@@ -57,6 +57,7 @@ MODEL_C = (346.0, 214.0)  # design px: the middle of the work area
 MODEL_R = 140.0  # design px per model unit at zoom 1: the model is within -1 to 1
 TURN_PER_PX = 0.012  # radians of turn per design px dragged
 TILT_PER_PX = 0.008
+TILT_TALL, TILT_WIDE = 0.15, 0.4  # how far from above it is first seen: a tower from nearly level, a car from above
 TILT_RANGE = (-0.4, 1.35)  # from a little below to nearly straight down: never upside down
 ZOOM_RANGE = (0.45, 2.4)
 IDLE_SPIN = 0.35  # radians per second while nobody holds it: a still wireframe does not read as 3D
@@ -303,17 +304,6 @@ CHECK_SCHEMA = {
     "type": "object",
     "properties": {"ok": {"type": "boolean"}, "say": {"type": "string"}},
     "required": ["ok", "say"],
-    "additionalProperties": False,
-}
-MODEL_PROMPT = ("Draw a {what} as a 3D wireframe a small projector can show on a table and a person can turn with their "
-                "fingers. Reply with JSON: \"name\", and \"lines\": a list of polylines, each a list of [x, y, z] points, "
-                "all within -1 to 1, z up. Use 20 to 60 polylines and at most 400 points in all, so the shape is clearly "
-                "recognisable from any side: curves as many short segments, a full circle at least 24. No text.")
-MODEL_SCHEMA = {
-    "type": "object",
-    "properties": {"name": {"type": "string"}, "lines": {"type": "array", "items": {
-        "type": "array", "items": {"type": "array", "items": {"type": "number"}}}}},
-    "required": ["name", "lines"],
     "additionalProperties": False,
 }
 PLACE_PROMPT = ("Where is {place}? Reply with JSON for a 3D map that flies there: \"name\": its name in 1 to 3 words; \"lat\" "
@@ -656,6 +646,7 @@ class Helper(Game):
         # a 3D model
         self.subject = ""
         self.wire: Wire | None = None
+        self.wire_src: str | None = None  # the served wireframe: the page draws it (without one, it goes as lines in the scene)
         self.yaw, self.tilt, self.zoom, self.spin = 0.6, 0.4, 1.0, IDLE_SPIN
         self.pens: list = []  # this frame's
         self._drag: tuple[int, tuple[float, float]] | None = None  # (hand, where it was last frame)
@@ -842,15 +833,16 @@ class Helper(Game):
         """Have the model draw a thing as lines (or, for one drawn before, the session answers from its cache)."""
         self.epoch += 1
         self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
+        self.wire_src = None
         self.parts, self.reply, self.things, self.want_outlines = [], "", [], []
         self._clear_answer()
         self.subject = _clean(subject, 40)
         self.state = "modelling"
         self.sfx.append("scan")
-        self.say.append(f"Let me build {_with_article(self.subject)}.")
+        self.say.append(f"Let me build {_with_article(self.subject)}. It takes about a minute.")
         self._dirty = True
-        self._ask(Ask("model", MODEL_PROMPT.format(what=self.subject), MODEL_SCHEMA, look=False, max_out=20000,
-                      timeout_s=120.0, epoch=self.epoch, subject=self.subject), now)
+        # the session has Muse Wonder write the program for it (lightwork.wireframe): no prompt or schema here
+        self._ask(Ask("model", "", {}, look=False, timeout_s=180.0, epoch=self.epoch, subject=self.subject), now)
 
     def _new_job(self, text: str, now: float) -> None:
         self.request, self.qa, self.manual, self.job_name, self.job = _clean(text, 400), [], "", "", None
@@ -960,10 +952,14 @@ class Helper(Game):
             self._failed(Ask("model", "", {}), now)
             return
         self.wire = wire
+        self.wire_src = data.get("src")
         self.state = "model"
-        self.yaw, self.tilt, self.zoom, self.spin = 0.6, 0.4, 1.0, IDLE_SPIN
+        every = np.concatenate(wire.lines)
+        tall = float(np.ptp(every[:, 2])) >= 0.9 * float(np.ptp(every, axis=0).max())
+        self.yaw, self.tilt, self.zoom, self.spin = 0.6, TILT_TALL if tall else TILT_WIDE, 1.0, IDLE_SPIN
         self._drag, self._zoom_from = None, None
-        self.log.append(f"helper: {wire.name}: {len(wire.lines)} lines, {wire.points} points")
+        raw = [line for line in data["lines"] if isinstance(line, list)]
+        self.log.append(f"helper: {wire.name}: {len(raw)} lines, {sum(max(len(n) - 1, 0) for n in raw)} segments")
         self.say.append(f"Here's {_with_article(self.subject)}. Pinch and drag to turn it.")
         self.sfx.append("answer")
         self._dirty = True
@@ -1329,7 +1325,7 @@ class Helper(Game):
             return (f"{self.map_place.name.upper()} · MAP: OPENFREEMAP, OPENSTREETMAP"[:48],
                     "PINCH AND DRAG. TWO HANDS TURN AND ZOOM", "target")
         if self.state == "modelling":
-            return f"BUILDING: {self.subject.upper()}"[:44], "MUSE WONDER IS DRAWING IT...", "warn"
+            return f"BUILDING: {_with_article(self.subject).upper()}"[:44], "MUSE WONDER IS WRITING ITS PROGRAM...", "warn"
         if self.state == "model":
             return self.wire.name.upper(), "PINCH AND DRAG TO TURN, TWO HANDS TO ZOOM", "target"
         if self.state == "answer":
@@ -1446,9 +1442,12 @@ class Helper(Game):
     def _draw_model(self, c) -> None:
         """Near lines cyan, far ones blue (dim on the projector): it reads as 3D even when it stands still. Fingertips in
         a pinch are marked: it has you."""
-        for i, line in enumerate(self.wire.lines):
-            pts, depth = project(line, self.yaw, self.tilt, self.zoom)
-            c.poly(f"hp-w{i}", pts, "done" if depth > 0.15 else "source", draw_ms=900)
+        if self.wire_src is not None:
+            c.wire("hp-wire", self.wire_src, MODEL_C, MODEL_R * self.zoom, self.yaw, self.tilt, draw_ms=2500)
+        else:
+            for i, line in enumerate(self.wire.lines):
+                pts, depth = project(line, self.yaw, self.tilt, self.zoom)
+                c.poly(f"hp-w{i}", pts, "done" if depth > 0.15 else "source", draw_ms=900)
         for p in self.pens:
             if p.down and p.at[0] < STRIP_X:
                 c.dot(f"hp-pinch{p.hand}", p.at, "target")

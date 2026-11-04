@@ -567,7 +567,8 @@
                 "map": "#/$defs/MapView",
                 "picture": "#/$defs/Picture",
                 "poly": "#/$defs/Poly",
-                "ring": "#/$defs/Ring"
+                "ring": "#/$defs/Ring",
+                "wire": "#/$defs/Wire3D"
               },
               "propertyName": "kind"
             },
@@ -592,6 +593,9 @@
               },
               {
                 "$ref": "#/$defs/MapView"
+              },
+              {
+                "$ref": "#/$defs/Wire3D"
               }
             ]
           },
@@ -680,6 +684,80 @@
         }
       },
       "title": "View",
+      "type": "object"
+    },
+    "Wire3D": {
+      "additionalProperties": false,
+      "description": "A 3D wireframe the page loads once by URL (thousands of lines: too many to send 30 times a second) and turns itself:\na scene only says how it is seen. ``origin`` is where the model's middle lands, ``ex`` and ``ey`` where one model unit\nto its right and one up land. Near lines bright, far ones dim: it reads as 3D even standing still.",
+      "properties": {
+        "draw_ms": {
+          "default": 0,
+          "maximum": 8000,
+          "minimum": 0,
+          "title": "Draw Ms",
+          "type": "integer"
+        },
+        "ex": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Ex",
+          "type": "array"
+        },
+        "ey": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Ey",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "wire",
+          "default": "wire",
+          "title": "Kind",
+          "type": "string"
+        },
+        "origin": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Origin",
+          "type": "array"
+        },
+        "src": {
+          "pattern": "^/pictures/[0-9a-f]{16,64}\\.json$",
+          "title": "Src",
+          "type": "string"
+        },
+        "tilt": {
+          "title": "Tilt",
+          "type": "number"
+        },
+        "yaw": {
+          "title": "Yaw",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "src",
+        "origin",
+        "ex",
+        "ey",
+        "yaw",
+        "tilt"
+      ],
+      "title": "Wire3D",
       "type": "object"
     }
   },

@@ -16,6 +16,8 @@ from lightwork.helper import (
     MODEL_C,
     STRIP_X,
     TILT_RANGE,
+    TILT_TALL,
+    TILT_WIDE,
     ZOOM_RANGE,
     Helper,
     asked_to_show,
@@ -149,8 +151,16 @@ def test_a_failed_model_says_so_and_leaves_the_tile_ready():
     assert g.state == "idle"
 
 
+CUBE_PROGRAM = {"name": "Cube", "code": """
+for a in (0, 2):
+    line([(0, 0, a), (2, 0, a), (2, 2, a), (0, 2, a), (0, 0, a)])
+for x, y in ((0, 0), (2, 0), (2, 2), (0, 2)):
+    line([(x, y, 0), (x, y, 2)])
+"""}
+
+
 def test_saying_it_asks_wonder_without_a_look_and_a_retake_comes_from_the_cache(tmp_path):
-    brain = FakeBrain(model=CUBE)
+    brain = FakeBrain(model=CUBE_PROGRAM)
     rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=FakeGate())
     rig.run(0.5, table())
     g = rig.ts.games.game
@@ -159,7 +169,13 @@ def test_saying_it_asks_wonder_without_a_look_and_a_retake_comes_from_the_cache(
     until(rig, table(), lambda: g.state == "model")
     assert rig.ts._look is None and rig.ts._look_jpeg is None
     assert len(brain.calls) == 1 and brain.calls[0].jpegs == [] and "cube" in brain.calls[0].prompt
-    assert json.loads((tmp_path / "play-models" / "cube.json").read_text())["name"] == "Cube"
+    kept = json.loads((tmp_path / "play-models" / "wire-cube.json").read_text())
+    assert kept["name"] == "Cube" and len(kept["lines"]) == 6
+    assert g.wire_src.startswith("/pictures/") and (tmp_path / "pictures" / g.wire_src.rsplit("/", 1)[1]).is_file()
+    c = Canvas(Geo(np.eye(3), DESIGN_W, DESIGN_H))
+    g.draw(c, rig.t)
+    served = next(p for p in c.prims if p.kind == "wire")  # the page draws it: no line of it in the scene
+    assert served.src == g.wire_src and not [p for p in c.prims if p.id.startswith("hp-w") and p.kind == "poly"]
     rig.ts.hear("stop", rig.t)
     assert g.state == "idle" and g.wire is None
     rig.ts.hear("show me a cube", rig.t)
@@ -170,13 +186,27 @@ def test_saying_it_asks_wonder_without_a_look_and_a_retake_comes_from_the_cache(
 def test_the_model_can_name_a_thing_too(tmp_path):
     see = {"intent": "model", "subject": "cube", "game": "none", "job": "", "things": [], "manual": "", "question": "",
            "say": "", "answer": "", "notes": [], "picture": ""}
-    brain = FakeBrain(see=see, model=CUBE)
+    brain = FakeBrain(see=see, model=CUBE_PROGRAM)
     rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=FakeGate())
     rig.run(0.5, table())
     g = rig.ts.games.game
     g._new_job("let's have a look at a cube in three dimensions", rig.t)
     until(rig, table(), lambda: g.state == "model")
     assert [c.role for c in brain.calls] == ["helper-see", "helper-model"]
+
+
+def test_a_tower_is_first_seen_from_nearly_level_and_a_wide_thing_from_above():
+    g = Helper(0.0, random.Random(1))
+    g.show_model("mast", 0.0)
+    ask, g.want = g.want, None
+    g.answered(ask, {"name": "Mast", "lines": [[[0, 0, 0], [0, 0, 9]], [[0, 0, 9], [0.1, 0, 0]], [[1, 0, 0], [0, 1, 0]]]}, None, 1.0)
+    assert g.tilt == TILT_TALL
+    g = showing()
+    g2 = Helper(0.0, random.Random(1))
+    g2.show_model("plate", 0.0)
+    ask, g2.want = g2.want, None
+    g2.answered(ask, {"name": "Plate", "lines": [[[0, 0, 0], [9, 0, 0]], [[9, 0, 0], [9, 9, 0]], [[9, 9, 0], [0, 9, 0.1]]]}, None, 1.0)
+    assert g2.tilt == TILT_WIDE
 
 
 def test_holding_the_mic_still_works_while_a_model_shows():

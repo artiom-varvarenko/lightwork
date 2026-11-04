@@ -1,4 +1,4 @@
-"""``GET /pictures/{name}``: pictures for the C2 ``picture`` primitive (Muse Image's, read from disk).
+"""``GET /pictures/{name}``: pictures for the C2 ``picture`` primitive (Muse Image's) and wireframes for ``wire``, from disk.
 
 A scene goes out up to 30 times a second, so it carries only this URL, never the bytes. Names are the picture's content
 hash, so a page may keep one for good. ``app.state.pictures_dir`` is the only directory read.
@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 
 router = APIRouter()
 
-_NAME = re.compile(r"^[0-9a-f]{16,64}\.(png|jpg)$")
+_NAME = re.compile(r"^[0-9a-f]{16,64}\.(png|jpg|json)$")
 
 
 @router.get("/pictures/{name}", include_in_schema=False)

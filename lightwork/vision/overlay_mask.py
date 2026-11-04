@@ -87,6 +87,11 @@ def _draw(canvas: np.ndarray, prim, H: np.ndarray, unit: float) -> None:
         x0, x1 = x - stroke, x + LABEL_ADVANCE_EM * font * len(prim.text) + stroke
         y0, y1 = y - LABEL_HALF_HEIGHT_EM * font, y + LABEL_HALF_HEIGHT_EM * font
         cv2.fillPoly(canvas, [_fixed([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])], 255, cv2.LINE_8, SHIFT)
+    elif prim.kind == "wire":  # where it can reach as it turns
+        (ox, oy), (ex, ey) = apply_h(H, [prim.origin, prim.ex])
+        r = 1.8 * math.hypot(ex - ox, ey - oy)
+        c = _fixed([[ox, oy]])[0]
+        cv2.circle(canvas, (int(c[0]), int(c[1])), round(r * SUPERSAMPLE * (1 << SHIFT)), 255, -1, cv2.LINE_8, SHIFT)
     elif prim.kind in ("picture", "map"):  # all of it: what is black in it we cannot tell here, and a mask may cover too much
         cv2.fillPoly(canvas, [_fixed(apply_h(H, prim.corners))], 255, cv2.LINE_8, SHIFT)
     else:

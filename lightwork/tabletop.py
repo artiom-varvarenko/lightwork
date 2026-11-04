@@ -37,6 +37,7 @@ Geometry is laid out in the playground's design space (750 x 420, the projector 
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import json
 import math
@@ -54,6 +55,7 @@ from .benchtask import BenchTask, match_item, spoken_list
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
 from .helper import Helper, asked_for_game, asked_to_go, asked_to_show
 from .helper import _words as _words_of
+from .wireframe import build as build_wire
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -2047,8 +2049,8 @@ class TableSession:
         g.log = []
         return []
 
-    def _keep_model(self, subject: str, data) -> None:
-        file = self._model_file(subject)
+    def _keep_model(self, ask, data) -> None:
+        file = self._model_file(ask)
         if file is None:
             return
         try:
@@ -2156,16 +2158,35 @@ class TableSession:
         ok, buf = cv2.imencode(".jpg", self._look_view, [cv2.IMWRITE_JPEG_QUALITY, 88])
         return buf.tobytes() if ok else None
 
-    def _model_file(self, subject: str) -> Path | None:
-        """Where a drawn model is kept: a retake of the same thing costs neither the wait nor the $0.10."""
-        slug = re.sub(r"[^a-z0-9]+", "-", subject.lower()).strip("-")
-        return None if self.state_dir is None or not slug else Path(self.state_dir) / "play-models" / f"{slug}.json"
+    def _model_file(self, ask) -> Path | None:
+        """Where a drawn model or a found place is kept: a retake costs neither the wait nor the money."""
+        slug = re.sub(r"[^a-z0-9]+", "-", ask.subject.lower()).strip("-")
+        name = f"{slug}.json" if ask.role == "place" else f"wire-{slug}.json"
+        return None if self.state_dir is None or not slug else Path(self.state_dir) / "play-models" / name
+
+    def _serve_wire(self, data: dict) -> None:
+        """A model's lines where the page can load them: it draws them itself, a scene only says how they are seen."""
+        if self.state_dir is None:
+            return
+        body = json.dumps(data["lines"], separators=(",", ":")).encode()
+        name = f"{hashlib.sha256(body).hexdigest()[:32]}.json"
+        folder = Path(self.state_dir) / "pictures"
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            if not (folder / name).is_file():
+                (folder / name).write_bytes(body)
+            data["src"] = f"/pictures/{name}"
+        except OSError as exc:
+            self.log.append(f"helper: could not serve the model: {exc}")
 
     def _helper_submit(self, g: Helper, ask, now: float) -> None:
         g.want = None
-        if ask.role in ("model", "place") and (file := self._model_file(ask.subject)) is not None and file.is_file():
+        if ask.role in ("model", "place") and (file := self._model_file(ask)) is not None and file.is_file():
             try:
-                g.answered(ask, json.loads(file.read_text()), None, now, by="(drawn before: no model call)")
+                data = json.loads(file.read_text())
+                if ask.role == "model":
+                    self._serve_wire(data)
+                g.answered(ask, data, None, now, by="(drawn before: no model call)")
                 return
             except (OSError, ValueError) as exc:
                 self.log.append(f"helper: cached model unreadable: {exc}")
@@ -2176,8 +2197,12 @@ class TableSession:
         jpegs = [self._look_jpeg] if self._look_jpeg is not None and ask.role not in ("model", "place") else []
         self._job_n += 1
         key = ("helper", self._job_n)
-        if self.jobs.submit(key, lambda: brain.ask(f"helper-{ask.role}", ask.prompt, jpegs, schema=ask.schema,
-                                                   effort=ask.effort, max_out=ask.max_out, timeout_s=ask.timeout_s)):
+        if ask.role == "model":
+            job = lambda: build_wire(brain, ask.subject)  # noqa: E731 - Muse Wonder writes a program, which then runs
+        else:
+            job = lambda: brain.ask(f"helper-{ask.role}", ask.prompt, jpegs, schema=ask.schema,  # noqa: E731
+                                    effort=ask.effort, max_out=ask.max_out, timeout_s=ask.timeout_s)
+        if self.jobs.submit(key, job):
             self._helper_jobs.append((key, ask, g))
         else:
             g.answered(ask, None, "the worker is busy", now)
@@ -2192,9 +2217,11 @@ class TableSession:
             if owner is not g:
                 continue
             by = "" if reply is None else f"({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)"
+            if ask.role == "model" and err is None:
+                self._serve_wire(reply.data)
             g.answered(ask, None if reply is None else reply.data, err, now, by=by)
             if err is None and ((ask.role == "model" and g.wire is not None) or (ask.role == "place" and g.map_place is not None)):
-                self._keep_model(ask.subject, reply.data)
+                self._keep_model(ask, reply.data)
             if ask.role in ("see", "locate") and self._look_view is not None:  # before SAM gets the boxes
                 for t in g.want_outlines:
                     snapped = snap_box(self._look_view, t.box, LOOK_SCALE)

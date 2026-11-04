@@ -85,6 +85,22 @@ class Picture(_M):
     draw_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: wipes on from its top edge when its id appears
 
 
+class Wire3D(_M):
+    """A 3D wireframe the page loads once by URL (thousands of lines: too many to send 30 times a second) and turns itself:
+    a scene only says how it is seen. ``origin`` is where the model's middle lands, ``ex`` and ``ey`` where one model unit
+    to its right and one up land. Near lines bright, far ones dim: it reads as 3D even standing still."""
+
+    kind: Literal["wire"] = "wire"
+    id: str
+    src: str = Field(pattern=r"^/pictures/[0-9a-f]{16,64}\.json$")
+    origin: XY
+    ex: XY
+    ey: XY
+    yaw: float
+    tilt: float
+    draw_ms: int = Field(0, ge=0, le=8000, exclude_if=_unset)  # > 0: builds itself in the program's order when its id appears
+
+
 class MapView(_M):
     """A live 3D map the page draws itself over a rect (MapLibre GL, web/js/tablemap.js): the scene says only where it
     goes and what its camera shows. ``corners`` as in :class:`Picture`, ``center`` is [lon, lat]. A new ``flight`` number
@@ -101,7 +117,7 @@ class MapView(_M):
     fly_ms: int = Field(0, ge=0, le=20000)
 
 
-Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture | MapView, Field(discriminator="kind")]
+Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture | MapView | Wire3D, Field(discriminator="kind")]
 
 
 # ---------------------------------------------------------------- page -> server
