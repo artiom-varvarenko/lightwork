@@ -179,6 +179,18 @@ class VoiceService:
         if not muted:
             self._ring.push(frame)
 
+    def feed_held(self, frame: bytes) -> None:
+        """A frame from a mic the person is holding open: it passes whatever the phone is saying. The hold tells the
+        phone to stop; waiting for its report (lost on some phones when speech is cancelled) would lose their words."""
+        with self._lock:
+            self._counters["bytes_in"] += len(frame)
+        self._ring.push(frame)
+
+    def phone_quiet(self) -> bool:
+        """The projector phone is not speaking, as far as it has told us."""
+        with self._lock:
+            return not self._is_muted(time.monotonic())
+
     def set_muted(self, muted: bool) -> None:
         with self._lock:
             if self._muted and not muted:

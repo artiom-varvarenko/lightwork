@@ -437,6 +437,7 @@ class Helper(Game):
         self.mic_open = False
         self._mic_on = 0.0  # how long a fingertip has been on it
         self._mic_touch = -1e9
+        self.opened_t = -1e9  # when the mic last opened
         self.released_t: float | None = None  # let go, and no words arrived yet
         self._dealt_with = False  # words of this hold were acted on already
         self.utter: list[str] = []  # transcripts of what is being said
@@ -495,6 +496,7 @@ class Helper(Game):
             self._mic_on = 0.0
         if not self.mic_open and self._mic_on >= MIC_OPEN_S:
             self.mic_open, self.hush, self.released_t, self._dealt_with = True, True, None, False
+            self.opened_t = now
             self.utter = []
             self.sfx.append("listen")
             self.log.append("helper: mic open")

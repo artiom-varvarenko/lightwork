@@ -53,6 +53,7 @@ import numpy as np
 from .benchtask import BenchTask, match_item, spoken_list
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
 from .helper import Helper, asked_for_game
+from .helper import _words as _words_of
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -172,6 +173,9 @@ LOOK_AFTER_ACK_S = 0.35  # the helper's look: frames this long after the page sh
 LOOK_FRAMES = 3  # averaged: games run the camera at a short exposure and a high gain
 LOOK_TRIES = 3  # frames that disagree (a truncated camera frame, a moving hand) are taken again this often
 LOOK_REUSE_S = 3.0  # a look this recent, with no hand seen since, is still what is on the table: no second blink
+HEARD_AFTER_S = 8.0  # a transcript this long after the helper's mic shut is still of what was said into it; later, it isn't
+PARTIAL_AFTER_S = 2.0  # let go this long ago, no final transcript: the last partial will do
+PARTIAL_LATE_S = 15.0  # a final this soon after its partial was acted on is the same sentence
 LOOK_HANDS_WAIT_S = 1.5  # a look waits this long for hands to leave the page (the one that held the mic)
 LOOK_SCALE = 2  # px per design px of the picture the model gets: about what the camera has there
 LOOK_MOVED = 10.0  # mean grey levels of change over a thing's box between two looks: it moved, or something did on it
@@ -1777,6 +1781,7 @@ class TableSession:
         self._job_n = 0
         self._pending_say: list[str] = []
         self.mic_gate = mic_gate  # lightwork.voice.capture.MicGate: only the helper tile's mic bubble opens it
+        self._partial_used = ("", -1e9)  # a sentence acted on from its last partial, and when: its final is no new sentence
         self.dash.voice = voice and mic_gate is None
         self.games = GameHost(state_dir=state_dir, ask_guess=self._ask_guess if brain is not None else None,
                               voice=voice and mic_gate is None, listens=voice, thinks=brain is not None)
@@ -2894,11 +2899,42 @@ class TableSession:
 
     # ---- spoken questions (--voice)
 
+    def heard_partly(self, text: str, t: float, now: float) -> list[str]:
+        """They let go and the transcriber showed words (``text``, its latest, at ``t``) but never finished the sentence:
+        what it heard last will do, rather than "I didn't catch that"."""
+        g = self.games.game
+        if not isinstance(g, Helper) or g.mic_open or g.released_t is None or g.utter:
+            return []
+        if not text or t < g.opened_t or now - g.released_t < PARTIAL_AFTER_S:
+            return []
+        self.log.append(f"helper: no final transcript, going by the last partial {text!r}")
+        said = self.hear(text, now)
+        self._partial_used = (_words_of(text), now)
+        return said
+
+    def _final_of_used_partial(self, q: str, now: float) -> bool:
+        """The final transcript of a sentence already acted on from its last partial."""
+        words, t = self._partial_used
+        if not words or now - t > PARTIAL_LATE_S:
+            return False
+        said = _words_of(q)
+        if said.startswith(words) or words.startswith(said):
+            self._partial_used = ("", -1e9)
+            return True
+        return False
+
     def hear(self, text: str, now: float) -> list[str]:
         """A sentence heard by Muse Voice Transcribe. "What is missing?" is answered from the bench check; anything
         else goes to the asker with a clean view of the object pointed at (or of the whole table)."""
         q = " ".join(text.split())
         if not q:
+            return []
+        if self.mic_gate is not None and not self.mic_gate.recently_open(HEARD_AFTER_S):
+            # 4 Nov: the transcriber said 'by' with the mic shut, out of pure silence. On the helper tile that would be a job
+            self.log.append(f"heard with the mic shut, ignored: {q!r}")
+            return []
+        if self._final_of_used_partial(q, now):
+            self.log.append(f"helper: late final of what the partial already did: {q!r}")
             return []
         self.dash.notify(f"HEARD: {q.upper()}"[:STATUS_CHARS], now)
         low = q.lower()

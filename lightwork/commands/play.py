@@ -34,6 +34,7 @@ questions) only with --names meta / --sam / --voice, recorded under .lightwork/p
 
 from __future__ import annotations
 
+import json
 import math
 import time
 
@@ -268,6 +269,27 @@ def _asker(args):
     return asker
 
 
+def _record_hold(folder, n: int, pcm: bytes) -> None:
+    """The audio of one hold of the mic: what Muse Voice Transcribe was sent."""
+    from ..voice.pcm import wav_bytes
+
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"hold-{n:03d}.wav").write_bytes(wav_bytes(pcm))
+    except OSError as exc:
+        print(f"voice: could not record hold {n}: {exc}")
+
+
+def _record_transcript(folder, hold: int, text: str) -> None:
+    """What Muse Voice Transcribe made of it, next to the audio."""
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        with (folder / "transcripts.jsonl").open("a") as f:
+            f.write(json.dumps({"t": time.time(), "after_hold": hold, "transcript": text}) + "\n")
+    except OSError as exc:
+        print(f"voice: could not record a transcript: {exc}")
+
+
 def _voice(args, heard, control, listening=None):
     """The Muse Voice Transcribe relay for --voice: sentences go to ``heard`` (a queue), the HUD to /screen, what is
     being heard right now to ``listening`` (a dict the table shows), and the microphone is read by the server itself
@@ -278,17 +300,37 @@ def _voice(args, heard, control, listening=None):
     from ..config import load_settings
     from ..voice import VoiceService
 
+    settings = load_settings()
+    recording = settings.state_dir / "play-calls" / f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-voice"
+    holds = [0]
+
     def on_event(kind: str, payload: dict) -> None:
         text = str(payload.get("transcript") or "").strip()
         if text:
             heard.put(text)
+            _record_transcript(recording, holds[0], text)
+
+    was = {"turn": "idle", "heard": "", "voice": "", "error": None}
 
     def on_hud(hud: dict) -> None:
         control.push_state({"hud": hud})
+        for key, before in was.items():  # what the transcriber did, for the journal: a lost sentence must be explicable
+            now_ = hud.get(key)
+            if now_ != before:
+                was[key] = now_
+                if now_ not in ("", None):
+                    print(f"voice {key}: {now_!r}")
         if listening is not None:
             text = str(hud.get("heard") or "").strip()
             if text and text != listening.get("text"):
                 listening.update(text=text, t=time.monotonic())
+
+    def on_hold(pcm: bytes, seconds: float) -> None:
+        from ..voice.capture import hold_report
+
+        holds[0] += 1
+        print(f"mic hold {holds[0]}: {hold_report(pcm, seconds)}")
+        _record_hold(recording, holds[0], pcm)
 
     words = (["Lightwork", "help me", "next", "back", "done", "repeat", "stop", "check", "menu", "start", "play",
               "catch the light", "follow the lights", "draw and guess", "rock paper scissors", "timer", "stopwatch",
@@ -296,7 +338,7 @@ def _voice(args, heard, control, listening=None):
              ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start", "stop", "check", "undo",
               "help me", "pancakes", "dilution", "scoop", "play", "catch the light", "follow the lights", "draw",
               "guess", "menu", "rock paper scissors"])
-    voice = VoiceService(load_settings(), words, on_event, on_hud=on_hud)
+    voice = VoiceService(settings, words, on_event, on_hud=on_hud)
     voice.start()
     mic = gate = None
     if args.mic != "browser":
@@ -307,7 +349,7 @@ def _voice(args, heard, control, listening=None):
             print(f"voice: no microphone matching {args.mic!r} (sources: {', '.join(sources()) or 'none'}); "
                   "open /screen and press Start for the browser's")
         else:
-            gate = MicGate(voice.feed_pcm) if args.game else None
+            gate = MicGate(voice.feed_held, keep_pre_roll=voice.phone_quiet, on_hold=on_hold) if args.game else None
             mic = ServerMic(gate or voice.feed_pcm, source, yield_to=voice.browser_active)
             problem = mic.start()
             if problem:
@@ -1020,6 +1062,7 @@ class Play:
             if text and text != self._shown_heard and now - t < 3.0:
                 self._shown_heard = text
                 self.table.dash.notify(("HEARD: " + text.upper())[-44:], now)
+            say += self.table.heard_partly(text, t, now)
         while self.heard is not None and not self.heard.empty():
             text = self.heard.get_nowait()
             print(f"heard: {text!r}")

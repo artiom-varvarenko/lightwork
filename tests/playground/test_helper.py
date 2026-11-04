@@ -31,7 +31,7 @@ from lightwork.helper import (
     parse_job,
 )
 from lightwork.playground import DESIGN_H, DESIGN_W, Canvas, Geo
-from lightwork.tabletop import LOOK_SCALE, snap_box
+from lightwork.tabletop import LOOK_SCALE, PARTIAL_AFTER_S, snap_box
 from lightwork.vision.hands import HandPose
 from lightwork.voice.capture import MicGate
 
@@ -551,6 +551,12 @@ def test_with_a_game_the_microphone_goes_through_the_gate_and_without_one_it_doe
         def feed_pcm(self, frame):
             self.pcm.append(frame)
 
+        def feed_held(self, frame):
+            self.pcm.append(frame)
+
+        def phone_quiet(self):
+            return True
+
         def browser_active(self):
             return False
 
@@ -658,10 +664,14 @@ class FakeOutliner:
 class FakeGate:
     def __init__(self):
         self.states: list[bool] = []
+        self.recent = True
 
     def set_open(self, on):
         if not self.states or self.states[-1] != on:
             self.states.append(on)
+
+    def recently_open(self, within_s):
+        return self.recent
 
 
 def finger(at_design):
@@ -676,6 +686,38 @@ def until(rig, scene, cond, seconds=6.0):
     while rig.t < end and not cond():
         rig.run(0.1, scene)
     assert cond(), f"state {getattr(rig.ts.games.game, 'state', '?')}: {rig.ts.log[-5:]}"
+
+
+def test_a_transcript_out_of_silence_with_the_mic_shut_is_no_job(tmp_path):
+    brain = FakeBrain()
+    gate = FakeGate()
+    gate.recent = False
+    rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=gate)
+    rig.run(0.5, table())
+    assert rig.ts.hear("by", rig.t) == []  # 4 Nov: the transcriber said this with nobody at the mic
+    rig.run(3.0, table())
+    g = rig.ts.games.game
+    assert g.state == "idle" and g.want is None and not g.utter and brain.calls == []
+
+
+def test_the_last_partial_stands_in_when_no_final_transcript_comes(tmp_path):
+    brain = FakeBrain()
+    rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=FakeGate())
+    rig.run(0.5, table())
+    g = rig.ts.games.game
+    rig.run(0.5, table(), poses=lambda t: [finger(MIC_C)])
+    assert g.mic_open
+    partial_t = rig.t
+    assert rig.ts.heard_partly("start rock paper scissors", partial_t, rig.t) == []  # still holding it
+    rig.run(1.0, table())
+    assert not g.mic_open and g.released_t is not None
+    assert rig.ts.heard_partly("start rock paper scissors", partial_t, rig.t) == []  # the final may still come
+    assert rig.ts.heard_partly("from before this hold", g.opened_t - 1.0, rig.t + 5.0) == []
+    rig.run(PARTIAL_AFTER_S, table())
+    said = rig.ts.heard_partly("start rock paper scissors", partial_t, rig.t)
+    assert isinstance(rig.ts.games.game, RockPaperScissors) and said
+    assert rig.ts.hear("Start rock paper scissors.", rig.t) == []  # its final, late: no second start
+    assert brain.calls == []
 
 
 def test_saying_a_game_at_the_tile_starts_it_with_no_model_call_and_shuts_the_mic(tmp_path):
