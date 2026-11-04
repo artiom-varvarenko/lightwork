@@ -318,9 +318,17 @@ document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && started) tap.classList.remove('hidden');
   sendHello();
 });
+// A hidden page (an old tab behind the one on the table) draws nothing and ACKs nothing; connected, it would be the newest
+// projector page, the one the server sends calibration patterns to (4 Nov: three projector tabs, every pattern unanswered).
 document.addEventListener('visibilitychange', () => {
-  if (started && document.visibilityState === 'visible') requestWake();
+  if (document.visibilityState === 'visible') {
+    sock.resume();
+    if (started) requestWake();
+  } else {
+    sock.pause();
+  }
 });
+if (document.visibilityState !== 'visible') sock.pause();
 addEventListener('resize', resize);
 if (screen.orientation) screen.orientation.addEventListener('change', resize);
 resize();

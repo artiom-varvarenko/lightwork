@@ -4,7 +4,10 @@ export function openSocket(path, { binary = false, onopen, onmessage, onclose } 
   let delay = 250;
   const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`;
 
+  let paused = false; // pause(): closed on purpose, and no reconnecting until resume()
+
   function connect() {
+    if (paused) return;
     const sock = new WebSocket(url);
     if (binary) sock.binaryType = 'arraybuffer';
     sock.onopen = () => {
@@ -36,6 +39,17 @@ export function openSocket(path, { binary = false, onopen, onmessage, onclose } 
     // Start over: the connection looks up but nothing comes (the other side waits for something this page never sent).
     reconnect() {
       if (ws) ws.close();
+    },
+    // Let go of the server until resume(): a page nobody sees must not be the one it talks to.
+    pause() {
+      paused = true;
+      if (ws) ws.close();
+    },
+    resume() {
+      if (!paused) return;
+      paused = false;
+      delay = 250;
+      if (!ws) connect();
     },
   };
 }
