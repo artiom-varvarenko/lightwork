@@ -47,6 +47,17 @@ MIC_TAIL_S = 0.6  # the tracker loses a still hand for a moment now and then, an
 UTTER_END_S = 1.5  # after letting go, or the last transcript: what was said is complete
 NO_WORDS_S = 6.0  # after letting go with nothing transcribed: say so
 MAX_QUESTIONS = 3  # then it plans with what it has
+MODEL_C = (346.0, 214.0)  # design px: the middle of the work area
+MODEL_R = 140.0  # design px per model unit at zoom 1: the model is within -1 to 1
+TURN_PER_PX = 0.012  # radians of turn per design px dragged
+TILT_PER_PX = 0.008
+TILT_RANGE = (-0.4, 1.35)  # from a little below to nearly straight down: never upside down
+ZOOM_RANGE = (0.45, 2.4)
+IDLE_SPIN = 0.35  # radians per second while nobody holds it: a still wireframe does not read as 3D
+SPIN_DECAY_S = 1.2  # what a drag gave it runs out in about this long, back to the idle spin
+DRAG_JUMP = 90.0  # design px in one frame: the tracker jumped, not the hand
+MAX_WIRE_POINTS = 700  # all polylines together: a scene goes out 30 times a second
+MAX_WIRE_LINES = 90
 PIC_W, PIC_H = 345.0, 230.0  # design px, 38 x 25 cm on the table: Muse Image's 3:2
 NOTE_CHARS = 22  # characters per line of an answer's notes: beside a book and a picture there is no room for more
 MAX_NOTE_LINES = 3
@@ -77,6 +88,9 @@ GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manu
 }
 BOARD_WORDS = ("object board", "objects board")
 MENU_WORDS = ("menu", "go home", "go back home")
+SHOW_ME = re.compile(r"^(?:(?:please|can you|could you|lightwork|hey|ok|okay|now) )*show me (?:a |an |the |some )?(.+)$")
+NOT_A_THING = ("how", "what", "where", "why", "when", "which", "who", "this", "that", "these", "those", "my", "it", "me",
+               "more", "something", "around", "next", "again", "step", "steps", "manual", "book", "page", "table", "map")
 NEW_JOB_WORDS = ("help me", "i want", "i'd like", "id like", "let's", "lets", "new job", "something else", "instead")
 
 
@@ -104,6 +118,19 @@ def asked_for_game(text: str) -> str | None:
         if any(_has(t, w) for w in words):
             return key
     return None if _has(t, "help me") else "menu"  # "let's play a game"; but "help me play chess" is a job
+
+
+def asked_to_show(text: str) -> str | None:
+    """The thing a sentence asks to see ("show me a bicycle" -> "bicycle"), or None. Nothing on the table is needed for
+    that, so it goes to the model without a look."""
+    m = SHOW_ME.match(_words(text))
+    if m is None:
+        return None
+    thing = re.sub(r" (?:in 3d|in three d|in three dimensions|as a model|as a 3d model|please)$", "", m.group(1)).strip()
+    words = thing.split()
+    if not 1 <= len(words) <= 4 or words[0] in NOT_A_THING or "how" in words:
+        return None
+    return thing
 
 
 def _clean(text, limit: int) -> str:
@@ -262,6 +289,17 @@ CHECK_SCHEMA = {
     "required": ["ok", "say"],
     "additionalProperties": False,
 }
+MODEL_PROMPT = ("Draw a {what} as a 3D wireframe a small projector can show on a table and a person can turn with their "
+                "fingers. Reply with JSON: \"name\", and \"lines\": a list of polylines, each a list of [x, y, z] points, "
+                "all within -1 to 1, z up. Use 20 to 60 polylines and at most 400 points in all, so the shape is clearly "
+                "recognisable from any side: curves as many short segments, a full circle at least 24. No text.")
+MODEL_SCHEMA = {
+    "type": "object",
+    "properties": {"name": {"type": "string"}, "lines": {"type": "array", "items": {
+        "type": "array", "items": {"type": "array", "items": {"type": "number"}}}}},
+    "required": ["name", "lines"],
+    "additionalProperties": False,
+}
 ANSWER_PROMPT = TABLE_INTRO + """
 The job: {title}. The step now: "{say}".
 The person asked: "{question}"
@@ -278,7 +316,7 @@ ANSWER_SCHEMA = {
 class Ask:
     """One model call the helper wants made."""
 
-    role: str  # see | plan | locate | check | answer
+    role: str  # see | plan | locate | check | answer | model
     prompt: str
     schema: dict
     look: bool = True  # a fresh clean look at the table first; False: the last one will do
@@ -286,6 +324,7 @@ class Ask:
     max_out: int = 4000
     timeout_s: float = 60.0
     epoch: int = 0  # the job or step it belongs to: an answer from an earlier one is dropped
+    subject: str = ""  # a model: what it is of, the key it is cached under
 
 
 # ---------------------------------------------------------------------------------------------------- the job
@@ -321,6 +360,66 @@ class Step:
 class Job:
     title: str
     steps: tuple[Step, ...]
+
+
+@dataclass(frozen=True)
+class Wire:
+    """A 3D wireframe from the model: polylines of x, y, z, centred and within -1 to 1, z up."""
+
+    name: str
+    lines: tuple[np.ndarray, ...]
+
+    @property
+    def points(self) -> int:
+        return sum(len(line) for line in self.lines)
+
+
+def parse_wire(data, subject: str = "") -> Wire | None:
+    """A model's wireframe, centred and scaled to -1..1 and thinned to what a scene can carry; None when it is no
+    drawing: too few usable lines, or everything in one spot."""
+    if not isinstance(data, dict) or not isinstance(data.get("lines"), list):
+        return None
+    lines = []
+    for raw in data["lines"][:MAX_WIRE_LINES]:
+        if not isinstance(raw, list):
+            continue
+        pts = []
+        for p in raw:
+            if isinstance(p, (list, tuple)) and len(p) >= 3 and all(
+                    isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in p[:3]):
+                pts.append([float(v) for v in p[:3]])
+        if len(pts) >= 2:
+            lines.append(np.asarray(pts, dtype=np.float64))
+    if len(lines) < 3:
+        return None
+    every = np.concatenate(lines)
+    low, high = every.min(axis=0), every.max(axis=0)
+    size = float((high - low).max())
+    if size < 1e-6:
+        return None
+    centre, scale = (low + high) / 2, 2.0 / size
+    lines = [(line - centre) * scale for line in lines]
+    total = sum(len(line) for line in lines)
+    if total > MAX_WIRE_POINTS:
+        keep = MAX_WIRE_POINTS / total
+        lines = [line[np.unique(np.linspace(0, len(line) - 1, max(2, round(len(line) * keep))).round().astype(int))]
+                 for line in lines]
+    name = _clean(data.get("name"), 28) or subject or "model"
+    return Wire(name=name, lines=tuple(lines))
+
+
+def project(line: np.ndarray, yaw: float, tilt: float, zoom: float, centre=MODEL_C, perspective: float = 3.5
+            ) -> tuple[np.ndarray, float]:
+    """A wireframe line on the table, seen turned by ``yaw`` about its upright and from ``tilt`` above: design px, and how
+    far back it lies on average (> 0: behind the middle)."""
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    ct, st = math.cos(tilt), math.sin(tilt)
+    x = line[:, 0] * cy - line[:, 1] * sy
+    y = line[:, 0] * sy + line[:, 1] * cy
+    up = y * st + line[:, 2] * ct
+    depth = y * ct - line[:, 2] * st
+    f = perspective / (perspective + depth)
+    return np.column_stack([centre[0] + MODEL_R * zoom * f * x, centre[1] - MODEL_R * zoom * f * up]), float(depth.mean())
 
 
 def box_of(o: dict) -> tuple[float, float, float, float] | None:
@@ -406,6 +505,17 @@ def label_spot(box, w: float, h: float, taken: list, area=WORK) -> tuple[float, 
     return best
 
 
+def _with_article(thing: str) -> str:
+    """ "a bicycle", "an egg", and as it is for what takes none ("the Eiffel Tower", "scissors")."""
+    t = thing.strip()
+    low = t.lower()
+    if low.startswith(("a ", "an ", "the ", "some ")) or (low.endswith("s") and not low.endswith("ss")):
+        return t
+    if t[:1].isupper() or low in ("eiffel tower", "golden gate bridge", "colosseum", "taj mahal", "pyramid of giza"):
+        return f"the {t}"
+    return f"{'an' if low[:1] in 'aeiou' else 'a'} {t}"
+
+
 def _timer_name(label: str) -> str:
     return re.sub(r"[^A-Z0-9]+", " ", label.upper()).strip().split(" ")[0] if label else ""
 
@@ -446,7 +556,7 @@ class Helper(Game):
         self.listens, self.thinks = listens, thinks
         self.timers = timers if timers is not None else Timers()
         self._clocks_started: set[int] = set()  # this job's background steps whose clock has started
-        self.state = "idle"  # idle | seeing | asking | planning | steps | done | answer
+        self.state = "idle"  # idle | seeing | asking | planning | steps | done | answer | modelling | model
         self.want: Ask | None = None  # the session makes the call and answers with answered()
         self.want_t = now
         self.want_outlines: list[Thing] = []
@@ -478,6 +588,13 @@ class Helper(Game):
         self.parts: list[list[Thing]] = []  # what this step uses: part by part, the objects of each
         self.reply = ""  # the model's last word on this step
         self.reply_role = "info"
+        # a 3D model
+        self.subject = ""
+        self.wire: Wire | None = None
+        self.yaw, self.tilt, self.zoom, self.spin = 0.6, 0.4, 1.0, IDLE_SPIN
+        self.pens: list = []  # this frame's
+        self._drag: tuple[int, tuple[float, float]] | None = None  # (hand, where it was last frame)
+        self._zoom_from: tuple[float, float] | None = None  # (distance between the hands, zoom) when both pinched
         # a question's answer
         self.notes: list[str] = []
         self.want_picture: str | None = None  # the session has Muse Image draw it and answers with pictured()
@@ -510,10 +627,13 @@ class Helper(Game):
         self.last = now
         if points:
             self.hand_t = now
+        self.pens = list(pens)
         self._mic_step(now, tips, dt)
         self._utterance(now)
         if self.state == "steps":
             self._step(now, points, tips, dt)
+        elif self.state == "model":
+            self._turn(pens, dt)
 
     def _mic_step(self, now: float, tips: list, dt: float) -> None:
         if not self.listens:
@@ -576,6 +696,20 @@ class Helper(Game):
     def _ask(self, ask: Ask, now: float) -> None:
         self.want, self.want_t = ask, now
 
+    def show_model(self, subject: str, now: float) -> None:
+        """Have the model draw a thing as lines (or, for one drawn before, the session answers from its cache)."""
+        self.epoch += 1
+        self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
+        self.parts, self.reply, self.things, self.want_outlines = [], "", [], []
+        self._clear_answer()
+        self.subject = _clean(subject, 40)
+        self.state = "modelling"
+        self.sfx.append("scan")
+        self.say.append(f"Let me build {_with_article(self.subject)}.")
+        self._dirty = True
+        self._ask(Ask("model", MODEL_PROMPT.format(what=self.subject), MODEL_SCHEMA, look=False, max_out=20000,
+                      timeout_s=120.0, epoch=self.epoch, subject=self.subject), now)
+
     def _new_job(self, text: str, now: float) -> None:
         self.request, self.qa, self.manual, self.job_name, self.job = _clean(text, 400), [], "", "", None
         self.parts, self.reply = [], ""
@@ -635,7 +769,11 @@ class Helper(Game):
 
     def _failed(self, ask: Ask, now: float) -> None:
         self.sfx.append("error")
-        if ask.role in ("see", "plan"):
+        if ask.role == "model":
+            self.state = "idle"
+            self.say.append(f"Sorry, I couldn't build {_with_article(self.subject)}. Hold the microphone and try again.")
+            self._dirty = True
+        elif ask.role in ("see", "plan"):
             self.state = "asking" if self.qa else "idle"
             self.question = self.question if self.qa else ""
             self.say.append("Sorry, I couldn't work that out. Hold the microphone and say it again.")
@@ -670,13 +808,57 @@ class Helper(Game):
         self.sfx.append("found" if painted is not None else "error")
         self._dirty = True
 
+    def _on_model(self, data: dict, now: float) -> None:
+        wire = parse_wire(data, self.subject)
+        if wire is None:
+            self._failed(Ask("model", "", {}), now)
+            return
+        self.wire = wire
+        self.state = "model"
+        self.yaw, self.tilt, self.zoom, self.spin = 0.6, 0.4, 1.0, IDLE_SPIN
+        self._drag, self._zoom_from = None, None
+        self.log.append(f"helper: {wire.name}: {len(wire.lines)} lines, {wire.points} points")
+        self.say.append(f"Here's {_with_article(self.subject)}. Pinch and drag to turn it.")
+        self.sfx.append("answer")
+        self._dirty = True
+
+    def _turn(self, pens, dt: float) -> None:
+        """One hand pinched turns the model, both zoom it; let go and it runs on for a moment, then turns slowly."""
+        down = [p for p in pens if p.down and p.at[0] < STRIP_X]
+        if len(down) >= 2:
+            d = max(math.dist(down[0].at, down[1].at), 20.0)
+            if self._zoom_from is None:
+                self._zoom_from = (d, self.zoom)
+            self.zoom = min(max(self._zoom_from[1] * d / self._zoom_from[0], ZOOM_RANGE[0]), ZOOM_RANGE[1])
+            self._drag, self.spin = None, 0.0
+            return
+        self._zoom_from = None
+        if down:
+            p = down[0]
+            if self._drag is not None and self._drag[0] == p.hand:
+                dx, dy = p.at[0] - self._drag[1][0], p.at[1] - self._drag[1][1]
+                if math.hypot(dx, dy) <= DRAG_JUMP:
+                    self.yaw += dx * TURN_PER_PX
+                    self.tilt = min(max(self.tilt + dy * TILT_PER_PX, TILT_RANGE[0]), TILT_RANGE[1])
+                    if dt > 0:
+                        self.spin = 0.7 * self.spin + 0.3 * dx * TURN_PER_PX / dt
+            self._drag = (p.hand, p.at)
+            return
+        self._drag = None
+        self.yaw += self.spin * dt
+        self.spin += (IDLE_SPIN - self.spin) * min(dt / SPIN_DECAY_S, 1.0)
+
     def _on_see(self, data: dict, now: float) -> None:
         game = str(data.get("game") or "none").lower()
         if game in GAME_NAMES:
             self.start_game = game
             return
-        if str(data.get("intent") or "job").lower() == "question" and _clean(data.get("answer"), 400):
+        intent = str(data.get("intent") or "job").lower()
+        if intent == "question" and _clean(data.get("answer"), 400):
             self._on_question(data, now)
+            return
+        if intent == "model" and _clean(data.get("subject"), 40):
+            self.show_model(_clean(data.get("subject"), 40), now)
             return
         self.job_name = _clean(data.get("job"), 28) or self.job_name
         self.manual = _clean(data.get("manual"), 400)
@@ -943,9 +1125,9 @@ class Helper(Game):
 
     def command(self, verb: str, now: float) -> bool:
         """A spoken command (``tabletop.command_of``). False when it means nothing now: it is then just words."""
-        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer"):
+        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer", "modelling", "model"):
             self.epoch += 1
-            self.state, self.want, self.job, self.parts, self.reply = "idle", None, None, [], ""
+            self.state, self.want, self.job, self.parts, self.reply, self.wire = "idle", None, None, [], "", None
             self._clear_answer()
             self.say.append("Stopped.")
             self._dirty = True
@@ -990,6 +1172,10 @@ class Helper(Game):
             return f"PLANNING: {title}", "ONE MOMENT...", "warn"
         if self.state == "done":
             return f"{title}: DONE", "HOLD THE MIC FOR THE NEXT JOB", "target"
+        if self.state == "modelling":
+            return f"BUILDING: {self.subject.upper()}"[:44], "MUSE WONDER IS DRAWING IT...", "warn"
+        if self.state == "model":
+            return self.wire.name.upper(), "PINCH AND DRAG TO TURN, TWO HANDS TO ZOOM", "target"
         if self.state == "answer":
             return ("DRAWING IT WITH MUSE IMAGE..." if self.painting else "THERE YOU GO"), "HOLD THE MIC TO ASK MORE", "target"
         if self.state == "steps":
@@ -1084,8 +1270,10 @@ class Helper(Game):
             self._draw_picture(c, now)
         c.poly("hp-strip", [(STRIP_X, WORK[1]), (STRIP_X, DESIGN_H - 10)], "info")
         self._draw_mic(c, now)
-        if self.state == "seeing":
+        if self.state in ("seeing", "modelling"):
             self._draw_sweep(c, now)
+        if self.state == "model":
+            self._draw_model(c)
         self._draw_things(c, now)
         self._draw_block(c)
         if self.state == "steps":
@@ -1095,6 +1283,16 @@ class Helper(Game):
                 self.back.draw(c, "info")
                 self._chevron(c, "hp-back-ico", self.back.c, -1.0, "info")
             self._draw_step(c, now)
+
+    def _draw_model(self, c) -> None:
+        """Near lines cyan, far ones blue (dim on the projector): it reads as 3D even when it stands still. Fingertips in
+        a pinch are marked: it has you."""
+        for i, line in enumerate(self.wire.lines):
+            pts, depth = project(line, self.yaw, self.tilt, self.zoom)
+            c.poly(f"hp-w{i}", pts, "done" if depth > 0.15 else "source", draw_ms=900)
+        for p in self.pens:
+            if p.down and p.at[0] < STRIP_X:
+                c.dot(f"hp-pinch{p.hand}", p.at, "target")
 
     def _draw_picture(self, c, now: float) -> None:
         """The picture, or, while Muse Image draws it, the place it will go: its corners and a line going over it."""
