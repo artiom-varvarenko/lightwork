@@ -47,6 +47,12 @@ MIC_TAIL_S = 0.6  # the tracker loses a still hand for a moment now and then, an
 UTTER_END_S = 1.5  # after letting go, or the last transcript: what was said is complete
 NO_WORDS_S = 6.0  # after letting go with nothing transcribed: say so
 MAX_QUESTIONS = 3  # then it plans with what it has
+MAP_RECT = (72.0, 70.0, 620.0, 358.0)  # design px: the map fills the work area: the mic, the status bar and the clocks stay out
+FLY_S = 7.0  # the flight from the whole world down to the place
+MAP_PITCH = 62.0  # degrees: tall buildings stand up
+ORBIT_DEG_S = 2.0  # the view turns slowly while nobody holds the map
+TILE_PX = 512.0  # the map's world is this many px wide at zoom 0
+PLACE_ZOOM = (3.0, 18.0)
 MODEL_C = (346.0, 214.0)  # design px: the middle of the work area
 MODEL_R = 140.0  # design px per model unit at zoom 1: the model is within -1 to 1
 TURN_PER_PX = 0.012  # radians of turn per design px dragged
@@ -88,6 +94,7 @@ GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manu
 }
 BOARD_WORDS = ("object board", "objects board")
 MENU_WORDS = ("menu", "go home", "go back home")
+TAKE_ME = re.compile(r"^(?:(?:please|can you|could you|lightwork|hey|ok|okay|now) )*(?:take me to|fly me to|fly to|let's go to|lets go to) (?:the )?(.+)$")
 SHOW_ME = re.compile(r"^(?:(?:please|can you|could you|lightwork|hey|ok|okay|now) )*show me (?:a |an |the |some )?(.+)$")
 NOT_A_THING = ("how", "what", "where", "why", "when", "which", "who", "this", "that", "these", "those", "my", "it", "me",
                "more", "something", "around", "next", "again", "step", "steps", "manual", "book", "page", "table", "map")
@@ -118,6 +125,15 @@ def asked_for_game(text: str) -> str | None:
         if any(_has(t, w) for w in words):
             return key
     return None if _has(t, "help me") else "menu"  # "let's play a game"; but "help me play chess" is a job
+
+
+def asked_to_go(text: str) -> str | None:
+    """The place a sentence asks to be taken to ("take me to Paris" -> "paris"), or None. Keeps it a name: at most 5 words."""
+    m = TAKE_ME.match(_words(text))
+    if m is None:
+        return None
+    place = re.sub(r" please$", "", m.group(1)).strip()
+    return place if 1 <= len(place.split()) <= 5 else None
 
 
 def asked_to_show(text: str) -> str | None:
@@ -300,6 +316,18 @@ MODEL_SCHEMA = {
     "required": ["name", "lines"],
     "additionalProperties": False,
 }
+PLACE_PROMPT = ("Where is {place}? Reply with JSON for a 3D map that flies there: \"name\": its name in 1 to 3 words; \"lat\" "
+                "and \"lon\": in degrees, the most recognisable spot of it, where its famous or tall buildings stand; \"zoom\": "
+                "15 for a city or a landmark, down to 11 for a big region; \"bearing\": the compass direction in degrees the view "
+                "should face for the best look; \"say\": one sentence to say out loud on arrival, a fact worth knowing, at most "
+                "14 words. Answer in English.")
+PLACE_SCHEMA = {
+    "type": "object",
+    "properties": {"name": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"},
+                   "zoom": {"type": "number"}, "bearing": {"type": "number"}, "say": {"type": "string"}},
+    "required": ["name", "lat", "lon", "zoom", "bearing", "say"],
+    "additionalProperties": False,
+}
 ANSWER_PROMPT = TABLE_INTRO + """
 The job: {title}. The step now: "{say}".
 The person asked: "{question}"
@@ -316,7 +344,7 @@ ANSWER_SCHEMA = {
 class Ask:
     """One model call the helper wants made."""
 
-    role: str  # see | plan | locate | check | answer | model
+    role: str  # see | plan | locate | check | answer | model | place
     prompt: str
     schema: dict
     look: bool = True  # a fresh clean look at the table first; False: the last one will do
@@ -420,6 +448,43 @@ def project(line: np.ndarray, yaw: float, tilt: float, zoom: float, centre=MODEL
     depth = y * ct - line[:, 2] * st
     f = perspective / (perspective + depth)
     return np.column_stack([centre[0] + MODEL_R * zoom * f * x, centre[1] - MODEL_R * zoom * f * up]), float(depth.mean())
+
+
+@dataclass(frozen=True)
+class Place:
+    name: str
+    lon: float
+    lat: float
+    zoom: float
+    bearing: float
+    say: str
+
+
+def parse_place(data, subject: str = "") -> Place | None:
+    """A model's place; None when it is not somewhere on the map."""
+    if not isinstance(data, dict):
+        return None
+    try:
+        lat, lon = float(data["lat"]), float(data["lon"])
+        zoom, bearing = float(data.get("zoom", 15)), float(data.get("bearing", 0))
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not (math.isfinite(lat) and math.isfinite(lon) and -85 <= lat <= 85 and -180 <= lon <= 180):
+        return None
+    zoom = min(max(zoom, PLACE_ZOOM[0]), PLACE_ZOOM[1]) if math.isfinite(zoom) else 15.0
+    bearing = bearing % 360 if math.isfinite(bearing) else 0.0
+    return Place(_clean(data.get("name"), 28) or subject, lon, lat, zoom, bearing, _clean(data.get("say"), 140))
+
+
+def _to_world(lon: float, lat: float) -> tuple[float, float]:
+    """Web Mercator, 0 to 1 across the world, y down."""
+    s = math.sin(math.radians(lat))
+    return (lon + 180.0) / 360.0, 0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)
+
+
+def _from_world(x: float, y: float) -> tuple[float, float]:
+    lat = math.degrees(2 * math.atan(math.exp((0.5 - y) * 2 * math.pi)) - math.pi / 2)
+    return ((x % 1.0) * 360.0 - 180.0, min(max(lat, -85.0), 85.0))
 
 
 def box_of(o: dict) -> tuple[float, float, float, float] | None:
@@ -556,7 +621,7 @@ class Helper(Game):
         self.listens, self.thinks = listens, thinks
         self.timers = timers if timers is not None else Timers()
         self._clocks_started: set[int] = set()  # this job's background steps whose clock has started
-        self.state = "idle"  # idle | seeing | asking | planning | steps | done | answer | modelling | model
+        self.state = "idle"  # idle | seeing | asking | planning | steps | done | answer | modelling | model | placing | map
         self.want: Ask | None = None  # the session makes the call and answers with answered()
         self.want_t = now
         self.want_outlines: list[Thing] = []
@@ -595,6 +660,13 @@ class Helper(Game):
         self.pens: list = []  # this frame's
         self._drag: tuple[int, tuple[float, float]] | None = None  # (hand, where it was last frame)
         self._zoom_from: tuple[float, float] | None = None  # (distance between the hands, zoom) when both pinched
+        # a 3D map
+        self.place: Place | None = None
+        self.map_at = (0.0, 20.0)  # lon, lat of its centre
+        self.map_zoom, self.map_bearing, self.map_pitch = 2.0, 0.0, 0.0
+        self.flight = 0
+        self._fly_until = -1e9
+        self._map_from: tuple[float, float, float, float] | None = None  # distance and angle of both hands, zoom, bearing
         # a question's answer
         self.notes: list[str] = []
         self.want_picture: str | None = None  # the session has Muse Image draw it and answers with pictured()
@@ -634,6 +706,8 @@ class Helper(Game):
             self._step(now, points, tips, dt)
         elif self.state == "model":
             self._turn(pens, dt)
+        elif self.state == "map":
+            self._move_map(pens, now, dt)
 
     def _mic_step(self, now: float, tips: list, dt: float) -> None:
         if not self.listens:
@@ -695,6 +769,74 @@ class Helper(Game):
 
     def _ask(self, ask: Ask, now: float) -> None:
         self.want, self.want_t = ask, now
+
+    def go_to(self, place: str, now: float) -> None:
+        """Have the model find a place on the map."""
+        self.epoch += 1
+        self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
+        self.parts, self.reply, self.things, self.want_outlines, self.place = [], "", [], [], None
+        self._clear_answer()
+        self.subject = _clean(place, 40)
+        self.state = "placing"
+        self.sfx.append("scan")
+        self._dirty = True
+        self._ask(Ask("place", PLACE_PROMPT.format(place=self.subject), PLACE_SCHEMA, look=False, max_out=2000,
+                      timeout_s=45.0, epoch=self.epoch, subject=f"place {self.subject}"), now)
+
+    def _on_place(self, data: dict, now: float) -> None:
+        place = parse_place(data, self.subject)
+        if place is None:
+            self._failed(Ask("place", "", {}), now)
+            return
+        self.place = place
+        self.state = "map"
+        self.map_at, self.map_zoom, self.map_bearing, self.map_pitch = (place.lon, place.lat), place.zoom, place.bearing, MAP_PITCH
+        self.flight += 1
+        self._fly_until = now + FLY_S
+        self._drag, self._map_from = None, None
+        self.log.append(f"helper: flying to {place.name}: {place.lat:.4f}, {place.lon:.4f}, zoom {place.zoom:.1f}")
+        self.say.append(place.say or f"Here's {place.name}.")
+        self.sfx.append("answer")
+        self._dirty = True
+
+    def _move_map(self, pens, now: float, dt: float) -> None:
+        """One pinched hand drags the map with it, two turn and zoom it; left alone the view slowly turns. Nothing moves
+        it during the flight: it would stop the flight dead."""
+        if now < self._fly_until:
+            return
+        down = [p for p in pens if p.down and p.at[0] < STRIP_X]
+        if len(down) >= 2:
+            a, b = down[0].at, down[1].at
+            d = max(math.dist(a, b), 20.0)
+            angle = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+            if self._map_from is None:
+                self._map_from = (d, angle, self.map_zoom, self.map_bearing)
+            d0, a0, z0, b0 = self._map_from
+            self.map_zoom = min(max(z0 + math.log2(d / d0), PLACE_ZOOM[0]), PLACE_ZOOM[1])
+            self.map_bearing = (b0 - (angle - a0)) % 360  # the map turns with the hands
+            self._drag = None
+            return
+        self._map_from = None
+        if not down:
+            self._drag = None
+            self.map_bearing = (self.map_bearing + ORBIT_DEG_S * dt) % 360
+            return
+        p = down[0]
+        if self._drag is not None and self._drag[0] == p.hand:
+            dx, dy = p.at[0] - self._drag[1][0], p.at[1] - self._drag[1][1]
+            if math.hypot(dx, dy) <= DRAG_JUMP:
+                self._pan(dx, dy)
+        self._drag = (p.hand, p.at)
+
+    def _pan(self, dx: float, dy: float) -> None:
+        """The ground under the finger stays under it: with the view pitched, a px up the table is more ground."""
+        b = math.radians(self.map_bearing)
+        dy = dy / max(math.cos(math.radians(self.map_pitch)), 0.35)
+        east = -(dx * math.cos(b) - dy * math.sin(b))
+        north = dx * math.sin(b) + dy * math.cos(b)
+        world = TILE_PX * 2 ** self.map_zoom
+        x, y = _to_world(*self.map_at)
+        self.map_at = _from_world(x + east / world, y - north / world)
 
     def show_model(self, subject: str, now: float) -> None:
         """Have the model draw a thing as lines (or, for one drawn before, the session answers from its cache)."""
@@ -769,7 +911,11 @@ class Helper(Game):
 
     def _failed(self, ask: Ask, now: float) -> None:
         self.sfx.append("error")
-        if ask.role == "model":
+        if ask.role == "place":
+            self.state = "idle"
+            self.say.append(f"Sorry, I couldn't find {self.subject}. Hold the microphone and try again.")
+            self._dirty = True
+        elif ask.role == "model":
             self.state = "idle"
             self.say.append(f"Sorry, I couldn't build {_with_article(self.subject)}. Hold the microphone and try again.")
             self._dirty = True
@@ -859,6 +1005,9 @@ class Helper(Game):
             return
         if intent == "model" and _clean(data.get("subject"), 40):
             self.show_model(_clean(data.get("subject"), 40), now)
+            return
+        if intent == "place" and _clean(data.get("subject"), 40):
+            self.go_to(_clean(data.get("subject"), 40), now)
             return
         self.job_name = _clean(data.get("job"), 28) or self.job_name
         self.manual = _clean(data.get("manual"), 400)
@@ -1125,9 +1274,11 @@ class Helper(Game):
 
     def command(self, verb: str, now: float) -> bool:
         """A spoken command (``tabletop.command_of``). False when it means nothing now: it is then just words."""
-        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer", "modelling", "model"):
+        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer", "modelling", "model",
+                                             "placing", "map"):
             self.epoch += 1
             self.state, self.want, self.job, self.parts, self.reply, self.wire = "idle", None, None, [], "", None
+            self.place = None
             self._clear_answer()
             self.say.append("Stopped.")
             self._dirty = True
@@ -1172,6 +1323,11 @@ class Helper(Game):
             return f"PLANNING: {title}", "ONE MOMENT...", "warn"
         if self.state == "done":
             return f"{title}: DONE", "HOLD THE MIC FOR THE NEXT JOB", "target"
+        if self.state == "placing":
+            return f"GOING TO {self.subject.upper()}"[:44], "MUSE WONDER IS FINDING IT...", "warn"
+        if self.state == "map":
+            return (f"{self.place.name.upper()} · MAP: OPENFREEMAP, OPENSTREETMAP"[:48],
+                    "PINCH AND DRAG. TWO HANDS TURN AND ZOOM", "target")
         if self.state == "modelling":
             return f"BUILDING: {self.subject.upper()}"[:44], "MUSE WONDER IS DRAWING IT...", "warn"
         if self.state == "model":
@@ -1270,8 +1426,11 @@ class Helper(Game):
             self._draw_picture(c, now)
         c.poly("hp-strip", [(STRIP_X, WORK[1]), (STRIP_X, DESIGN_H - 10)], "info")
         self._draw_mic(c, now)
-        if self.state in ("seeing", "modelling"):
+        if self.state in ("seeing", "modelling", "placing"):
             self._draw_sweep(c, now)
+        if self.state == "map":
+            c.map_view("hp-map", MAP_RECT, self.map_at, self.map_zoom, self.map_bearing, self.map_pitch, flight=self.flight,
+                       fly_ms=int(FLY_S * 1000))
         if self.state == "model":
             self._draw_model(c)
         self._draw_things(c, now)

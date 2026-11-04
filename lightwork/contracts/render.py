@@ -85,7 +85,23 @@ class Picture(_M):
     draw_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: wipes on from its top edge when its id appears
 
 
-Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture, Field(discriminator="kind")]
+class MapView(_M):
+    """A live 3D map the page draws itself over a rect (MapLibre GL, web/js/tablemap.js): the scene says only where it
+    goes and what its camera shows. ``corners`` as in :class:`Picture`, ``center`` is [lon, lat]. A new ``flight`` number
+    means fly there over ``fly_ms``; otherwise the camera jumps to it, so hands move it directly."""
+
+    kind: Literal["map"] = "map"
+    id: str
+    corners: Annotated[list[XY], Field(min_length=4, max_length=4)]
+    center: XY
+    zoom: float = Field(ge=0.0, le=22.0)
+    bearing: float
+    pitch: float = Field(ge=0.0, le=75.0)
+    flight: int = 0
+    fly_ms: int = Field(0, ge=0, le=20000)
+
+
+Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture | MapView, Field(discriminator="kind")]
 
 
 # ---------------------------------------------------------------- page -> server

@@ -136,6 +136,15 @@ class Canvas:
         corners = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
         self.prims.append(render.Picture(id=id, src=src, corners=self._xy(corners), **fx))
 
+    def map_view(self, id: str, rect, center, zoom: float, bearing: float, pitch: float, flight: int = 0,
+                 fly_ms: int = 0) -> None:
+        """A live map over a design-px rect. ``center`` is (lon, lat)."""
+        x0, y0, x1, y1 = rect
+        corners = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+        self.prims.append(render.MapView(id=id, corners=self._xy(corners), center=[round(float(center[0]), 6), round(float(center[1]), 6)],
+                                         zoom=round(float(zoom), 3), bearing=round(float(bearing), 2),
+                                         pitch=round(float(pitch), 2), flight=flight, fly_ms=fly_ms))
+
     def number(self, id: str, value: str, x: float, y: float, w: float, role: str) -> None:
         """Seven-segment digits, each w wide and 2w tall, top-left at (x, y)."""
         inset = 0.14

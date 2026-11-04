@@ -187,6 +187,83 @@
       "title": "Label",
       "type": "object"
     },
+    "MapView": {
+      "additionalProperties": false,
+      "description": "A live 3D map the page draws itself over a rect (MapLibre GL, web/js/tablemap.js): the scene says only where it\ngoes and what its camera shows. ``corners`` as in :class:`Picture`, ``center`` is [lon, lat]. A new ``flight`` number\nmeans fly there over ``fly_ms``; otherwise the camera jumps to it, so hands move it directly.",
+      "properties": {
+        "bearing": {
+          "title": "Bearing",
+          "type": "number"
+        },
+        "center": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Center",
+          "type": "array"
+        },
+        "corners": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Corners",
+          "type": "array"
+        },
+        "flight": {
+          "default": 0,
+          "title": "Flight",
+          "type": "integer"
+        },
+        "fly_ms": {
+          "default": 0,
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Fly Ms",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "map",
+          "default": "map",
+          "title": "Kind",
+          "type": "string"
+        },
+        "pitch": {
+          "maximum": 75.0,
+          "minimum": 0.0,
+          "title": "Pitch",
+          "type": "number"
+        },
+        "zoom": {
+          "maximum": 22.0,
+          "minimum": 0.0,
+          "title": "Zoom",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "corners",
+        "center",
+        "zoom",
+        "bearing",
+        "pitch"
+      ],
+      "title": "MapView",
+      "type": "object"
+    },
     "MarkerRect": {
       "additionalProperties": false,
       "properties": {
@@ -487,6 +564,7 @@
                 "arrow": "#/$defs/Arrow",
                 "dot": "#/$defs/Dot",
                 "label": "#/$defs/Label",
+                "map": "#/$defs/MapView",
                 "picture": "#/$defs/Picture",
                 "poly": "#/$defs/Poly",
                 "ring": "#/$defs/Ring"
@@ -511,6 +589,9 @@
               },
               {
                 "$ref": "#/$defs/Picture"
+              },
+              {
+                "$ref": "#/$defs/MapView"
               }
             ]
           },

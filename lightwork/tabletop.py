@@ -52,7 +52,7 @@ import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
-from .helper import Helper, asked_for_game, asked_to_show
+from .helper import Helper, asked_for_game, asked_to_go, asked_to_show
 from .helper import _words as _words_of
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
@@ -183,7 +183,7 @@ SNAP_REACH = 30.0  # design px around a model's box where the object it means ma
 SNAP_DIFF = 28.0  # colour levels from the table around it that count as the object
 OUTLINE_GROW = 3.0  # design px SAM's box is grown by at most: the boxes are tight (Muse Wonder, then snap_box)
 OUTLINE_MIN_ROUND = 0.18  # 4 pi area / perimeter^2 of a mask's contour: below this it is the frayed table around the thing
-LOOK_LABELS = {"see": "SEEN", "plan": "PLAN", "locate": "FOUND", "check": "CHECKED", "answer": "ANSWER", "model": "MODEL"}
+LOOK_LABELS = {"see": "SEEN", "plan": "PLAN", "locate": "FOUND", "check": "CHECKED", "answer": "ANSWER", "model": "MODEL", "place": "FOUND"}
 STATUS_CHARS = 44  # a status line holds about this many characters
 SWEEP_GAP_S = 12.0  # Muse Spark looks over the whole table at most this often ...
 SWEEP_IDLE_S = 3.0  # ... and, while a job still misses things, once the table has been still this long
@@ -1993,6 +1993,12 @@ class TableSession:
             g.show_model(thing, now)
             self.log.append(f"helper: {q!r} asks for a model of {thing!r}")
             return []
+        place = asked_to_go(q) if verb is None else None
+        if place is not None and g.thinks:
+            g.dealt_with()
+            g.go_to(place, now)
+            self.log.append(f"helper: {q!r} asks for the map of {place!r}")
+            return []
         if verb is None:
             g.heard(q, now)
             return []
@@ -2157,7 +2163,7 @@ class TableSession:
 
     def _helper_submit(self, g: Helper, ask, now: float) -> None:
         g.want = None
-        if ask.role == "model" and (file := self._model_file(ask.subject)) is not None and file.is_file():
+        if ask.role in ("model", "place") and (file := self._model_file(ask.subject)) is not None and file.is_file():
             try:
                 g.answered(ask, json.loads(file.read_text()), None, now, by="(drawn before: no model call)")
                 return
@@ -2167,7 +2173,7 @@ class TableSession:
             g.answered(ask, None, "no model", now)
             return
         brain = self.brain
-        jpegs = [self._look_jpeg] if self._look_jpeg is not None and ask.role != "model" else []
+        jpegs = [self._look_jpeg] if self._look_jpeg is not None and ask.role not in ("model", "place") else []
         self._job_n += 1
         key = ("helper", self._job_n)
         if self.jobs.submit(key, lambda: brain.ask(f"helper-{ask.role}", ask.prompt, jpegs, schema=ask.schema,
@@ -2187,7 +2193,7 @@ class TableSession:
                 continue
             by = "" if reply is None else f"({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)"
             g.answered(ask, None if reply is None else reply.data, err, now, by=by)
-            if ask.role == "model" and err is None and g.wire is not None:
+            if err is None and ((ask.role == "model" and g.wire is not None) or (ask.role == "place" and g.place is not None)):
                 self._keep_model(ask.subject, reply.data)
             if ask.role in ("see", "locate") and self._look_view is not None:  # before SAM gets the boxes
                 for t in g.want_outlines:

@@ -7,6 +7,7 @@ import { drawMarkers } from './aruco.js';
 import { openSocket } from './link.js';
 import * as sfx from './sfx.js';
 import { Speaker } from './tts.js';
+import { syncMap } from './tablemap.js';
 
 const PROJ_W = 854; // DLP native resolution (rig brief §1); line and text sizes are set in projector px
 const PROJ_H = 480;
@@ -212,6 +213,8 @@ function draw(ts) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const live = !linkLost && scene && scene.mode === 'normal' && calib;
+  syncMap(live ? (scene.prims || []).find((q) => q.kind === 'map') || null : null, live ? calib.map : null, W, H, rotate);
   if (linkLost) {
     drawLinkLost();
     return;
