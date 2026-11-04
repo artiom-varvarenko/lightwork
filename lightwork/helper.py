@@ -784,7 +784,10 @@ class Helper(Game):
         self.map_at = _from_world(x + east / world, y - north / world)
 
     def show_model(self, subject: str, now: float) -> None:
-        """Have the model draw a thing as lines (or, for one drawn before, the session answers from its cache)."""
+        """Have the model build a thing (or, for one built before, the session answers from its cache)."""
+        if self.state == "modelling" and self.subject == _clean(subject, 40):  # it is on its way: a second call would waste the first
+            self.say.append("Still building it.")
+            return
         self.epoch += 1
         self.request, self.qa, self.manual, self.job_name, self.job, self.model = "", [], "", "", None, None
         self.parts, self.reply, self.things, self.want_outlines = [], "", [], []

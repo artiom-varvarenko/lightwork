@@ -136,6 +136,19 @@ def test_the_prim_is_masked_and_a_failed_place_says_so():
     assert g.state == "idle" and "couldn't find atlantis" in g.say[-1]
 
 
+def test_a_place_not_on_the_map_is_not_kept(tmp_path):
+    brain = FakeBrain(place=[{**PARIS, "lat": 200}, PARIS])
+    rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=FakeGate())
+    rig.run(0.5, table())
+    g = rig.ts.games.game
+    rig.ts.hear("take me to paris", rig.t)
+    until(rig, table(), lambda: g.state == "idle")
+    assert not (tmp_path / "play-models" / "place-paris.json").exists()
+    rig.ts.hear("take me to paris", rig.t)
+    until(rig, table(), lambda: g.state == "map")
+    assert len(brain.calls) == 2
+
+
 def test_saying_it_needs_no_look_and_a_retake_comes_from_the_cache(tmp_path):
     brain = FakeBrain(place=PARIS)
     rig = Rig(game="helper", voice=True, brain=brain, state_dir=tmp_path, mic_gate=FakeGate())

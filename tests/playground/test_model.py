@@ -207,6 +207,16 @@ def test_the_hands_take_over_from_the_camera_on_its_way():
     assert g._glide is None
 
 
+def test_asking_again_while_it_builds_does_not_start_it_over():
+    g = Helper(0.0, random.Random(1))
+    g.show_model("ship", 0.0)
+    ask, epoch = g.want, g.epoch
+    g.show_model("ship", 5.0)
+    assert g.want is ask and g.epoch == epoch and g.say[-1] == "Still building it."
+    g.show_model("bicycle", 6.0)
+    assert g.subject == "bicycle" and g.epoch == epoch + 1
+
+
 def test_a_failed_model_says_so_and_leaves_the_tile_ready():
     g = Helper(0.0, random.Random(1))
     g.show_model("cube", 0.0)

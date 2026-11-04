@@ -52,7 +52,7 @@ import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
-from .helper import Helper, _with_article, asked_for_game, asked_to_go, asked_to_show
+from .helper import Helper, _with_article, asked_for_game, asked_to_go, asked_to_show, parse_place
 from .helper import _words as _words_of
 from .wireframe import build as build_model
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
@@ -2212,7 +2212,8 @@ class TableSession:
                 continue
             by = "" if reply is None else f"({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)"
             g.answered(ask, None if reply is None else reply.data, err, now, by=by)
-            if err is None and ((ask.role == "model" and g.model is not None) or (ask.role == "place" and g.map_place is not None)):
+            # also one that came too late to show: it is paid for. But never a place that is not on the map: it would stay
+            if err is None and (ask.role == "model" or (ask.role == "place" and parse_place(reply.data) is not None)):
                 self._keep_model(ask, reply.data)
             if ask.role in ("see", "locate") and self._look_view is not None:  # before SAM gets the boxes
                 for t in g.want_outlines:
