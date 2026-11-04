@@ -320,8 +320,8 @@ CHECK_SCHEMA = {
 PLACE_PROMPT = ("Where is {place}? Reply with JSON for a 3D map that flies there: \"name\": its name in 1 to 3 words; \"lat\" "
                 "and \"lon\": in degrees, the most recognisable spot of it, where its famous or tall buildings stand; \"zoom\": "
                 "15 for a city or a landmark, down to 11 for a big region; \"bearing\": the compass direction in degrees the view "
-                "should face for the best look; \"say\": one sentence to say out loud on arrival, a fact worth knowing, at most "
-                "14 words. Answer in English.")
+                "should face for the best look; \"say\": what to say out loud while it flies there: two or three short facts worth "
+                "knowing about it, plain and friendly, at most 45 words in all. Answer in English.")
 PLACE_SCHEMA = {
     "type": "object",
     "properties": {"name": {"type": "string"}, "lat": {"type": "number"}, "lon": {"type": "number"},
@@ -414,7 +414,7 @@ def parse_place(data, subject: str = "") -> Place | None:
         return None
     zoom = min(max(zoom, PLACE_ZOOM[0]), PLACE_ZOOM[1]) if math.isfinite(zoom) else 15.0
     bearing = bearing % 360 if math.isfinite(bearing) else 0.0
-    return Place(_clean(data.get("name"), 28) or subject, lon, lat, zoom, bearing, _clean(data.get("say"), 140))
+    return Place(_clean(data.get("name"), 28) or subject, lon, lat, zoom, bearing, _clean(data.get("say"), 320))
 
 
 def _to_world(lon: float, lat: float) -> tuple[float, float]:
