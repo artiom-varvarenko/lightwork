@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
+import pytest
 
 from lightwork.vision.hands import CropHandTracker, HandPose, grid_tiles
 from lightwork.vision.source import Frame
@@ -189,3 +190,49 @@ def test_hands_the_caller_refuses_take_no_hand_slot():
     t.keep = lambda p: p.img[8][1] > 620  # hand_a (fingertip y 546) now "off the page": its follower lets it go
     got = t.poses(frame(toy, hand_a, hand_b, idx=7))
     assert len(got) == 1 and got[0].img[8][1] > 620  # hand_b (646) stays
+
+
+def test_upside_down_hands_are_shown_upright_and_come_back_in_camera_px():
+    """The person sits opposite the camera: the models see each crop turned 180 degrees, the poses come back unturned."""
+    class Fake:
+        def __init__(self):
+            self.seen = []
+
+        def poses(self, frame):
+            self.seen.append(frame.image.copy())
+            img = np.tile((10.0, 20.0), (21, 1))
+            world = np.tile((0.01, 0.02, 0.03), (21, 1))
+            return [HandPose(img, world, "Left", 0.9)]
+
+        def close(self):
+            pass
+
+    fake = Fake()
+    t = CropHandTracker(region=(0, 0, 400, 300), num_hands=1, factory=lambda: fake, search_factory=lambda: fake,
+                        upside_down=True)
+    crop = np.zeros((100, 200, 3), np.uint8)
+    crop[5, 7] = 255  # a mark near the top left ...
+    frame = Frame(np.zeros((300, 400, 3), np.uint8), 0.0, 0)
+    (p,) = t._look(fake, crop, frame)
+    assert fake.seen[0][94, 192].tolist() == [255, 255, 255]  # ... is near the bottom right of what the model sees
+    assert p.img[0].tolist() == [190.0, 80.0]  # (10, 20) in the turned crop, back in the crop's own px
+    assert p.world[0] == pytest.approx([-0.01, -0.02, 0.03]) and p.side == "Left"
+
+
+def test_a_search_tile_is_shown_square():
+    """MediaPipe's rotated hand box is only right on a square input: 4 Nov, "NORM_RECT without IMAGE_DIMENSIONS"."""
+    class Fake:
+        def __init__(self):
+            self.shapes = []
+
+        def poses(self, frame):
+            self.shapes.append(frame.image.shape[:2])
+            return []
+
+        def close(self):
+            pass
+
+    fake = Fake()
+    t = CropHandTracker(region=(0, 0, 400, 300), num_hands=1, factory=lambda: fake, search_factory=lambda: fake)
+    t._search_tile((100, 100, 300, 160), Frame(np.zeros((300, 400, 3), np.uint8), 0.0, 0))
+    assert fake.shapes == [(200, 200)]

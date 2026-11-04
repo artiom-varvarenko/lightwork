@@ -18,6 +18,9 @@ hand check that projects three targets to touch (or, with ``--ceiling``, point a
 - ``--ceiling``: mid-air hand between camera and ceiling; pinch to click, drag or paint, open hand to clear;
   a gesture panel (finger count, pose name) and the hand skeleton projected where the camera sees the hand.
 
+- ``--table --voice --game menu``: the GENERAL HELPER tile (``lightwork.helper``): hold a fingertip on its mic bubble and
+  say a job or a game to start. With ``--game`` the microphone is open only while the bubble is held.
+
 ``--rotate 180`` turns the whole projection, calibration pattern included, to read from the far side of the table.
 
 During the session the gain follows the room and the mapping is re-flashed every ``--recal-every`` seconds when no hand
@@ -77,15 +80,17 @@ def configure(p) -> None:
                    help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
                         "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
                         "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
-    p.add_argument("--game", choices=("menu", "catch", "follow", "draw", "rps"),
-                   help="table: start with a hand game (nothing to set up): menu, catch (catch the light), follow "
+    p.add_argument("--game", choices=("menu", "helper", "catch", "follow", "draw", "rps"),
+                   help="table: start with a hand game (nothing to set up): menu, helper (general helper: hold the mic "
+                        "bubble and say a job or a game to start; needs --voice), catch (catch the light), follow "
                         "(follow the lights), draw (draw and guess, Muse Spark guesses) or rps (rock paper scissors "
-                        "against the table). Also by voice: \"let's play\"")
+                        "against the table). With --game the mic is open only while the helper's bubble is held")
     p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
                    help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
                         "weights via the partners, auto = open when a partner is configured, else meta")
     p.add_argument("--planner", default=None,
-                   help="Meta model that writes plans (default muse-spark-1.3; muse-wonder-1.0 is slower)")
+                   help="Meta model for plans, looks and checks (default muse-wonder-1.0, the most accurate; "
+                        "muse-spark-1.3 is cheaper)")
     p.add_argument("--voice", action="store_true",
                    help="table: ask out loud (Muse Voice Transcribe via the /screen page's microphone, press Start "
                         "there): point at an object and ask \"what is this?\"; Muse Spark answers on the projector")
@@ -114,6 +119,51 @@ def configure(p) -> None:
                    help="table/wall: most tiles the hand search splits the projected page into, so hands far from the "
                         "camera are found (0 = whole frame only)")
     p.add_argument("--quiet", action="store_true", help="do not speak on the projector phone")
+
+
+class FrameRecorder:
+    """Camera frames and what the tracker made of them, on a worker thread, for tuning from real footage. ``touch``
+    ``.lightwork/play-debug/record`` (its text: seconds, default 20) and the frame loop starts one within a second."""
+
+    def __init__(self, path, seconds: float):
+        import json
+        import queue
+        import threading
+
+        self.path, self.until = path, time.monotonic() + seconds
+        path.mkdir(parents=True, exist_ok=True)
+        self.n = self.dropped = 0
+        self._q: queue.Queue = queue.Queue(maxsize=90)
+        self._poses = (path / "poses.jsonl").open("w", encoding="utf-8")
+        self._json = json
+        self._t = threading.Thread(target=self._loop, name="frame-recorder", daemon=True)
+        self._t.start()
+
+    def push(self, frame, poses) -> None:
+        import queue
+
+        row = {"idx": frame.idx, "t": frame.t_mono, "hands": [p.img.round(1).tolist() for p in poses]}
+        try:
+            self._q.put_nowait((self.n, frame.image, row))
+            self.n += 1
+        except queue.Full:
+            self.dropped += 1
+
+    def _loop(self) -> None:
+        import cv2
+
+        while True:
+            item = self._q.get()
+            if item is None:
+                return
+            k, image, row = item
+            cv2.imwrite(str(self.path / f"{k:06d}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 92])
+            self._poses.write(self._json.dumps({"k": k, **row}) + "\n")
+
+    def close(self) -> None:
+        self._q.put(None)
+        self._t.join(timeout=30.0)
+        self._poses.close()
 
 
 def _wait_projector(hub, timeout: float):
@@ -145,11 +195,14 @@ def _tracker(args):
             from ..vision.hands import CropHandTracker
 
             gpu = args.hands_gpu != "off"
+            upright = args.rotate == 180  # the person sits opposite the camera: hands come in upside down
             if args.game:  # games: hands move fast; search harder, follow longer, accept blurrier hands
-                t = CropHandTracker(num_hands=2, search_per_frame=4, min_confidence=0.4, gpu=gpu)
+                # 4 Nov, on real footage of this rig: found in 92 -> 96 % of frames, longest dropout 14 -> 4 frames
+                t = CropHandTracker(num_hands=2, search_per_frame=4, min_confidence=0.4, track_confidence=0.3, gpu=gpu,
+                                    upside_down=upright)
                 t.LOST_FRAMES = 6
             else:
-                t = CropHandTracker(num_hands=2, gpu=gpu)
+                t = CropHandTracker(num_hands=2, gpu=gpu, upside_down=upright)
             print(f"hand tracking on the {t.delegate}" + (" (GPU unavailable)" if gpu and "GPU" not in t.delegate
                                                            else ""))
             return t
@@ -218,9 +271,10 @@ def _asker(args):
 def _voice(args, heard, control, listening=None):
     """The Muse Voice Transcribe relay for --voice: sentences go to ``heard`` (a queue), the HUD to /screen, what is
     being heard right now to ``listening`` (a dict the table shows), and the microphone is read by the server itself
-    (``--mic``) unless a browser page streams one."""
+    (``--mic``) unless a browser page streams one. With --game it goes through a gate that only the helper tile's mic
+    bubble opens. Returns (relay, microphone, gate)."""
     if not args.table or not args.voice:
-        return None, None
+        return None, None, None
     from ..config import load_settings
     from ..voice import VoiceService
 
@@ -236,31 +290,36 @@ def _voice(args, heard, control, listening=None):
             if text and text != listening.get("text"):
                 listening.update(text=text, t=time.monotonic())
 
-    voice = VoiceService(load_settings(), ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start",
-                                           "stop", "check", "undo", "help me", "pancakes", "dilution", "scoop",
-                                           "play", "catch the light", "follow the lights", "draw", "guess", "menu",
-                                           "rock paper scissors"],
-                         on_event, on_hud=on_hud)
+    words = (["Lightwork", "help me", "next", "back", "done", "repeat", "stop", "check", "menu", "start", "play",
+              "catch the light", "follow the lights", "draw and guess", "rock paper scissors", "timer", "stopwatch",
+              "minutes", "oven", "Lego", "brick", "build", "cook", "grams", "cottage cheese", "eggs"] if args.game else
+             ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start", "stop", "check", "undo",
+              "help me", "pancakes", "dilution", "scoop", "play", "catch the light", "follow the lights", "draw",
+              "guess", "menu", "rock paper scissors"])
+    voice = VoiceService(load_settings(), words, on_event, on_hud=on_hud)
     voice.start()
-    mic = None
+    mic = gate = None
     if args.mic != "browser":
-        from ..voice.capture import ServerMic, find_source, sources
+        from ..voice.capture import MicGate, ServerMic, find_source, sources
 
         source = find_source("C920" if args.mic == "auto" else args.mic)
         if source is None:
             print(f"voice: no microphone matching {args.mic!r} (sources: {', '.join(sources()) or 'none'}); "
                   "open /screen and press Start for the browser's")
         else:
-            mic = ServerMic(voice.feed_pcm, source, yield_to=voice.browser_active)
+            gate = MicGate(voice.feed_pcm) if args.game else None
+            mic = ServerMic(gate or voice.feed_pcm, source, yield_to=voice.browser_active)
             problem = mic.start()
             if problem:
                 print(f"voice: {problem}; open /screen and press Start for the browser's microphone")
-                mic = None
+                mic = gate = None
+            elif gate is not None:
+                print(f"voice: {source}, open only while a finger is on the helper tile's mic bubble")
             else:
                 print(f"voice: listening on {source} (no page needed; a /screen Start takes over)")
     else:
         print("voice: open /screen and press Start for the microphone")
-    return voice, mic
+    return voice, mic, gate
 
 
 def _brain(args):
@@ -360,7 +419,7 @@ def run(args) -> int:
     hubs["render_hub"].set_view(View(rotate=args.rotate))  # before any pattern: the mapping must include the turn
     heard: queue.SimpleQueue[str] = queue.SimpleQueue()
     listening: dict = {"text": "", "t": -1e9}
-    voice, mic = _voice(args, heard, hubs["control_hub"], listening)
+    voice, mic, gate = _voice(args, heard, hubs["control_hub"], listening)
     if voice is not None:
         hubs["render_hub"].on_tts(voice.on_tts)  # the mic is muted while the projector phone speaks
     try:
@@ -404,7 +463,8 @@ def run(args) -> int:
         print(f"projector page {page.innerWidth}x{page.innerHeight}{', turned 180 degrees' if args.rotate else ''}; "
               f"screen view: http://127.0.0.1:{args.port}/screen")
         play = Play(args, cam, hubs, tracker, frame_size, gain, namer=namer, outliner=outliner, asker=asker,
-                    task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain, listening=listening)
+                    task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain, listening=listening,
+                    mic_gate=gate)
         # `systemctl --user kill -s USR1 lightwork-play` (or `kill -USR1 <pid>`): full calibration again
         signal.signal(signal.SIGUSR1, lambda *_: setattr(play, "recal", True))
         # `... -s USR2 ...`: --table debug snapshot under .lightwork/play-debug/ (frame, reference, masks, tracks)
@@ -455,15 +515,17 @@ class Play:
     table = None  # TableSession (--table)
     last_image = None  # newest camera image, for carrying the learned table over to a new mapping
     dump = False  # SIGUSR2: write a --table debug snapshot
+    recorder = None  # FrameRecorder while .lightwork/play-debug/record asked for one
 
     def __init__(self, args, cam, hubs, tracker, frame_size, gain: int, namer=None, outliner=None, asker=None,
-                 task=None, heard=None, plan=None, plan_words=None, brain=None, listening=None):
+                 task=None, heard=None, plan=None, plan_words=None, brain=None, listening=None, mic_gate=None):
         from ..sessioncal import CameraGain
 
         self.args, self.cam, self.tracker, self.frame_size = args, cam, tracker, frame_size
         self.namer, self.outliner, self.asker, self.task, self.heard = namer, outliner, asker, task, heard
         self.plan, self.plan_words, self.brain = plan, plan_words, brain
         self.listening = listening  # what the transcriber hears right now: shown on the table while you speak
+        self.mic_gate = mic_gate  # only the helper tile's mic bubble opens it
         self._shown_heard = ""
         self.render, self.preview, self.control = hubs["render_hub"], hubs["preview_hub"], hubs["control_hub"]
         self.gain = CameraGain(cam, gain)
@@ -537,7 +599,7 @@ class Play:
                                       page_mm=a.page_mm, state_dir=load_settings().state_dir, namer=self.namer,
                                       outliner=self.outliner, link=self.render, asker=self.asker, task=self.task,
                                       plan=self.plan, brain=self.brain, voice=bool(a.voice), planner_model=a.planner,
-                                      game=a.game)
+                                      game=a.game, mic_gate=self.mic_gate)
             self.table.learn_at = time.monotonic() + 0.5
             if self.plan_words:  # --do in words: planned once the table is up
                 self.table._pending_say += self.table.request_plan(self.plan_words, time.monotonic())
@@ -871,6 +933,12 @@ class Play:
 
             if n_frames % 2 == 0 and self.preview.has_viewers:
                 self.preview.push(frame.idx, frame.t_mono, encode_preview(frame.image))
+            if self.recorder is not None:
+                self.recorder.push(frame, poses)
+                if now >= self.recorder.until:
+                    self.recorder.close()
+                    print(f"recorded {self.recorder.n} frames to {self.recorder.path} ({self.recorder.dropped} dropped)")
+                    self.recorder = None
 
             quiet = now - self.last_hand_t >= QUIET_S and self.check is None
             if self.recal:
@@ -918,6 +986,7 @@ class Play:
             if now - last_status >= 1.0:
                 last_status = now
                 self.control.push_state({"steps": self._readouts(now), "last_say": self.say or None})
+                self._maybe_record()
                 if now - fps_t0 >= STATUS_EVERY_S:
                     per = {k: 1000 * v / max(n_frames, 1) for k, v in spent.items()}
                     age = self.cam.stats().get("age_ms_p50") if hasattr(self.cam, "stats") else None
@@ -928,6 +997,21 @@ class Play:
                     n_frames, hand_frames, fps_t0, cam_frames = 0, 0, now, 0
                     spent = dict.fromkeys(spent, 0.0)
             spent["rest"] += time.monotonic() - t_table
+
+    def _maybe_record(self) -> None:
+        from ..config import load_settings
+
+        debug = load_settings().state_dir / "play-debug"
+        trigger = debug / "record"
+        if self.recorder is not None or not trigger.exists():
+            return
+        try:
+            seconds = float(trigger.read_text(encoding="utf-8").strip() or 20.0)
+        except (OSError, ValueError):
+            seconds = 20.0
+        trigger.unlink(missing_ok=True)
+        self.recorder = FrameRecorder(debug / f"rec-{time.strftime('%Y%m%dT%H%M%S')}", seconds)
+        print(f"recording {seconds:.0f} s of frames to {self.recorder.path}")
 
     def _table_step(self, frame, poses, now: float, dt: float) -> list[str]:
         fired, say = self.table.step(frame, poses, now, dt, detect=now >= self.zone_pause_until)

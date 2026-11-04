@@ -55,6 +55,10 @@ export class Speaker {
     }
     if (msg.priority === 'interrupt') speechSynthesis.cancel();
     const parts = chunks(msg.text);
+    if (!parts.length) { // nothing to say: it only stopped what was being said
+      this.report({ type: 'tts', id: msg.id, state: 'end' });
+      return;
+    }
     let started = false;
     let finished = false;
     let watchdog = null;

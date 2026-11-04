@@ -6,6 +6,7 @@
             take your hands away and Muse Spark guesses what it is.
 ``rps``     Rock paper scissors against the table: 3, 2, 1, SHOOT, then show rock, paper or scissors over the table;
             the camera reads the hand (3-D landmarks), the table shows its own move and keeps score. First to 5.
+``helper``  General helper (:mod:`lightwork.helper`): hold the mic bubble and say what you want: any job, or a game to start.
 ``menu``    Bubbles to pick one by holding a fingertip on it, and OBJECTS: back to the object board, where things put on
             the table are found, named (Muse Spark), outlined (SAM 3.1) and measured.
 
@@ -28,6 +29,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+
+from .timers import Timers
 
 AREA = (82.0, 74.0, 738.0, 410.0)  # design px: where game things go (right of the button column, under the status bar)
 GAMES = ("catch", "follow", "draw", "rps")
@@ -167,14 +170,17 @@ class Menu(Game):
     def __init__(self, now, rng, best: dict):
         super().__init__(now, rng)
         self.best = best
-        hi, lo = 145.0, 255.0  # a zig-zag: five two-line labels side by side would run into each other
-        self.bubbles = [Bubble("catch", "CATCH\nTHE LIGHT", (150.0, hi), 44.0),
-                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (280.0, lo), 44.0),
-                        Bubble("draw", "DRAW\nAND GUESS", (410.0, hi), 44.0),
-                        Bubble("rps", "ROCK PAPER\nSCISSORS", (540.0, lo), 44.0),
-                        Bubble("objects", "OBJECT\nBOARD", (670.0, hi), 44.0)]
+        far, near = 110.0, 280.0  # two rows of three: six two-line labels side by side would run into each other
+        left, mid, right = 180.0, 406.0, 632.0
+        self.bubbles = [Bubble("helper", "GENERAL\nHELPER", (left, far), 36.0),
+                        Bubble("catch", "CATCH\nTHE LIGHT", (mid, far), 36.0),
+                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (right, far), 36.0),
+                        Bubble("draw", "DRAW\nAND GUESS", (left, near), 36.0),
+                        Bubble("rps", "ROCK PAPER\nSCISSORS", (mid, near), 36.0),
+                        Bubble("objects", "OBJECT\nBOARD", (right, near), 36.0)]
         self.choice: str | None = None
         self.last = now
+        self.clocks_below = False  # timers are running along the near edge
 
     def update(self, now, points, tips, segments=(), pens=()):
         dt = min(max(now - self.last, 0.0), 0.1)
@@ -185,16 +191,19 @@ class Menu(Game):
                 self.sfx.append("press")
 
     def draw(self, c, now):
-        roles = {"catch": "target", "follow": "source", "draw": "warn", "rps": "error", "objects": "info"}
+        roles = {"helper": "target", "catch": "target", "follow": "source", "draw": "warn", "rps": "error",
+                 "objects": "info"}
         for b in self.bubbles:
-            best = self.best.get(b.key)
+            best = None if self.clocks_below and b.c[1] > 200 else self.best.get(b.key)  # the near row: clocks go there
             b.draw(c, roles[b.key], f"BEST {best}" if best else "")
             self._icon(c, b, roles[b.key], now)
 
     @staticmethod
     def _icon(c, b: Bubble, role: str, now: float) -> None:
         x, y = b.c
-        if b.key == "catch":  # a pulsing light
+        if b.key == "helper":
+            mic_icon(c, "ico-helper", x, y, 22.0, role)
+        elif b.key == "catch":  # a pulsing light
             r = 14 + 4 * math.sin(now * 5)
             c.circle("ico-catch", (x, y), r, role, n=20)
             c.dot("ico-catch-d", (x, y), role)
@@ -638,6 +647,19 @@ def move_icon(c, id: str, move: str, x: float, y: float, s: float, role: str, gl
         c.dot(f"{id}-pivot", (x, y - 0.05 * s), role)
 
 
+def mic_icon(c, id: str, x: float, y: float, s: float, role: str) -> None:
+    """A microphone about ``2 s`` tall, centred on (x, y): the capsule, its cradle and the stand."""
+    w, top, bottom = 0.34 * s, y - 0.95 * s, y + 0.2 * s  # the capsule: half width, top and bottom
+    caps = [(x - w * math.cos(a), top + w - w * math.sin(a)) for a in np.linspace(0, math.pi, 9)]
+    caps += [(x + w * math.cos(a), bottom - w + w * math.sin(a)) for a in np.linspace(0, math.pi, 9)]
+    c.poly(id, caps, role, closed=True)
+    r = 0.62 * s
+    c.poly(f"{id}-cradle", [(x + r * math.cos(a), y - 0.1 * s + r * math.sin(a)) for a in np.linspace(0, math.pi, 12)],
+           role)
+    c.poly(f"{id}-stand", [(x, y + 0.52 * s), (x, y + 0.95 * s)], role)
+    c.poly(f"{id}-base", [(x - 0.34 * s, y + 0.95 * s), (x + 0.34 * s, y + 0.95 * s)], role)
+
+
 def _question(c, id: str, x: float, y: float, s: float, role: str) -> None:
     """A question mark about ``2 s`` tall, centred on (x, y)."""
     r = 0.42 * s
@@ -882,7 +904,10 @@ class GameHost:
     state_dir: Path | None = None
     seed: int | None = None
     ask_guess: object = None  # callable(jpeg) -> None (the session's brain job)
-    voice: bool = True  # something listens: hints may say "or say menu" (3 Nov: voice off on the rig for now)
+    timers: Timers = field(default_factory=Timers)  # kitchen timers: they outlive every tile
+    voice: bool = True  # something always listens: hints may say "or say menu" (a gated mic does not count)
+    listens: bool = False  # the helper tile can hear: voice is on (gated or not)
+    thinks: bool = False  # the helper tile has a brain for jobs (games start without one)
     game: Game | None = None
     best: dict = field(default_factory=dict)
     again: Bubble | None = None
@@ -909,6 +934,12 @@ class GameHost:
         if key == "menu":
             self.game = Menu(now, self.rng, self.best)
             return ["Pick a game, or the object board."]
+        if key == "helper":
+            from .helper import Helper  # helper builds on this module
+
+            self.game = Helper(now, self.rng, listens=self.listens, thinks=self.thinks, timers=self.timers)
+            return ["Hold the microphone and tell me what you want to do." if self.listens else
+                    "I can't hear you: voice is off."]
         if key == "catch":
             self.game = CatchLight(now, self.rng)
             return ["Catch the light! Touch every light before it fades."]
@@ -968,10 +999,14 @@ class GameHost:
     def draw(self, c, now: float) -> None:
         if self.game is None:
             return
+        menu = isinstance(self.game, Menu)
+        if menu:
+            self.game.clocks_below = self.timers.active
         self.game.draw(c, now)
         if self.again is not None:
             self.again.draw(c, "target")
             self.home.draw(c, "info")
+        self.timers.draw(c, now, rows=1 if menu else 2)  # the menu's labels come down to the second line
 
     def hud(self, now: float) -> tuple[str, str, str]:
         g = self.game

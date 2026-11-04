@@ -32,6 +32,7 @@ from .requests import ROLES
 from .wire import CHAT, RESPONSES, read_body
 
 GRID_MAX = 1000
+MASK_LONG_SIDE = 1024  # SAM caps a mask's long side (4 Nov: 1024x616 for a box of 1028x618)
 _NULLISH = ("", "none", "null")
 _FENCE = re.compile(r"^```[A-Za-z0-9_-]*[ \t]*\r?\n(.*?)\r?\n?```$", re.S)
 _BOX_TOKEN = re.compile(r"<\|box;([^|]*)\|>")
@@ -183,9 +184,13 @@ def _mask(rec, box_confidence: float | None) -> dict[str, Any] | None:
     b = rec.bounds
     x0, y0, x1, y1 = int(b.left), int(b.top), int(b.right), int(b.bottom)
     w, h = rec.mask.width, rec.mask.height
-    if (x1 - x0, y1 - y0) != (w, h):
-        raise ResultError(f"object {rec.object_id}: mask {w}x{h} does not cover its box {x1 - x0}x{y1 - y0}")
+    bw, bh = x1 - x0, y1 - y0
+    if (bw, bh) != (w, h) and not (max(w, h) == MASK_LONG_SIDE and w <= bw and h <= bh):
+        raise ResultError(f"object {rec.object_id}: mask {w}x{h} does not cover its box {bw}x{bh}")
     raster = np.frombuffer(decode_mask_to_raster(rec.mask), dtype=np.uint8).reshape(h, w)
+    if (bw, bh) != (w, h):  # a capped mask, scaled back to its box (nearest: still exact 0s and 1s)
+        raster = raster[np.ix_(np.arange(bh) * h // bh, np.arange(bw) * w // bw)]
+        h, w = bh, bw
     ys, xs = np.nonzero(raster)
     if xs.size == 0:
         return None

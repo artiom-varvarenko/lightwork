@@ -316,3 +316,20 @@ def test_recorded_live_fixture_parsing():
         assert parsed["status"] == "ok", parsed
         assert "data:image" not in canonical(request) and "Authorization" not in canonical(request)
     assert {"muse-glimmer", "cx/gpt-5.6-luna-low"} <= models
+
+
+def test_a_sam_mask_capped_at_1024_is_scaled_back_to_its_box():
+    """Recorded 4 Nov: SAM returned 1024x616 for a box of 1028x618, and that one object lost the whole call its outlines."""
+    from pathlib import Path
+
+    from lightwork.core.masks import rle_decode
+    from lightwork.models.parse import parse_response
+    from lightwork.models.wire import RESPONSES
+
+    body = (Path(__file__).parents[1] / "fixtures/calls/sam-capped-mask/response.sse").read_bytes()
+    out = parse_response("segment", body, "sse", RESPONSES)
+    assert out["status"] == "ok", out["error"]
+    assert {m["object_id"] for m in out["result"]["masks"]} == {100001, 100002}
+    big = next(m for m in out["result"]["masks"] if m["box"][2] - m["box"][0] == 1028)
+    bits = rle_decode(big["rle"])
+    assert bits.shape == (618, 1028) and int(bits.sum()) == big["area_px"]

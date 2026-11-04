@@ -13,8 +13,10 @@ import shutil
 import subprocess
 import threading
 import time
+from collections import deque
 
 FRAME_BYTES = 3840  # 80 ms of PCM16 LE mono at 24 kHz, what the relay paces
+PRE_ROLL_FRAMES = 4  # the mic gate hands on this much from just before it opened: words start before the finger lands
 
 
 def sources() -> list[str]:
@@ -30,6 +32,41 @@ def sources() -> list[str]:
 def find_source(pattern: str = "C920") -> str | None:
     """The first capture source whose name contains ``pattern`` (case-insensitive)."""
     return next((n for n in sources() if pattern.lower() in n.lower()), None)
+
+
+class MicGate:
+    """Between a microphone and the relay: frames pass only while it is open, so table talk goes nowhere (3 Nov: an
+    always-open mic took everything said at the table, Russian chat included, as input). While it is shut the relay's
+    pacer sends silence, which also ends the turn that was being spoken. Thread-safe: frames come from the mic's
+    thread, ``set_open`` from the frame loop."""
+
+    def __init__(self, sink, pre_roll: int = PRE_ROLL_FRAMES):
+        self.sink = sink  # callable(bytes): one 80 ms frame
+        self.opened = 0  # times it opened
+        self._open = False
+        self._recent: deque[bytes] = deque(maxlen=max(pre_roll, 1))
+        self._lock = threading.Lock()
+
+    @property
+    def is_open(self) -> bool:
+        with self._lock:
+            return self._open
+
+    def set_open(self, on: bool) -> None:
+        with self._lock:
+            if on and not self._open:
+                self.opened += 1
+                for frame in self._recent:
+                    self.sink(frame)
+                self._recent.clear()
+            self._open = on
+
+    def __call__(self, frame: bytes) -> None:
+        with self._lock:
+            if self._open:
+                self.sink(frame)
+            else:
+                self._recent.append(frame)
 
 
 class ServerMic:

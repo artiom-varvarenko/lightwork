@@ -389,11 +389,14 @@ class HandTracker:
     """
 
     def __init__(self, model_path: Path | None = None, *, num_hands: int = 1, min_confidence: float = 0.5,
-                 infer_w: int | None = INFER_W, image_mode: bool = False, gpu: bool = False):
+                 infer_w: int | None = INFER_W, image_mode: bool = False, gpu: bool = False,
+                 track_confidence: float | None = None):
         """``infer_w``: width every input is resized to first (None: as given, at full resolution). ``image_mode``:
         each call stands alone (MediaPipe IMAGE mode, palm detection every time) instead of tracking (VIDEO mode).
         ``gpu``: MediaPipe's GPU delegate (OpenGL ES through Mesa on this laptop's Radeon: a 540 px palm search in
-        4.2 ms instead of 9.7 ms on the CPU, 3 Nov); falls back to the CPU when it cannot start."""
+        4.2 ms instead of 9.7 ms on the CPU, 3 Nov); falls back to the CPU when it cannot start.
+        ``min_confidence`` is what it takes to find a hand; ``track_confidence`` (default the same) what it takes to
+        keep one: lower, so a hand already found is not lost, without taking a toy for a new hand."""
         mp, vision, BaseOptions = _import_mediapipe()
         path = ensure_model(Path(model_path) if model_path is not None else default_model_path())
 
@@ -403,8 +406,8 @@ class HandTracker:
                 running_mode=vision.RunningMode.IMAGE if image_mode else vision.RunningMode.VIDEO,
                 num_hands=num_hands,
                 min_hand_detection_confidence=min_confidence,
-                min_hand_presence_confidence=min_confidence,
-                min_tracking_confidence=min_confidence,
+                min_hand_presence_confidence=min_confidence if track_confidence is None else track_confidence,
+                min_tracking_confidence=min_confidence if track_confidence is None else track_confidence,
             )
 
         self._mp = mp
@@ -754,11 +757,15 @@ class CropHandTracker:
 
     def __init__(self, region: Rect | None = None, *, num_hands: int = 2, search_per_frame: int = 2,
                  tile: int = TILE_PX, model_path: Path | None = None, min_confidence: float = 0.5, factory=None,
-                 search_factory=None, gpu: bool = False):
+                 search_factory=None, gpu: bool = False, upside_down: bool = False,
+                 track_confidence: float | None = None):
+        """``upside_down``: the person sits opposite the camera, so hands come in fingers down: the models are shown
+        every crop turned 180 degrees, hands upright (4 Nov, real footage: the longest dropout 11 -> 7 frames)."""
         follow = factory or (lambda: HandTracker(model_path, num_hands=1, min_confidence=min_confidence, infer_w=None,
-                                                 gpu=gpu))
+                                                 gpu=gpu, track_confidence=track_confidence))
         search = search_factory or (lambda: HandTracker(model_path, num_hands=2, min_confidence=min_confidence,
                                                          infer_w=None, image_mode=True, gpu=gpu))
+        self.upside_down = upside_down
         self._followers = [_Follower(follow()) for _ in range(num_hands)]
         self._search = search()
         self.search_per_frame = search_per_frame
@@ -867,12 +874,21 @@ class CropHandTracker:
     def _follow(self, f: _Follower, frame: Frame) -> HandPose | None:
         h, w = frame.image.shape[:2]
         x0, y0, s = self._square(f.centre, f.side, w, h)
-        poses = f.lm.poses(Frame(frame.image[y0:y0 + s, x0:x0 + s], frame.t_mono, frame.idx))
+        poses = self._look(f.lm, frame.image[y0:y0 + s, x0:x0 + s], frame)
         if not poses:
             return None
         p = poses[0].shifted(x0, y0)
         self._seen(f, p)
         return p
+
+    def _look(self, tracker, crop: np.ndarray, frame: Frame) -> list[HandPose]:
+        """Poses in ``crop``, crop px; the model sees it upright when hands come in upside down."""
+        if not self.upside_down:
+            return tracker.poses(Frame(crop, frame.t_mono, frame.idx))
+        h, w = crop.shape[:2]
+        found = tracker.poses(Frame(cv2.rotate(crop, cv2.ROTATE_180), frame.t_mono, frame.idx))
+        turn = np.array([-1.0, -1.0, 1.0])
+        return [HandPose((w, h) - p.img, p.world * turn, p.side, p.score) for p in found]
 
     def _seen(self, f: _Follower, p: HandPose) -> None:
         c = hand_centre(p.img)
@@ -932,8 +948,10 @@ class CropHandTracker:
         x0, y0, x1, y1 = max(0, tile[0]), max(0, tile[1]), min(w, tile[2]), min(h, tile[3])
         if x1 - x0 < 32 or y1 - y0 < 32:
             return []
+        side = max(x1 - x0, y1 - y0)  # square: MediaPipe's rotated hand box is only right on a square input
+        x0, y0, s = self._square(np.array([(x0 + x1) / 2, (y0 + y1) / 2]), side, w, h)
         self.searched += 1
-        found = self._search.poses(Frame(frame.image[y0:y1, x0:x1], frame.t_mono, frame.idx))
+        found = self._look(self._search, frame.image[y0:y0 + s, x0:x0 + s], frame)
         return [p.shifted(x0, y0) for p in found]
 
 

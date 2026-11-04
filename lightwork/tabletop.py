@@ -52,6 +52,7 @@ import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
+from .helper import Helper, asked_for_game
 from .guide import CHECK_PROMPT, CHECK_SCHEMA, PLAN_PROMPT, PLAN_SCHEMA, Guide, Seen, find_builtin, parse_plan, \
     plan_request_context, scale_plan
 from .geometry import apply_h
@@ -167,6 +168,18 @@ TYPE_MS_PER_CHAR = 28  # names type themselves in
 POINT_RECENT_S = 3.0  # a question is about what a fingertip pointed at within this long before it was heard ...
 POINT_NEAR = 60.0  # ... within this many design px of the object's outline
 ASKED_GLOW_S = 6.0  # the object asked about stays lit (green) this long after the answer
+LOOK_AFTER_ACK_S = 0.35  # the helper's look: frames this long after the page showed dark (games fade things out, 0.18 s)
+LOOK_FRAMES = 3  # averaged: games run the camera at a short exposure and a high gain
+LOOK_TRIES = 3  # frames that disagree (a truncated camera frame, a moving hand) are taken again this often
+LOOK_REUSE_S = 3.0  # a look this recent, with no hand seen since, is still what is on the table: no second blink
+LOOK_HANDS_WAIT_S = 1.5  # a look waits this long for hands to leave the page (the one that held the mic)
+LOOK_SCALE = 2  # px per design px of the picture the model gets: about what the camera has there
+LOOK_MOVED = 10.0  # mean grey levels of change over a thing's box between two looks: it moved, or something did on it
+SNAP_REACH = 30.0  # design px around a model's box where the object it means may lie (its boxes are off by up to 20)
+SNAP_DIFF = 28.0  # colour levels from the table around it that count as the object
+OUTLINE_GROW = 3.0  # design px SAM's box is grown by at most: the boxes are tight (Muse Wonder, then snap_box)
+OUTLINE_MIN_ROUND = 0.18  # 4 pi area / perimeter^2 of a mask's contour: below this it is the frayed table around the thing
+LOOK_LABELS = {"see": "SEEN", "plan": "PLAN", "locate": "FOUND", "check": "CHECKED", "answer": "ANSWER"}
 STATUS_CHARS = 44  # a status line holds about this many characters
 SWEEP_GAP_S = 12.0  # Muse Spark looks over the whole table at most this often ...
 SWEEP_IDLE_S = 3.0  # ... and, while a job still misses things, once the table has been still this long
@@ -1365,6 +1378,40 @@ class Scan:
     frames: list = field(default_factory=list)
 
 
+def snap_box(view: np.ndarray, box, scale: float) -> tuple[float, float, float, float] | None:
+    """The object a model's box means, found in the picture: the blob differing from the table around it that covers
+    most of the box. Design px, or None when the picture does not say (white on white, things touching, something
+    reaching out of the search area). 4 Nov: boxes off by 20 px put a ring beside an egg and cost SAM its mask."""
+    h, w = view.shape[:2]
+    x0, y0, x1, y1 = box
+    ax0, ay0 = max(0, int((x0 - SNAP_REACH) * scale)), max(0, int((y0 - SNAP_REACH) * scale))
+    ax1, ay1 = min(w, int((x1 + SNAP_REACH) * scale)), min(h, int((y1 + SNAP_REACH) * scale))
+    if ax1 - ax0 < 12 or ay1 - ay0 < 12:
+        return None
+    crop = view[ay0:ay1, ax0:ax1].astype(np.float32)
+    ring = np.concatenate([crop[:4].reshape(-1, 3), crop[-4:].reshape(-1, 3), crop[:, :4].reshape(-1, 3),
+                           crop[:, -4:].reshape(-1, 3)])
+    mask = (np.abs(crop - np.median(ring, axis=0)).max(axis=2) > SNAP_DIFF).astype(np.uint8) * 255
+    mask = cv2.morphologyEx(cv2.morphologyEx(mask, cv2.MORPH_CLOSE, _disk(3)), cv2.MORPH_OPEN, _disk(1))
+    n, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    bx0, by0, bx1, by1 = x0 * scale - ax0, y0 * scale - ay0, x1 * scale - ax0, y1 * scale - ay0
+    best, most = None, 0.0
+    for i in range(1, n):
+        sx, sy, sw, sh = (int(v) for v in stats[i][:4])
+        cover = max(0.0, min(sx + sw, bx1) - max(sx, bx0)) * max(0.0, min(sy + sh, by1) - max(sy, by0))
+        if cover > most:
+            best, most = (sx, sy, sw, sh), cover
+    if best is None:
+        return None
+    sx, sy, sw, sh = best
+    if sx <= 1 or sy <= 1 or sx + sw >= crop.shape[1] - 1 or sy + sh >= crop.shape[0] - 1:
+        return None  # it goes on beyond where the object can be: not one thing lying here
+    ratio = (sw * sh) / max((bx1 - bx0) * (by1 - by0), 1.0)
+    if not 0.3 <= ratio <= 3.5:
+        return None
+    return (ax0 + sx) / scale, (ay0 + sy) / scale, (ax0 + sx + sw) / scale, (ay0 + sy + sh) / scale
+
+
 def frames_agree(a: np.ndarray, b: np.ndarray) -> float:
     """Mean grey-level difference of two frames at 1/8 resolution."""
     size = (max(1, a.shape[1] // 8), max(1, a.shape[0] // 8))
@@ -1661,7 +1708,7 @@ class TableSession:
     def __init__(self, geo: Geo, frame_size: tuple[int, int], *, threshold: int = 28, min_area: int = 400,
                  page_mm: float | None = None, state_dir: Path | None = None, namer=None, outliner=None, link=None,
                  asker=None, task: BenchTask | None = None, plan=None, brain=None, voice: bool = False,
-                 planner_model: str | None = None, game: str | None = None):
+                 planner_model: str | None = None, game: str | None = None, mic_gate=None):
         self.namer = namer  # lightwork.namer: names each shown object once; None = no names
         self.asker = asker  # lightwork.asker: answers spoken questions about the table; None = none
         self.task = task  # lightwork.benchtask: what the job needs on the table; None = just name things
@@ -1729,10 +1776,21 @@ class TableSession:
         self._check_job: tuple | None = None  # (key, step number)
         self._job_n = 0
         self._pending_say: list[str] = []
-        self.dash.voice = voice
+        self.mic_gate = mic_gate  # lightwork.voice.capture.MicGate: only the helper tile's mic bubble opens it
+        self.dash.voice = voice and mic_gate is None
         self.games = GameHost(state_dir=state_dir, ask_guess=self._ask_guess if brain is not None else None,
-                              voice=voice)
+                              voice=voice and mic_gate is None, listens=voice, thinks=brain is not None)
         self._guess_job: tuple | None = None
+        self._look: Scan | None = None  # the helper tile's clean look under way
+        self._look_ask = None  # the model call it is for
+        self._look_tries = 0
+        self._look_img: np.ndarray | None = None  # the last one: the camera frame, with our light off ...
+        self._look_view: np.ndarray | None = None  # ... the page in it, rectified ...
+        self._look_jpeg: bytes | None = None  # ... as sent to the model
+        self._look_t = -1e9
+        self._boxes_img: np.ndarray | None = None  # the look the model's boxes come from (a check's look is not one)
+        self._helper_jobs: list[tuple] = []  # (key, ask, the tile that asked)
+        self._outlining: set[int] = set()  # things SAM is outlining for the helper tile
         self.set_geo(geo, None)
         if plan is not None:
             self._pending_say += self.start_guide(plan, time.monotonic())
@@ -1823,7 +1881,7 @@ class TableSession:
         self._game_prev = {**{k: v for k, v in prev.items() if now - v[0] <= 0.35}, **fresh}
         return points, segments
 
-    def _game_step(self, now: float, dt: float) -> tuple[list[str], list[str]]:
+    def _game_step(self, now: float, dt: float, frame=None) -> tuple[list[str], list[str]]:
         slots = self._game_slots()
         tips = [s.tip for s in slots]
         fired = self.dash.step(tips, now, dt)
@@ -1854,6 +1912,8 @@ class TableSession:
         if not self.games.active:  # OBJECTS picked on the menu: the object board
             lines = [line for line in lines if not line.startswith("Object board")] + self._leave_games(now)
         self._guess_done(now)
+        if isinstance(self.games.game, Helper):
+            lines += self._helper_step(frame, now)
         game = self.games.game
         if game is not None and game.say:
             lines += game.say
@@ -1904,6 +1964,211 @@ class TableSession:
                 seen[s.k] = s.shape.name
                 fingers = " ".join(f"{b:.0f}/{r:.2f}" for b, r in finger_bends(s.pose))
                 self.log.append(f"hand {s.side or '?'}: {s.shape.name or 'no shape'} (fingers {fingers})")
+
+    # ---- the general helper tile (lightwork.helper): its clean looks and model calls
+
+    def _helper_hears(self, g: Helper, q: str, now: float) -> list[str]:
+        """A sentence said at the helper tile. A game (or the menu) starts at once, a command acts at once; anything
+        else is collected until the person has finished talking, and goes to the model."""
+        tile = asked_for_game(q)
+        if tile is not None:
+            self.log.append(f"helper: {q!r} starts {tile}")
+            self.sfx.append("press")
+            self._look, self._look_ask = None, None
+            say = self.games.start(tile, now)
+            if not self.games.active:  # the object board
+                say = [line for line in say if not line.startswith("Object board")] + self._leave_games(now)
+            return say
+        verb = command_of(q.lower())
+        if verb is None:
+            g.heard(q, now)
+            return []
+        g.dealt_with()  # a bare "next" is never a job, whatever the state
+        if g.command(verb, now):
+            self.sfx.append("press")
+        say, g.say = g.say, []
+        return say
+
+    def _helper_step(self, frame, now: float) -> list[str]:
+        """One frame of the tile: lines to say. Takes the clean look it wants, makes its model calls on the worker, and
+        hands back what comes in."""
+        g = self.games.game
+        if g.start_game is not None:  # the model read a game out of what was said
+            key, g.start_game = g.start_game, None
+            self.sfx.append("press")
+            self._look, self._look_ask = None, None
+            self.log.append(f"helper: the model says it's {key}")
+            return self.games.start(key, now)
+        if g.hush:  # the person is about to talk, or moved on: stop the phone (the mic stays muted while it speaks)
+            g.hush = False
+            if self.link is not None and hasattr(self.link, "say"):
+                self.link.say("", "interrupt")
+        self._helper_outlines(g, now)
+        self._helper_replies(g, now)
+        if self._look is not None:
+            img = self._look_step(frame, now)
+            if img is not None:
+                self._look_img, self._look_t = img, now
+                self._look_jpeg = self._page_view(img)
+                ask, self._look_ask = self._look_ask, None
+                if ask.epoch == g.epoch:  # still wanted
+                    self._helper_look_done(g, ask, now)
+        elif g.want is not None:
+            ask = g.want
+            recent = now - self._look_t < LOOK_REUSE_S and self.last_hand_t < self._look_t
+            if not ask.look or (recent and ask.role != "check"):  # a check judges what is there now, whatever it costs
+                g.want = None
+                self._helper_look_done(g, ask, now)
+            elif not self._game_slots() or now - g.want_t >= LOOK_HANDS_WAIT_S:
+                g.want = None
+                self._look, self._look_ask, self._look_tries = Scan("helper", now), ask, 0
+                self.sfx.append("scan")
+        self.log += g.log
+        g.log = []
+        return []
+
+    def _helper_look_done(self, g: Helper, ask, now: float) -> None:
+        """The picture for ``ask`` is there: to the model, unless it only asks where things are and they did not move
+        since the model last said so."""
+        if ask.role == "locate" and g.parts_known and self._unmoved(self._boxes_img, self._look_img, g.lit):
+            g.answered(ask, {"found": []}, None, now, by="(nothing moved: no model call)")
+            return
+        if ask.role in ("see", "locate"):
+            self._boxes_img = self._look_img
+        self._helper_submit(g, ask, now)
+
+    def _look_step(self, frame, now: float) -> np.ndarray | None:
+        """Like a scan: everything we draw has gone dark (see ``scene``), the page's ACK is waited for, then a few frames
+        are averaged. Without an ACK it looks anyway: the model is told to ignore our light, and a helper that stops
+        over a slow page is worse than a picture with a line of light in it."""
+        s = self._look
+        if s.clean_after is None:
+            if self.link is None:
+                s.clean_after = s.t0 + SCAN_NO_LINK_S
+            else:
+                if s.target is None:  # the dark scene went out after the previous step
+                    s.target = self.link.version()
+                acked = self.link.acked_at(s.target)
+                if acked is not None:
+                    s.clean_after = acked + LOOK_AFTER_ACK_S
+                elif now - s.t0 > SCAN_ACK_TIMEOUT_S:
+                    s.clean_after = now
+                    self.log.append("helper: the page did not show the dark table in time; looking anyway")
+                else:
+                    return None
+        if frame.t_mono < s.clean_after:
+            return None
+        s.frames.append(frame.image)
+        if len(s.frames) < LOOK_FRAMES:
+            return None
+        if frames_agree(s.frames[0], s.frames[-1]) > SCAN_AGREE and self._look_tries < LOOK_TRIES:
+            self._look_tries += 1
+            s.frames = []
+            return None
+        self._look = None
+        return np.mean(np.stack(s.frames), axis=0).astype(np.uint8)
+
+    def _unmoved(self, before: np.ndarray | None, img: np.ndarray, things: list) -> bool:
+        """Between two clean looks, nothing changed where these things lie: they stay where the model last saw them
+        (its boxes vary by a few per cent of the view from one call to the next, 4 Nov: a bowl that never moved jumped by
+        25 px between two calls)."""
+        if before is None or before.shape != img.shape or not things:
+            return False
+        diff = cv2.absdiff(cv2.cvtColor(before, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+        fw, fh = self.frame_size
+        for t in things:
+            x0, y0, x1, y1 = t.box
+            cam = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+            (cx0, cy0), (cx1, cy1) = np.floor(cam.min(axis=0)).astype(int), np.ceil(cam.max(axis=0)).astype(int)
+            patch = diff[max(0, cy0):min(fh, cy1), max(0, cx0):min(fw, cx1)]
+            if patch.size == 0 or float(patch.mean()) > LOOK_MOVED:
+                return False
+        return True
+
+    def _page_view(self, img: np.ndarray) -> bytes | None:
+        """The projected page in the picture, rectified: upright for the person and in design coordinates, so a box on
+        the model's 0-1000 grid is a design-px box; only the table, never the room. The table made white again: a warm
+        room light turned every object orange."""
+        corners = np.float32(self.geo.d2c([(0, 0), (DESIGN_W, 0), (DESIGN_W, DESIGN_H), (0, DESIGN_H)]))
+        w, h = int(DESIGN_W * LOOK_SCALE), int(DESIGN_H * LOOK_SCALE)
+        m = cv2.getPerspectiveTransform(corners, np.float32([(0, 0), (w, 0), (w, h), (0, h)]))
+        view = cv2.warpPerspective(img, m, (w, h), flags=cv2.INTER_LINEAR).astype(np.float32)
+        white = np.median(view.reshape(-1, 3)[::97], axis=0)
+        view = view * np.clip(225.0 / np.maximum(white, 1.0), 0.7, 2.5)
+        self._look_view = np.clip(view, 0, 255).astype(np.uint8)
+        ok, buf = cv2.imencode(".jpg", self._look_view, [cv2.IMWRITE_JPEG_QUALITY, 88])
+        return buf.tobytes() if ok else None
+
+    def _helper_submit(self, g: Helper, ask, now: float) -> None:
+        g.want = None
+        if self.brain is None or self.jobs is None:
+            g.answered(ask, None, "no model", now)
+            return
+        brain = self.brain
+        jpegs = [self._look_jpeg] if self._look_jpeg is not None else []
+        self._job_n += 1
+        key = ("helper", self._job_n)
+        if self.jobs.submit(key, lambda: brain.ask(f"helper-{ask.role}", ask.prompt, jpegs, schema=ask.schema,
+                                                   effort=ask.effort, max_out=ask.max_out, timeout_s=ask.timeout_s)):
+            self._helper_jobs.append((key, ask, g))
+        else:
+            g.answered(ask, None, "the worker is busy", now)
+
+    def _helper_replies(self, g: Helper, now: float) -> None:
+        for job in list(self._helper_jobs):
+            key, ask, owner = job
+            done, reply, err = self.jobs.result(key)
+            if not done:
+                continue
+            self._helper_jobs.remove(job)
+            if owner is not g:
+                continue
+            by = "" if reply is None else f"({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)"
+            g.answered(ask, None if reply is None else reply.data, err, now, by=by)
+            if ask.role in ("see", "locate") and self._look_view is not None:  # before SAM gets the boxes
+                for t in g.want_outlines:
+                    snapped = snap_box(self._look_view, t.box, LOOK_SCALE)
+                    if snapped is not None:
+                        g.place(t, snapped)
+            if err is None and reply is not None:
+                self.dash.notify(f"{LOOK_LABELS[ask.role]} BY {model_tag(reply.model, reply.provider)} · "
+                                 f"{reply.ms / 1000:.0f} S", now, "done")
+
+    def _helper_outlines(self, g: Helper, now: float) -> None:
+        """SAM 3.1 outlines of the things the model found, asked for with its boxes barely grown. With too much table
+        in the box SAM outlines the table: 4 Nov, true boxes of a composed Lego table grown by 2 / 8 / 18 design px gave
+        a 2x4 brick IoU 0.87 / 0.64 / 0.06, and the more the table the worse, whatever the object's size."""
+        if self.outliner is None or self._look_img is None:
+            g.want_outlines = []
+            return
+        if g.want_outlines:
+            objects = []
+            for t in g.want_outlines:
+                x0, y0, x1, y1 = t.box
+                pad = min(0.3 * max(x1 - x0, y1 - y0), OUTLINE_GROW)
+                cam = self.geo.d2c([(x0 - pad, y0 - pad), (x1 + pad, y0 - pad), (x1 + pad, y1 + pad), (x0 - pad, y1 + pad)])
+                (cx0, cy0), (cx1, cy1) = np.floor(cam.min(axis=0)), np.ceil(cam.max(axis=0))
+                fw, fh = self.frame_size
+                objects.append((t.uid, (int(max(0, cx0)), int(max(0, cy0)), int(min(fw, cx1 + 1)), int(min(fh, cy1 + 1)))))
+            if self.outliner.request(self._look_img, objects):
+                self._outlining |= {uid for uid, _ in objects}
+                for t in g.want_outlines:
+                    t.asked = True
+                g.want_outlines = []
+        for uid in list(self._outlining):
+            done, contour = self.outliner.result(uid)
+            if not done:
+                continue
+            self._outlining.discard(uid)
+            if contour is None:
+                continue
+            c32 = np.asarray(contour, np.float32)
+            perimeter = cv2.arcLength(c32, True)
+            if perimeter <= 0 or 4 * math.pi * cv2.contourArea(c32) / perimeter ** 2 < OUTLINE_MIN_ROUND:
+                self.log.append(f"helper: SAM's outline of {uid} is frayed: the table, not the thing; kept the box")
+                continue
+            page = offset_outline(apply_h(self.geo.H, contour), PAD_PAGE)
+            g.outlined(uid, [self.geo.p2d(p) for p in page])
 
     @property
     def _bench(self) -> BenchTask | None:
@@ -2183,6 +2448,8 @@ class TableSession:
         self.geo = geo
         self.dash.geo = geo
         self.slots.geo = geo
+        self._look, self._look_ask, self._look_img, self._look_t = None, None, None, -1e9  # taken with the old mapping
+        self._boxes_img = None
         if self.state_dir is not None and not self.page_mm:
             self.card = load_card_scale(self.state_dir, geo.page_w, geo.page_h)
         old = self.zone
@@ -2224,6 +2491,8 @@ class TableSession:
         may still see a calibration pattern)."""
         say: list[str] = []
         self._n += 1
+        if self.mic_gate is not None:
+            self.mic_gate.set_open(isinstance(self.games.game, Helper) and self.games.game.mic_open)
         self.slots.update(poses, now, frame.t_mono)
         if poses:
             self.last_hand_t = now
@@ -2232,11 +2501,15 @@ class TableSession:
         tips = self.slots.tips()
         if tips:
             self._tips_seen = (now, tips)
+        timers = self.games.timers  # they run whatever is on the table
+        self._pending_say += timers.update(now, tips, min(max(dt, 0.0), 0.1))
+        self.sfx += timers.sfx
+        timers.sfx = []
         if self._first_game is not None:
             self._pending_say += self.start_game(self._first_game, now)
             self._first_game = None
         if self.games.active:
-            return self._game_step(now, dt)
+            return self._game_step(now, dt, frame)
         fired = self.dash.step(tips, now, dt)
         if fired:
             self.sfx.append("press")
@@ -2629,6 +2902,16 @@ class TableSession:
             return []
         self.dash.notify(f"HEARD: {q.upper()}"[:STATUS_CHARS], now)
         low = q.lower()
+        timers = self.games.timers
+        said = timers.hear(q, now)
+        if said is not None:
+            self.sfx += timers.sfx
+            timers.sfx = []
+            if isinstance(self.games.game, Helper):
+                self.games.game.dealt_with()
+            return said
+        if isinstance(self.games.game, Helper):
+            return self._helper_hears(self.games.game, q, now)
         was_playing = self.games.active
         said = self.games.hear(q, now)
         if said is not None:
@@ -2806,6 +3089,8 @@ class TableSession:
                 x0, y0, x1, y1 = rect
                 return not self._in_region(g.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
         if self.games.active:
+            if self._look is not None:  # the helper tile looks at the table: nothing of ours in the picture
+                return []
             self.dash.lines = self.games.hud(now)
             return self.dash.game_scene(self.slots, now, self.games.draw,
                                         cursors=not getattr(self.games.game, "draws_hands", False))
@@ -2817,6 +3102,15 @@ class TableSession:
         else:
             self.dash.views, self.dash.extra = {}, None
             self.dash.lines = None
+        if self.games.timers.active:  # on the object board too; a scan draws no extras, and what we draw is masked
+            below = self.dash.extra
+
+            def extra(c, t) -> None:
+                if callable(below):
+                    below(c, t)
+                self.games.timers.draw(c, t)
+
+            self.dash.extra = extra
         if self._plan_job is not None:
             self.dash.lines = (("PLANNING: " + self._plan_job[1].upper())[:STATUS_CHARS], "ONE MOMENT...", "info")
         prims, lit = self.dash.scene(self.zone, self.tracks.tracks, self.slots, self.scale, now,

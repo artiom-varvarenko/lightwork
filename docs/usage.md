@@ -97,6 +97,21 @@ uv run lightwork play --table --rotate 180 --names meta \
 - **Questions** (`--voice`): open `/screen` on the laptop and press Start for the microphone (Muse Voice Transcribe). Point at an object and ask "what is this?"; Muse Spark answers through the projector phone. "What's missing?" is answered from the checklist without a model call.
 - Model calls are recorded under `.lightwork/play-calls/` and held to `LW_BUDGET_USD`.
 
+### General helper (the menu's GENERAL HELPER tile)
+
+Say what you want; it looks at the table, asks only what it cannot see, and walks you through the job on the real objects.
+
+```sh
+uv run lightwork play --table --rotate 180 --names meta --no-hand-check --voice --game menu
+```
+
+- **The microphone** (`--voice` with `--game`) is open only while a fingertip is on the tile's mic bubble, so talk at the table goes nowhere and games never listen.
+- **Games**: "start rock paper scissors", "let's start the catch light game", "back to the menu". They start at once, with no model call. Ordinary words stay a job: "help me follow the manual" is no game.
+- **Jobs**: "help me build this Lego", "what can I cook with this?". The table goes dark for about half a second, the camera takes a clean picture of the projected page (rectified, the table white-balanced, the room left out) and Muse Spark names what is there. It counts what it can count and asks the rest: how many grams are in the bowl, what to build when nothing shows it, at most three questions. A manual page or a picture of the finished thing lying on the table is read through the camera; the camera has about 1.6 px per mm over the table, so big step pictures work and fine print does not.
+- **Steps**: the text on the table; what to take outlined in cyan and where it goes in green (SAM 3.1), with an arrow between them. Hold NEXT or BACK, or say "next", "back", "repeat", "stop". A "do" step with a question for the camera is checked once your hands are away (or say "check"), and moves on when the model sees it done; "add" steps count your trips to the target; "timer" steps run a ring. NEXT always overrides. Any other sentence during a step is answered out loud; "help me ..." starts a new job.
+- **Timers**: "set a timer for 30 minutes for the oven", "start a stopwatch", "how long is left?", "add 5 minutes", "cancel the timer", at the mic bubble, with no model call. A clock stays along the near edge of the page on every tile while you carry on. One that is up flashes and beeps until you say "stop" or hold a finger on it; a stopwatch stops under a held finger. A job's oven step starts its clock when you hold NEXT, and the job moves on.
+- **Models**: Muse Wonder (`muse-wonder-1.0`) sees, plans and checks, SAM 3.1 outlines, Muse Voice Transcribe listens. The status line says who answered (`SEEN BY MUSE-WONDER-1.0 · 6 S`). Every call is recorded under `.lightwork/play-calls/`.
+
 ### Guided jobs (`--do`, or ask out loud)
 
 The table is a general workbench helper: tell it what you are doing and it walks you through it on the real objects.

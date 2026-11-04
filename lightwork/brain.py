@@ -3,7 +3,7 @@
 Two backends behind one small interface (:meth:`Brain.ask`: a prompt plus images in, text or JSON out):
 
 ``MetaBrain``
-    Meta Model API (Muse Spark, Muse Wonder) through :class:`lightwork.models.client.ModelClient`: recorded under the
+    Meta Model API (Muse Wonder by default, or Muse Spark) through :class:`lightwork.models.client.ModelClient`: recorded under the
     session's call directory and held to the ``LW_BUDGET_USD`` cap. JSON answers use strict structured output.
 ``OpenBrain``
     Meta's open-weight models served by the hackathon's inference partners or on our own hardware, through their
@@ -46,7 +46,9 @@ from urllib.parse import urlsplit
 
 import httpx
 
-META_DEFAULT = "muse-spark-1.3"
+# Measured 4 Nov on the general helper's prompts (composed scenes and a real scan): Muse Wonder's boxes were about 1 px
+# from the object where Muse Spark's were 28-45 px off, at the same speed or faster, for 3 to 4 times the price per call.
+META_DEFAULT = "muse-wonder-1.0"
 OPEN_ORDER = ("baseten", "fireworks", "modal", "local")
 COOLDOWN_S = 60.0  # a provider that failed is skipped this long
 OPEN_MODEL_RE = re.compile(r"(?i)(muse[-_ ]?spark[-_ ]?open|glimmer)")
