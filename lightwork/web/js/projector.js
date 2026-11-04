@@ -8,6 +8,7 @@ import { openSocket } from './link.js';
 import * as sfx from './sfx.js';
 import { Speaker } from './tts.js';
 import { syncMap } from './tablemap.js';
+import { syncSolid } from './solid.js';
 
 const PROJ_W = 854; // DLP native resolution (rig brief §1); line and text sizes are set in projector px
 const PROJ_H = 480;
@@ -215,6 +216,7 @@ function draw(ts) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const live = !linkLost && scene && scene.mode === 'normal' && calib;
   syncMap(live ? (scene.prims || []).find((q) => q.kind === 'map') || null : null, live ? calib.map : null, W, H, rotate);
+  const building = syncSolid(live ? (scene.prims || []).find((q) => q.kind === 'solid') || null : null, live ? calib.map : null, W, H, rotate);
   if (linkLost) {
     drawLinkLost();
     return;
@@ -248,7 +250,7 @@ function draw(ts) {
     ackedSeq = scene.seq;
     setTimeout(() => sock.send(ack), 0);
   }
-  if (animating) requestDraw();
+  if (animating || building) requestDraw();
 }
 
 function drawLinkLost() {

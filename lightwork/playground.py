@@ -136,11 +136,13 @@ class Canvas:
         corners = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
         self.prims.append(render.Picture(id=id, src=src, corners=self._xy(corners), **fx))
 
-    def wire(self, id: str, src: str, at, unit: float, yaw: float, tilt: float, **fx) -> None:
-        """A served wireframe: its middle at ``at``, one model unit ``unit`` design px, seen turned and from above."""
-        o, x, y = self._xy(self.geo.d2c([at, (at[0] + unit, at[1]), (at[0], at[1] - unit)]))
-        self.prims.append(render.Wire3D(id=id, src=src, origin=o, ex=x, ey=y, yaw=round(float(yaw), 4),
-                                        tilt=round(float(tilt), 4), **fx))
+    def solid(self, id: str, src: str, rect, yaw: float, tilt: float, dist: float, target, **fx) -> None:
+        """A served 3D model over a design-px rect. ``fx``: ``cut``, ``cut_axis``, ``only``, ``draw_ms``."""
+        x0, y0, x1, y1 = rect
+        corners = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+        self.prims.append(render.Solid3D(id=id, src=src, corners=self._xy(corners), yaw=round(float(yaw), 4),
+                                         tilt=round(float(tilt), 4), dist=round(float(dist), 4),
+                                         target=[round(float(v), 4) for v in target], **fx))
 
     def map_view(self, id: str, rect, center, zoom: float, bearing: float, pitch: float, flight: int = 0,
                  fly_ms: int = 0) -> None:

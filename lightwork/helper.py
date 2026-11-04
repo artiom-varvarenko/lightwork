@@ -53,18 +53,20 @@ MAP_PITCH = 62.0  # degrees: tall buildings stand up
 ORBIT_DEG_S = 2.0  # the view turns slowly while nobody holds the map
 TILE_PX = 512.0  # the map's world is this many px wide at zoom 0
 PLACE_ZOOM = (3.0, 18.0)
-MODEL_C = (346.0, 214.0)  # design px: the middle of the work area
-MODEL_R = 140.0  # design px per model unit at zoom 1: the model is within -1 to 1
+MODEL_RECT = (112.0, 70.0, 620.0, 358.0)  # design px: the work area, less the slicing bar beside it
+SLICE_X, SLICE_Y = 88.0, (106.0, 350.0)  # the slicing bar: far end all cut away, near end the whole thing
+SLICE_GRAB = 38.0  # design px from the bar: a pinch this close takes it
+MODEL_FOV = 35.0  # degrees, as in web/js/solid.js
+MODEL_MARGIN = 1.08  # a model or a part fills this much less than the whole view
+GLIDE_S = 0.35  # the camera goes to a part it is asked to show in about three times this long
 TURN_PER_PX = 0.012  # radians of turn per design px dragged
 TILT_PER_PX = 0.008
 TILT_TALL, TILT_WIDE = 0.15, 0.4  # how far from above it is first seen: a tower from nearly level, a car from above
 TILT_RANGE = (-0.4, 1.35)  # from a little below to nearly straight down: never upside down
-ZOOM_RANGE = (0.45, 2.4)
-IDLE_SPIN = 0.35  # radians per second while nobody holds it: a still wireframe does not read as 3D
+ZOOM_RANGE = (0.45, 14.0)  # past about 5 the camera is inside it
+IDLE_SPIN = 0.35  # radians per second while nobody holds it: a still model does not read as 3D
 SPIN_DECAY_S = 1.2  # what a drag gave it runs out in about this long, back to the idle spin
 DRAG_JUMP = 90.0  # design px in one frame: the tracker jumped, not the hand
-MAX_WIRE_POINTS = 700  # all polylines together: a scene goes out 30 times a second
-MAX_WIRE_LINES = 90
 PIC_W, PIC_H = 345.0, 230.0  # design px, 38 x 25 cm on the table: Muse Image's 3:2
 NOTE_CHARS = 22  # characters per line of an answer's notes: beside a book and a picture there is no room for more
 MAX_NOTE_LINES = 3
@@ -96,8 +98,14 @@ GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manu
 BOARD_WORDS = ("object board", "objects board")
 MENU_WORDS = ("menu", "go home", "go back home")
 TAKE_ME = re.compile(r"^(?:(?:please|can you|could you|lightwork|hey|ok|okay|now) )*(?:take me to|fly me to|fly to|let's go to|lets go to) (?:the )?(.+)$")
-SHOW_ME = re.compile(r"^(?:(?:please|can you|could you|lightwork|hey|ok|okay|now) )*show me (?:a |an |the |some )?(.+)$")
-NOT_A_THING = ("how", "what", "where", "why", "when", "which", "who", "this", "that", "these", "those", "my", "it", "me",
+SHOW_ME = re.compile(r"^(?:(?:please|can you|could you|just|lightwork|hey|ok|okay|now) )*show me (?:a |an |the |some )?(.+)$")
+SHOW_PART = re.compile(r"^(?:(?:please|can you|could you|just|lightwork|hey|ok|okay|now) )*(?:show me|show|where is|where's|look at|"
+                       r"only|just) (?:a |an |the |its |it's )?(.+)$")
+SLICE_WORDS = ("slice", "cut it", "cut open", "open it", "cross section", "cross-section", "see inside", "show me inside",
+               "show me the inside", "look inside", "go inside")
+WHOLE_WORDS = ("put it back", "back together", "whole", "show everything", "show me everything", "show all", "all of it",
+               "close it", "no slice", "stop slicing", "everything")
+NOT_A_THING = ("how", "what", "where", "inside", "why", "when", "which", "who", "this", "that", "these", "those", "my", "it", "me",
                "more", "something", "around", "next", "again", "step", "steps", "manual", "book", "page", "table", "map")
 NEW_JOB_WORDS = ("help me", "i want", "i'd like", "id like", "let's", "lets", "new job", "something else", "instead")
 
@@ -178,7 +186,8 @@ The person said: "{request}"{history}
 Work out what they want and what is on the table for it. Reply with JSON:
 - "intent": "job" if they want to do or make something at the table and need steps. "question" if they want to know or \
 understand something, about what lies on the table or about anything else. "model" if they want to see a thing in 3D \
-("show me a bicycle"). "place" if they want to see a place on a map ("take me to Paris"). "game" if they want to play \
+("show me a bicycle"), or ask you to build or make a thing and nothing on the table could make it ("build me a ship" on \
+an empty table). "place" if they want to see a place on a map ("take me to Paris"). "game" if they want to play \
 one of the table's games.
 - "game": if they want to play one of the table's games, its key: "catch" (catch the light), "follow" (follow the \
 lights), "draw" (draw and guess), "rps" (rock paper scissors). Otherwise "none".
@@ -378,66 +387,6 @@ class Step:
 class Job:
     title: str
     steps: tuple[Step, ...]
-
-
-@dataclass(frozen=True)
-class Wire:
-    """A 3D wireframe from the model: polylines of x, y, z, centred and within -1 to 1, z up."""
-
-    name: str
-    lines: tuple[np.ndarray, ...]
-
-    @property
-    def points(self) -> int:
-        return sum(len(line) for line in self.lines)
-
-
-def parse_wire(data, subject: str = "") -> Wire | None:
-    """A model's wireframe, centred and scaled to -1..1 and thinned to what a scene can carry; None when it is no
-    drawing: too few usable lines, or everything in one spot."""
-    if not isinstance(data, dict) or not isinstance(data.get("lines"), list):
-        return None
-    lines = []
-    for raw in data["lines"][:MAX_WIRE_LINES]:
-        if not isinstance(raw, list):
-            continue
-        pts = []
-        for p in raw:
-            if isinstance(p, (list, tuple)) and len(p) >= 3 and all(
-                    isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in p[:3]):
-                pts.append([float(v) for v in p[:3]])
-        if len(pts) >= 2:
-            lines.append(np.asarray(pts, dtype=np.float64))
-    if len(lines) < 3:
-        return None
-    every = np.concatenate(lines)
-    low, high = every.min(axis=0), every.max(axis=0)
-    size = float((high - low).max())
-    if size < 1e-6:
-        return None
-    centre, scale = (low + high) / 2, 2.0 / size
-    lines = [(line - centre) * scale for line in lines]
-    total = sum(len(line) for line in lines)
-    if total > MAX_WIRE_POINTS:
-        keep = MAX_WIRE_POINTS / total
-        lines = [line[np.unique(np.linspace(0, len(line) - 1, max(2, round(len(line) * keep))).round().astype(int))]
-                 for line in lines]
-    name = _clean(data.get("name"), 28) or subject or "model"
-    return Wire(name=name, lines=tuple(lines))
-
-
-def project(line: np.ndarray, yaw: float, tilt: float, zoom: float, centre=MODEL_C, perspective: float = 3.5
-            ) -> tuple[np.ndarray, float]:
-    """A wireframe line on the table, seen turned by ``yaw`` about its upright and from ``tilt`` above: design px, and how
-    far back it lies on average (> 0: behind the middle)."""
-    cy, sy = math.cos(yaw), math.sin(yaw)
-    ct, st = math.cos(tilt), math.sin(tilt)
-    x = line[:, 0] * cy - line[:, 1] * sy
-    y = line[:, 0] * sy + line[:, 1] * cy
-    up = y * st + line[:, 2] * ct
-    depth = y * ct - line[:, 2] * st
-    f = perspective / (perspective + depth)
-    return np.column_stack([centre[0] + MODEL_R * zoom * f * x, centre[1] - MODEL_R * zoom * f * up]), float(depth.mean())
 
 
 @dataclass(frozen=True)
@@ -645,12 +594,17 @@ class Helper(Game):
         self.reply_role = "info"
         # a 3D model
         self.subject = ""
-        self.wire: Wire | None = None
-        self.wire_src: str | None = None  # the served wireframe: the page draws it (without one, it goes as lines in the scene)
+        self.model: dict | None = None  # lightwork.wireframe.serve's: name, src, half, parts
         self.yaw, self.tilt, self.zoom, self.spin = 0.6, 0.4, 1.0, IDLE_SPIN
+        self.target = [0.0, 0.0, 0.0]  # what the camera looks at, model units
+        self.fit_dist = 4.0  # from how far the whole model fills the view, model units; zoom 1
+        self._glide: tuple | None = None  # (target, zoom) the camera is on its way to
+        self.cut = 0.0  # 0 the whole thing, 1 all sliced away
+        self.only = ""  # the one part left solid
+        self._slicer: int | None = None  # the hand holding the slicing bar
         self.pens: list = []  # this frame's
         self._drag: tuple[int, tuple[float, float]] | None = None  # (hand, where it was last frame)
-        self._zoom_from: tuple[float, float] | None = None  # (distance between the hands, zoom) when both pinched
+        self._zoom_from: tuple | None = None  # (distance between the hands, zoom, their middle, target) when both pinched
         # a 3D map
         self.map_place: Place | None = None
         self.map_at = (0.0, 20.0)  # lon, lat of its centre
@@ -764,7 +718,7 @@ class Helper(Game):
     def go_to(self, place: str, now: float) -> None:
         """Have the model find a place on the map."""
         self.epoch += 1
-        self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
+        self.request, self.qa, self.manual, self.job_name, self.job, self.model = "", [], "", "", None, None
         self.parts, self.reply, self.things, self.want_outlines, self.map_place = [], "", [], [], None
         self._clear_answer()
         self.subject = _clean(place, 40)
@@ -832,8 +786,7 @@ class Helper(Game):
     def show_model(self, subject: str, now: float) -> None:
         """Have the model draw a thing as lines (or, for one drawn before, the session answers from its cache)."""
         self.epoch += 1
-        self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
-        self.wire_src = None
+        self.request, self.qa, self.manual, self.job_name, self.job, self.model = "", [], "", "", None, None
         self.parts, self.reply, self.things, self.want_outlines = [], "", [], []
         self._clear_answer()
         self.subject = _clean(subject, 40)
@@ -947,36 +900,97 @@ class Helper(Game):
         self._dirty = True
 
     def _on_model(self, data: dict, now: float) -> None:
-        wire = parse_wire(data, self.subject)
-        if wire is None:
+        if not (isinstance(data.get("src"), str) and isinstance(data.get("half"), list) and data.get("parts")):
             self._failed(Ask("model", "", {}), now)
             return
-        self.wire = wire
-        self.wire_src = data.get("src")
+        self.model = data
         self.state = "model"
-        every = np.concatenate(wire.lines)
-        tall = float(np.ptp(every[:, 2])) >= 0.9 * float(np.ptp(every, axis=0).max())
-        self.yaw, self.tilt, self.zoom, self.spin = 0.6, TILT_TALL if tall else TILT_WIDE, 1.0, IDLE_SPIN
-        self._drag, self._zoom_from = None, None
-        raw = [line for line in data["lines"] if isinstance(line, list)]
-        self.log.append(f"helper: {wire.name}: {len(raw)} lines, {sum(max(len(n) - 1, 0) for n in raw)} segments")
-        self.say.append(f"Here's {_with_article(self.subject)}. Pinch and drag to turn it.")
+        half = data["half"]
+        self.yaw, self.tilt, self.zoom, self.spin = 0.6, TILT_TALL if half[2] >= 0.9 * max(half) else TILT_WIDE, 1.0, IDLE_SPIN
+        self.target, self.cut, self.only = [0.0, 0.0, 0.0], 0.0, ""
+        self.fit_dist = self._dist_to_fit(half)
+        self._drag, self._zoom_from, self._slicer, self._glide = None, None, None, None
+        self.log.append(f"helper: {data.get('name')}: parts {data['parts']}, {data.get('triangles')} triangles, "
+                        f"{data.get('lines')} lines")
+        self.say.append(f"Here's {_with_article(self.subject)}. Pinch and drag to turn it, or slice it with the bar on the left.")
         self.sfx.append("answer")
         self._dirty = True
 
+    @staticmethod
+    def _dist_to_fit(half) -> float:
+        """How far back the camera has to be for something of this half size to fit the view, whichever way it is turned."""
+        t = math.tan(math.radians(MODEL_FOV) / 2)
+        aspect = (MODEL_RECT[2] - MODEL_RECT[0]) / (MODEL_RECT[3] - MODEL_RECT[1])
+        return MODEL_MARGIN * max(half[2] / t, math.hypot(half[0], half[1]) / (t * aspect), 0.05) + 0.35 * max(half)
+
+    def _go_to_part(self, name: str) -> None:
+        """The camera goes to a part, and the rest fades: it is inside something, usually."""
+        box = (self.model.get("boxes") or {}).get(name)
+        if box is None:
+            return
+        self._glide = (list(box[:3]), min(max(self.fit_dist / self._dist_to_fit(box[3:]), ZOOM_RANGE[0]), ZOOM_RANGE[1]))
+
+    def _glide_step(self, dt: float) -> None:
+        if self._glide is None:
+            return
+        target, zoom = self._glide
+        k = min(dt / GLIDE_S, 1.0)
+        self.target = [a + (b - a) * k for a, b in zip(self.target, target)]
+        self.zoom += (zoom - self.zoom) * k
+        if abs(self.zoom - zoom) < 0.01 * zoom and max(abs(a - b) for a, b in zip(self.target, target)) < 0.005:
+            self.target, self.zoom, self._glide = list(target), zoom, None
+
+    @property
+    def cut_axis(self) -> int:
+        """It is sliced along its longest side."""
+        half = self.model["half"]
+        return max(range(3), key=lambda k: half[k])
+
+    @property
+    def cut_at(self) -> float | None:
+        """Where the slicing plane is along the axis, model units; None: not cut."""
+        if self.cut <= 0.005:
+            return None
+        h = self.model["half"][self.cut_axis] * 1.02
+        return h - self.cut * 2 * h
+
+    def _take_slicer(self, down: list):
+        """The hand on the slicing bar, if any: a hand already turning the model passing over it does not take it."""
+        held = next((p for p in down if p.hand == self._slicer), None)
+        if held is not None:
+            return held
+        self._slicer = None
+        turning = self._drag[0] if self._drag is not None else None
+        for p in down:
+            if p.hand != turning and abs(p.at[0] - SLICE_X) <= SLICE_GRAB and SLICE_Y[0] - 20 <= p.at[1] <= SLICE_Y[1] + 20:
+                self._slicer = p.hand
+                return p
+        return None
+
     def _turn(self, pens, dt: float) -> None:
-        """One hand pinched turns the model, both zoom it; let go and it runs on for a moment, then turns slowly."""
+        """One hand pinched turns it, one on the bar slices it, both zoom in and move: far enough and you are inside. Let
+        go and it runs on for a moment, then turns slowly, unless it is cut or you are close: then it stays as you left it."""
+        self._glide_step(dt)
         down = [p for p in pens if p.down and p.at[0] < STRIP_X]
-        if len(down) >= 2:
-            d = max(math.dist(down[0].at, down[1].at), 20.0)
+        slicer = self._take_slicer(down)
+        if slicer is not None:
+            self.cut = min(max((SLICE_Y[1] - slicer.at[1]) / (SLICE_Y[1] - SLICE_Y[0]), 0.0), 1.0)
+        free = [p for p in down if p is not slicer]
+        if len(free) >= 2:
+            a, b = free[0].at, free[1].at
+            d = max(math.dist(a, b), 20.0)
+            mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
             if self._zoom_from is None:
-                self._zoom_from = (d, self.zoom)
-            self.zoom = min(max(self._zoom_from[1] * d / self._zoom_from[0], ZOOM_RANGE[0]), ZOOM_RANGE[1])
+                self._zoom_from = (d, self.zoom, mid, list(self.target))
+            self._glide = None  # the hands have it
+            d0, z0, m0, t0 = self._zoom_from
+            self.zoom = min(max(z0 * d / d0, ZOOM_RANGE[0]), ZOOM_RANGE[1])
+            self._move_target(t0, mid[0] - m0[0], mid[1] - m0[1])
             self._drag, self.spin = None, 0.0
             return
         self._zoom_from = None
-        if down:
-            p = down[0]
+        if free:
+            p = free[0]
             if self._drag is not None and self._drag[0] == p.hand:
                 dx, dy = p.at[0] - self._drag[1][0], p.at[1] - self._drag[1][1]
                 if math.hypot(dx, dy) <= DRAG_JUMP:
@@ -987,8 +1001,53 @@ class Helper(Game):
             self._drag = (p.hand, p.at)
             return
         self._drag = None
+        if slicer is not None:  # it holds still while it is being cut
+            self.spin = 0.0
+            return
+        rest = IDLE_SPIN if self.cut <= 0.005 and self.zoom <= 1.5 else 0.0
+        rest = 0.5 * IDLE_SPIN if self.only else rest  # a part on its own goes on turning slowly: it is what is shown
         self.yaw += self.spin * dt
-        self.spin += (IDLE_SPIN - self.spin) * min(dt / SPIN_DECAY_S, 1.0)
+        self.spin += (rest - self.spin) * min(dt / SPIN_DECAY_S, 1.0)
+
+    def _move_target(self, t0: list, dx: float, dy: float) -> None:
+        """Both hands moved together: the model goes with them, so you move through it. ``dx``, ``dy`` in design px."""
+        dist = self.fit_dist / self.zoom
+        per_px = 2 * dist * math.tan(math.radians(MODEL_FOV) / 2) / (MODEL_RECT[3] - MODEL_RECT[1])
+        cy, sy = math.cos(self.yaw), math.sin(self.yaw)
+        ct, st = math.cos(self.tilt), math.sin(self.tilt)
+        right = (cy, -sy, 0.0)  # as seen by the camera at this yaw and tilt
+        up = (sy * st, cy * st, ct)
+        self.target = [t0[k] - per_px * (dx * right[k] - dy * up[k]) for k in range(3)]
+
+    def model_command(self, text: str) -> bool:
+        """What is said about the model on show, with no model call: slice it, put it back, show me the engine. False when it
+        is about something else."""
+        if self.state != "model" or self.model is None:
+            return False
+        t = _words(text)
+        if any(_has(t, w) for w in WHOLE_WORDS):
+            self.cut, self.only = 0.0, ""
+            self._glide = ([0.0, 0.0, 0.0], 1.0)
+            self.say.append("The whole thing again.")
+            self.sfx.append("press")
+            return True
+        m = SHOW_PART.match(t)
+        if m is not None:
+            wanted = re.sub(r"^(?:the|its|it's) ", "", m.group(1))
+            best = max(self.model["parts"], key=lambda name: name_match(name, wanted))
+            if name_match(best, wanted) >= 0.5:
+                self.only = best
+                self.cut = 0.0
+                self._go_to_part(best)
+                self.say.append(f"The {best}.")
+                self.sfx.append("found")
+                return True
+        if any(_has(t, w) for w in SLICE_WORDS):
+            self.cut = 0.5
+            self.say.append("Cut open. Slide the bar on the left to move the cut.")
+            self.sfx.append("press")
+            return True
+        return False
 
     def _on_see(self, data: dict, now: float) -> None:
         game = str(data.get("game") or "none").lower()
@@ -1273,7 +1332,7 @@ class Helper(Game):
         if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer", "modelling", "model",
                                              "placing", "map"):
             self.epoch += 1
-            self.state, self.want, self.job, self.parts, self.reply, self.wire = "idle", None, None, [], "", None
+            self.state, self.want, self.job, self.parts, self.reply, self.model = "idle", None, None, [], "", None
             self.map_place = None
             self._clear_answer()
             self.say.append("Stopped.")
@@ -1327,7 +1386,8 @@ class Helper(Game):
         if self.state == "modelling":
             return f"BUILDING: {_with_article(self.subject).upper()}"[:44], "MUSE WONDER IS WRITING ITS PROGRAM...", "warn"
         if self.state == "model":
-            return self.wire.name.upper(), "PINCH AND DRAG TO TURN, TWO HANDS TO ZOOM", "target"
+            name = self.only or self.model.get("name") or self.subject
+            return str(name).upper(), "PINCH TURNS · LEFT BAR SLICES · 2 HANDS FLY", "target"
         if self.state == "answer":
             return ("DRAWING IT WITH MUSE IMAGE..." if self.painting else "THERE YOU GO"), "HOLD THE MIC TO ASK MORE", "target"
         if self.state == "steps":
@@ -1440,17 +1500,14 @@ class Helper(Game):
             self._draw_step(c, now)
 
     def _draw_model(self, c) -> None:
-        """Near lines cyan, far ones blue (dim on the projector): it reads as 3D even when it stands still. Fingertips in
-        a pinch are marked: it has you."""
-        if self.wire_src is not None:
-            c.wire("hp-wire", self.wire_src, MODEL_C, MODEL_R * self.zoom, self.yaw, self.tilt, draw_ms=2500)
-        else:
-            for i, line in enumerate(self.wire.lines):
-                pts, depth = project(line, self.yaw, self.tilt, self.zoom)
-                c.poly(f"hp-w{i}", pts, "done" if depth > 0.15 else "source", draw_ms=900)
-        for p in self.pens:
-            if p.down and p.at[0] < STRIP_X:
-                c.dot(f"hp-pinch{p.hand}", p.at, "target")
+        """The page draws the model itself; beside it, the slicing bar with its handle."""
+        c.solid("hp-model", self.model["src"], MODEL_RECT, self.yaw, self.tilt, self.fit_dist / self.zoom, self.target,
+                cut=self.cut_at, cut_axis=self.cut_axis, only=self.only, draw_ms=2500)
+        c.poly("hp-slice", [(SLICE_X, SLICE_Y[0]), (SLICE_X, SLICE_Y[1])], "info")
+        y = SLICE_Y[1] - self.cut * (SLICE_Y[1] - SLICE_Y[0])
+        role = "target" if self._slicer is not None else "source"
+        c.circle("hp-slice-h", (SLICE_X, y), 15.0, role)
+        c.poly("hp-slice-k", [(SLICE_X - 9, y), (SLICE_X + 9, y)], role)
 
     def _draw_picture(self, c, now: float) -> None:
         """The picture, or, while Muse Image draws it, the place it will go: its corners and a line going over it."""

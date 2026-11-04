@@ -134,57 +134,6 @@ function pictureOf(src) {
   return img;
 }
 
-// Wireframes come by URL too (C2 `wire`): polylines of [x, y, z] become one flat list of segments, loaded once.
-const wires = new Map(); // src -> {segs: Float32Array | null, failed}
-const WIRE_PERSPECTIVE = 3.5;
-const WIRE_DEPTHS = ['#0030ff', '#0088ff', '#00ffff']; // far to near, on black: the far side dims away
-const WIRE_MIN_WIDTH = 1.3;
-
-function wireOf(src) {
-  let w = wires.get(src);
-  if (!w) {
-    w = { segs: null, failed: false };
-    wires.set(src, w);
-    fetch(src).then((r) => r.json()).then((lines) => {
-      const flat = [];
-      for (const line of lines) {
-        for (let i = 1; i < line.length; i++) flat.push(...line[i - 1], ...line[i]);
-      }
-      w.segs = new Float32Array(flat);
-    }).catch(() => { w.failed = true; });
-  }
-  return w;
-}
-
-// Each segment is drawn in the colour of how far back it lies. Paths are stroked far to near: what is near stays on top.
-function drawWire(ctx, segs, p, map, lineWidth, frac) {
-  const [ox, oy] = map(p.origin[0], p.origin[1]);
-  const [ex, ey] = map(p.ex[0], p.ex[1]);
-  const [ux, uy] = map(p.ey[0], p.ey[1]);
-  const ax = ex - ox, ay = ey - oy, bx = ux - ox, by = uy - oy;
-  const cy = Math.cos(p.yaw), sy = Math.sin(p.yaw), ct = Math.cos(p.tilt), st = Math.sin(p.tilt);
-  const total = segs.length / 6;
-  const n = Math.floor(frac * total);
-  const paths = WIRE_DEPTHS.map(() => new Path2D());
-  for (let i = 0; i < n; i++) {
-    const k = i * 6;
-    const x0 = segs[k] * cy - segs[k + 1] * sy, y0 = segs[k] * sy + segs[k + 1] * cy, z0 = segs[k + 2];
-    const x1 = segs[k + 3] * cy - segs[k + 4] * sy, y1 = segs[k + 3] * sy + segs[k + 4] * cy, z1 = segs[k + 5];
-    const d0 = y0 * ct - z0 * st, d1 = y1 * ct - z1 * st;
-    const f0 = WIRE_PERSPECTIVE / (WIRE_PERSPECTIVE + d0), f1 = WIRE_PERSPECTIVE / (WIRE_PERSPECTIVE + d1);
-    const v0 = y0 * st + z0 * ct, v1 = y1 * st + z1 * ct;
-    const d = (d0 + d1) / 2;
-    const path = paths[d > 0.3 ? 0 : d > -0.2 ? 1 : 2];
-    path.moveTo(ox + f0 * (x0 * ax + v0 * bx), oy + f0 * (x0 * ay + v0 * by));
-    path.lineTo(ox + f1 * (x1 * ax + v1 * bx), oy + f1 * (x1 * ay + v1 * by));
-  }
-  ctx.lineWidth = Math.max(WIRE_MIN_WIDTH, lineWidth * Math.min(1, Math.sqrt(300 / Math.max(total, 1))));
-  paths.forEach((path, b) => {
-    ctx.strokeStyle = WIRE_DEPTHS[b];
-    ctx.stroke(path);
-  });
-}
-
 // Draws `scene.prims`. opts: {map, palette, lineWidth, fontPx, t (seconds: pulse and reveal clock), outline}.
 // Returns true while something moves (a pulsing ring, an outline drawing itself, a label typing): the caller should
 // keep requesting frames.
@@ -238,15 +187,6 @@ export function drawScene(ctx, scene, opts) {
       }
       ctx.fillStyle = colour;
       ctx.fill();
-    } else if (p.kind === 'wire') {
-      const w = wireOf(p.src);
-      if (!w.segs) { // still loading: keep drawing until it is here
-        animated = !w.failed || animated;
-        continue;
-      }
-      const f = revealed(seen, `wire ${p.id}`, p.src, p.draw_ms, clock);
-      if (f < 1) animated = true;
-      if (f > 0) drawWire(ctx, w.segs, p, map, lineWidth, f);
     } else if (p.kind === 'picture') {
       const img = pictureOf(p.src);
       if (!img.complete) { // still loading: keep drawing until it is here

@@ -85,20 +85,24 @@ class Picture(_M):
     draw_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: wipes on from its top edge when its id appears
 
 
-class Wire3D(_M):
-    """A 3D wireframe the page loads once by URL (thousands of lines: too many to send 30 times a second) and turns itself:
-    a scene only says how it is seen. ``origin`` is where the model's middle lands, ``ex`` and ``ey`` where one model unit
-    to its right and one up land. Near lines bright, far ones dim: it reads as 3D even standing still."""
+class Solid3D(_M):
+    """A 3D model the page loads once by URL (too much to send 30 times a second) and draws itself over a rect with Three.js
+    (web/js/solid.js). A scene only says how it is seen: from ``dist`` model units away, small enough to be inside it,
+    looking at ``target``, turned by ``yaw`` and from ``tilt`` above. ``cut``: what lies beyond this along axis ``cut_axis``
+    is sliced away; ``only``: the name of the one part left solid."""
 
-    kind: Literal["wire"] = "wire"
+    kind: Literal["solid"] = "solid"
     id: str
     src: str = Field(pattern=r"^/pictures/[0-9a-f]{16,64}\.json$")
-    origin: XY
-    ex: XY
-    ey: XY
+    corners: Annotated[list[XY], Field(min_length=4, max_length=4)]
     yaw: float
     tilt: float
-    draw_ms: int = Field(0, ge=0, le=8000, exclude_if=_unset)  # > 0: builds itself in the program's order when its id appears
+    dist: float = Field(gt=0.0)
+    target: Annotated[list[float], Field(min_length=3, max_length=3)]
+    cut: float | None = None
+    cut_axis: Literal[0, 1, 2] = 0
+    only: str = Field("", exclude_if=_unset)
+    draw_ms: int = Field(0, ge=0, le=8000, exclude_if=_unset)  # > 0: builds itself, part by part, when it first shows
 
 
 class MapView(_M):
@@ -117,7 +121,7 @@ class MapView(_M):
     fly_ms: int = Field(0, ge=0, le=20000)
 
 
-Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture | MapView | Wire3D, Field(discriminator="kind")]
+Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture | MapView | Solid3D, Field(discriminator="kind")]
 
 
 # ---------------------------------------------------------------- page -> server
