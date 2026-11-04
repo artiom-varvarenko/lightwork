@@ -654,24 +654,25 @@ class _Search:
         order = self.rng.sample(moves, len(moves))
         try:
             for depth in range(1, max_depth + 1):
-                alpha, top = -_INF, order[0]
-                top_score = -_INF
+                top, top_score, top_noisy = order[0], -_INF, -_INF
                 for k, m in enumerate(order):
+                    probe = top_score - self.noise  # moves this close are searched exactly: any of them may be played
                     board.push(m)
                     try:
                         if k == 0:
-                            score = -self._node(depth - 1, -_INF, -alpha, 1)
+                            score = -self._node(depth - 1, -_INF, _INF, 1)
                         else:
-                            score = -self._node(depth - 1, -alpha - 1, -alpha, 1)
-                            if score > alpha:
-                                score = -self._node(depth - 1, -_INF, -alpha, 1)
+                            score = -self._node(depth - 1, -probe - 1, -probe, 1)
+                            if score > probe:
+                                score = -self._node(depth - 1, -_INF, -probe, 1)
                     finally:
                         board.pop()
-                    if abs(score) < MATE - 1000:
-                        score += self.rng.randint(0, self.noise)  # games differ
-                    if score > top_score:
-                        top_score, top = score, m
-                    alpha = max(alpha, score)
+                    if k and score <= probe:  # a bound, not a value: this move is worse, by how much is not known
+                        continue
+                    noisy = score + self.rng.randint(0, self.noise) if abs(score) < MATE - 1000 else score  # games differ
+                    if noisy > top_noisy:
+                        top, top_noisy = m, noisy
+                    top_score = max(top_score, score)
                     if depth > 1:  # the last depth's best was searched first: at worst this is still that one
                         best = top
                 best, done = top, depth

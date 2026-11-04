@@ -18,7 +18,8 @@ You hold a fingertip on the projected mic bubble and speak. The microphone is op
 | "Show me a cargo ship" | Muse Wonder writes a program that builds it part by part, inside included. Pinch and drag to turn it, pinch the bar on the left to slice it open, use two hands to zoom in and move through it. "Show me the engine" fades the rest and flies there. |
 | "Take me to Paris" | Muse Wonder gives the coordinates, then a 3D city flies in under your hands. Pinch and drag to move, two hands to turn and zoom. |
 | "Set a timer for 10 minutes" | Spoken timers and a stopwatch, with no model call, on every tile. |
-| "Start rock paper scissors" | The table's games start by name: rock paper scissors, catch the light, follow the lights, draw and guess. |
+| "Start rock paper scissors" | The table's games start by name: rock paper scissors, catch the light, follow the lights, draw and guess, chess. |
+| "Let's play chess" | The table draws a board of light and shows where each real piece goes. You play White: move a piece and take your hand away, and the camera reads the move, animates it and the table replies. It has no hands, so it lights up its move and you make it for it, and the camera checks. The moves run down one side, the clocks stand on the other. |
 
 ## How it works
 
@@ -37,6 +38,7 @@ projection goes dark for a moment  ->  clean camera picture, rectified to the ta
 - **The blackout** is what makes the picture honest: our own light would otherwise look like objects to the model. The page confirms it has gone dark before the camera looks.
 - **Hands** run locally at 30 fps (MediaPipe on the laptop's GPU). That helper only tracks fingertips and pinches. Meta's models do the seeing, planning, checking, reading, drawing and listening.
 - **Model programs are treated as untrusted input** (`lightwork/wireframe.py`): the syntax is checked against a short list, with no imports, no attribute access beyond `math` and a few list methods, and it runs in a child Python with an empty environment and limits on CPU, memory and files.
+- **Chess uses no model.** The rules and the engine are ours, in plain Python (`lightwork/chess.py`, checked against the published perft counts), running in their own process so a search never slows the camera loop. A move is read by comparing clean pictures of the board square by square, and the legal moves say which pattern of changed squares means what.
 - **Every model call is recorded** under `.lightwork/play-calls/<session>/`: the request, the response, the picture sent, timing and cost, held to a local spend limit (`LW_BUDGET_USD`). Each mic hold's audio and transcript are recorded there too.
 
 ### Meta models and their jobs
@@ -111,6 +113,7 @@ uv run lightwork replay tests/fixtures/runs/synthetic-kit     # open http://127.
 - **A camera check judges what shows from above.** It can't weigh, and it can be wrong; NEXT always overrides it.
 - **A 3D model is Muse Wonder's idea of the thing, not an engineering drawing.** Its proportions and insides come from what the model knows, and it can get them wrong.
 - **Light matters.** A 100 lumen projector needs a dim room, and hand tracking misses more when palms leave the camera's view.
+- **Chess reads what changed, not which piece is which.** It always promotes to a queen, and a move it misreads can be taken back with UNDO. Lift pieces off the table while it calibrates: they cover the markers.
 - **Privacy.** Only the rectified table goes to the model, never the room, but a hand or anything else on the table is in the picture. Don't assume hosted inference has zero retention. Each hold's audio is recorded locally.
 
 ## The older bench mode

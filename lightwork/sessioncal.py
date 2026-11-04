@@ -71,8 +71,14 @@ class CameraGain:
         if self.ctl is None or gain == self.gain:
             return
         err = self.ctl.set("gain", gain)
+        for _ in range(3):  # the C920 sometimes refuses a write just after the stream starts (4 Nov: "out of range" on 48)
+            if not err:
+                break
+            time.sleep(0.2)
+            err = self.ctl.set("gain", gain)
         if err:
-            raise OSError(f"setting camera gain {gain}: {err}")
+            print(f"camera gain stays {self.gain}: setting {gain}: {err}")
+            return
         self.gain = gain
         t = time.monotonic()
         for _ in range(SETTLE_FRAMES):  # let the change reach the frames

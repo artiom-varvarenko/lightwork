@@ -51,6 +51,7 @@ import cv2
 import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
+from .chesstable import ChessTable
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
 from .helper import Helper, _with_article, asked_for_game, asked_to_go, asked_to_show, parse_place
 from .helper import _words as _words_of
@@ -1922,11 +1923,22 @@ class TableSession:
         self._guess_done(now)
         if isinstance(self.games.game, Helper):
             lines += self._helper_step(frame, now)
+        if isinstance(self.games.game, ChessTable):
+            self._chess_step(frame, now)
         game = self.games.game
         if game is not None and game.say:
             lines += game.say
             game.say = []
         return fired, say + lines + self._answers(now)  # a question asked during a game is answered during it
+
+    def _chess_step(self, frame, now: float) -> None:
+        """Chess reads the board from the camera's frames itself, and asks for its clean pictures through the scene."""
+        g = self.games.game
+        g.place(self.geo, self.frame_size)
+        if frame is not None:
+            g.watch(frame, now, self.link)
+        self.log += g.log
+        g.log = []
 
     def _pinch_log(self, now: float, slots: list) -> None:
         """Draw and guess: each pen down and up in the log, with the thumb-to-finger distance (palm lengths), and

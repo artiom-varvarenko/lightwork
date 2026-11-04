@@ -6,6 +6,8 @@
             take your hands away and Muse Spark guesses what it is.
 ``rps``     Rock paper scissors against the table: 3, 2, 1, SHOOT, then show rock, paper or scissors over the table;
             the camera reads the hand (3-D landmarks), the table shows its own move and keeps score. First to 5.
+``chess``   Chess against the table with real pieces on a board of light (:mod:`lightwork.chesstable`): it reads your moves
+            with the camera, animates them and replies; you make its moves for it.
 ``helper``  General helper (:mod:`lightwork.helper`): hold the mic bubble and say what you want: any job, or a game to start.
 ``menu``    Bubbles to pick one by holding a fingertip on it, and OBJECTS: back to the object board, where things put on
             the table are found, named (Muse Spark), outlined (SAM 3.1) and measured.
@@ -33,9 +35,9 @@ import numpy as np
 from .timers import Timers
 
 AREA = (82.0, 74.0, 738.0, 410.0)  # design px: where game things go (right of the button column, under the status bar)
-GAMES = ("catch", "follow", "draw", "rps")
+GAMES = ("catch", "follow", "draw", "rps", "chess")
 TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "draw": "DRAW AND GUESS",
-          "rps": "ROCK PAPER SCISSORS"}
+          "rps": "ROCK PAPER SCISSORS", "chess": "CHESS"}
 DWELL_S = 0.9  # a fingertip held this long on a bubble picks it
 TOUCH_PAD = 20.0  # design px of slack around a target: hands are tracked, not exact
 EM = 14.8  # design px per character of a label (bold capitals, about 24.6 design px high), for centring
@@ -46,6 +48,7 @@ WORDS = {  # spoken: game key
     # never "rock" or "scissors" alone: "it's a rock" answers draw and guess
     "rps": ("rock paper scissors", "rock, paper, scissors", "rock-paper-scissors", "rock, paper and scissors",
             "rock paper and scissors"),
+    "chess": ("chess",),
 }
 GUESS_PROMPT = ("Someone drew this on a table with a fingertip; the lines are the drawing (the light trail of the "
                 "finger, a little shaky). What did they draw? Make your best guess even if it is rough. Reply with "
@@ -113,6 +116,8 @@ class Game:
         self.over = False
 
     draws_hands = False  # the game draws its own cursor for each hand (the table then draws none)
+    END_BUBBLES = ((300.0, 300.0, 40.0), (520.0, 300.0, 40.0))  # PLAY AGAIN and MENU when it is over: (x, y, radius)
+    exposure: int | None = None  # the camera exposure this tile needs (written to the camera), None: the games' own
 
     def update(self, now: float, points: list, tips: list, segments=(), pens=()) -> None:
         """``points``: hand landmarks, ``tips``: index fingertips, ``segments``: where points moved since the frame
@@ -170,14 +175,15 @@ class Menu(Game):
     def __init__(self, now, rng, best: dict):
         super().__init__(now, rng)
         self.best = best
-        far, near = 110.0, 280.0  # two rows of three: six two-line labels side by side would run into each other
+        far, near = 110.0, 280.0  # two rows: seven two-line labels side by side would run into each other
         left, mid, right = 180.0, 406.0, 632.0
         self.bubbles = [Bubble("helper", "GENERAL\nHELPER", (left, far), 36.0),
                         Bubble("catch", "CATCH\nTHE LIGHT", (mid, far), 36.0),
                         Bubble("follow", "FOLLOW\nTHE LIGHTS", (right, far), 36.0),
-                        Bubble("draw", "DRAW\nAND GUESS", (left, near), 36.0),
-                        Bubble("rps", "ROCK PAPER\nSCISSORS", (mid, near), 36.0),
-                        Bubble("objects", "OBJECT\nBOARD", (right, near), 36.0)]
+                        Bubble("draw", "DRAW\nAND GUESS", (150.0, near), 36.0),
+                        Bubble("rps", "ROCK PAPER\nSCISSORS", (310.0, near), 36.0),
+                        Bubble("chess", "CHESS", (470.0, near), 36.0),
+                        Bubble("objects", "OBJECT\nBOARD", (630.0, near), 36.0)]
         self.choice: str | None = None
         self.last = now
         self.clocks_below = False  # timers are running along the near edge
@@ -192,7 +198,7 @@ class Menu(Game):
 
     def draw(self, c, now):
         roles = {"helper": "target", "catch": "target", "follow": "source", "draw": "warn", "rps": "error",
-                 "objects": "info"}
+                 "chess": "source", "objects": "info"}
         for b in self.bubbles:
             best = None if self.clocks_below and b.c[1] > 200 else self.best.get(b.key)  # the near row: clocks go there
             b.draw(c, roles[b.key], f"BEST {best}" if best else "")
@@ -217,6 +223,10 @@ class Menu(Game):
         elif b.key == "rps":  # rock, then paper, then scissors
             move = MOVES[int(now / 0.9) % 3]
             move_icon(c, f"ico-rps-{move}", move, x, y, 22.0, role)
+        elif b.key == "chess":  # a pawn
+            c.circle("ico-chess-head", (x, y - 11), 7, role, n=14)
+            c.poly("ico-chess-body", [(x - 5, y - 4), (x - 11, y + 13), (x + 11, y + 13), (x + 5, y - 4)], role)
+            c.poly("ico-chess-foot", [(x - 15, y + 19), (x + 15, y + 19)], role)
         else:  # two things on a table, each outlined
             c.rect("ico-obj-a", x - 22, y - 14, x - 2, y + 6, role)
             c.circle("ico-obj-b", (x + 13, y + 6), 10, role, n=16)
@@ -953,6 +963,11 @@ class GameHost:
         if key == "rps":
             self.game = RockPaperScissors(now, self.rng)
             return ["Rock, paper, scissors! First to five wins. Hold your hand over the ring."]
+        if key == "chess":
+            from .chesstable import ChessTable  # chesstable builds on this module
+
+            self.game = ChessTable(now, self.rng, state_dir=self.state_dir)
+            return ["Let's play chess. Set up the pieces. You are white, on your side."]
         raise ValueError(f"unknown game {key!r}")
 
     def stop(self) -> None:
@@ -977,8 +992,9 @@ class GameHost:
                     self.best[g.key] = g.score
                     self._save()
             if self.again is None:
-                self.again = Bubble("again", "PLAY\nAGAIN", (300.0, 300.0), 40.0)
-                self.home = Bubble("home", "MENU", (520.0, 300.0), 40.0)
+                (ax, ay, ar), (hx, hy, hr) = g.END_BUBBLES
+                self.again = Bubble("again", "PLAY\nAGAIN", (ax, ay), ar)
+                self.home = Bubble("home", "MENU", (hx, hy), hr)
                 self.again.dwell = self.home.dwell = -1.0  # a moment before they can be picked
             elif self.again.step(points, dt):
                 sfx.append("press")

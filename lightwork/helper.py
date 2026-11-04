@@ -88,12 +88,14 @@ GAME_NAMES = {  # the name alone is enough ...
     "catch": ("catch the light", "catch the lights", "catch light", "catch lights", "catching the light"),
     "follow": ("follow the lights", "follow the light", "follow lights", "follow light"),
     "draw": ("draw and guess", "drawn guess", "draw guess"),
+    "chess": ("play chess", "playing chess", "chess game", "game of chess", "start chess"),
 }
 GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manual" is no game)
     "rps": ("rock paper", "rock"),
     "catch": ("catch",),
     "follow": ("follow", "memory", "simon"),
     "draw": ("draw", "drawing", "pictionary"),
+    "chess": ("chess",),
 }
 BOARD_WORDS = ("object board", "objects board")
 MENU_WORDS = ("menu", "go home", "go back home")
@@ -133,7 +135,7 @@ def asked_for_game(text: str) -> str | None:
     for key, words in GAME_WORDS.items():
         if any(_has(t, w) for w in words):
             return key
-    return None if _has(t, "help me") else "menu"  # "let's play a game"; but "help me play chess" is a job
+    return None if _has(t, "help me") else "menu"  # "let's play a game"; but "help me play poker" is a job
 
 
 def asked_to_go(text: str) -> str | None:

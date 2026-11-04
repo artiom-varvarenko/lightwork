@@ -49,6 +49,7 @@ GAIN_CHECK_S = 15.0
 QUIET_S = 2.0  # no hand seen this long before a background gain nudge or interval flash
 ADOPT_PX = 2.0  # page px of drift worth adopting a new mapping
 BUMP_PX = 12.0  # page px of drift that means the rig moved: check the hand again
+START_CLEAR_S = 120.0  # at the start of a table session, a failed calibration is tried again for this long: things on the table
 HANDS_AWAY_S = 0.8  # requested recalibrations wait this long for hands to leave ...
 HANDS_AWAY_MIN_S = 4.0  # ... and at least this long after the request: a person in the light is no hand to the tracker
 HANDS_AWAY_MAX_S = 8.0  # ... but not longer
@@ -81,11 +82,11 @@ def configure(p) -> None:
                    help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
                         "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
                         "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
-    p.add_argument("--game", choices=("menu", "helper", "catch", "follow", "draw", "rps"),
+    p.add_argument("--game", choices=("menu", "helper", "catch", "follow", "draw", "rps", "chess"),
                    help="table: start with a hand game (nothing to set up): menu, helper (general helper: hold the mic "
                         "bubble and say a job or a game to start; needs --voice), catch (catch the light), follow "
-                        "(follow the lights), draw (draw and guess, Muse Spark guesses) or rps (rock paper scissors "
-                        "against the table). With --game the mic is open only while the helper's bubble is held")
+                        "(follow the lights), draw (draw and guess, Muse Spark guesses), rps (rock paper scissors "
+                        "against the table) or chess (real pieces on a projected board). With --game the mic is open only while the helper's bubble is held")
     p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
                    help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
                         "weights via the partners, auto = open when a partner is configured, else meta")
@@ -597,6 +598,7 @@ class Play:
         self._shown_heard = ""
         self.render, self.preview, self.control = hubs["render_hub"], hubs["preview_hub"], hubs["control_hub"]
         self.gain = CameraGain(cam, gain)
+        self.exposure_now = None  # what was last written while a game or tile runs
         self.auto_gain = args.gain is None and self.gain.available
         self.page = None
         self.geo = self.dash = self.zone = self.overlay = self.footprint = None
@@ -694,6 +696,7 @@ class Play:
         from ..sessioncal import surface_level
 
         want = int(self.args.exposure)
+        self.exposure_now = want
         before = surface_level(self.cam)[0]
         for _ in range(2):  # twice: a single write is sometimes not applied
             err = self.gain.ctl.set("exposure_time_absolute", want)
@@ -716,6 +719,39 @@ class Play:
             level = surface_level(self.cam)[0]
         print(f"game exposure: wrote {want}, camera reports {got}; table level {before:.0f} -> {dimmed:.0f}, "
               f"gain {g} -> {level:.0f}")
+
+    def _tile_exposure(self) -> None:
+        """A tile can need its own exposure (``Game.exposure``): chess needs a longer one than the games. The gain follows
+        until the table is as bright as before. The frame loop waits for this, about a second, only when it changes."""
+        from ..sessioncal import surface_level
+
+        if not self.args.game or not self.gain.available:
+            return
+        want = getattr(self.table.games.game, "exposure", None) or int(self.args.exposure)
+        if want == self.exposure_now:
+            return
+        self.exposure_now = want
+        before = surface_level(self.cam)[0]
+        for _ in range(2):  # twice: a single write is sometimes not applied
+            err = self.gain.ctl.set("exposure_time_absolute", want)
+            if err:
+                print(f"tile exposure: {err}")
+                return
+            time.sleep(0.25)
+        g = self.gain.gain
+        level = surface_level(self.cam)[0]
+        for _ in range(8):
+            if 0.85 * before <= level <= 1.15 * before:
+                break
+            if level > before and g > 0:
+                g = max(0, int(g / 1.4) - 8)
+            elif level < before and g < 200:
+                g = min(200, int(g * 1.4) + 8)
+            else:
+                break
+            self.gain.set(g)
+            level = surface_level(self.cam)[0]
+        print(f"tile exposure: wrote {want}; table level {before:.0f} -> {level:.0f}, gain {g}")
 
     def _hand_region(self) -> None:
         """Point the tiled hand search at the projected page (plus ``HAND_MARGIN``) in camera px."""
@@ -770,15 +806,29 @@ class Play:
                 time.sleep(0.15)
             level = choose_gain(self.gain, self.cam, self.footprint)
             print(f"camera gain {self.gain.gain}: surface level {level:.0f}")
-        try:
-            flash = flash_geometry(self.cam, self.render, page, self.gain, log=print)
-        except CalibrationError as exc:
+        asked = False
+        until = time.monotonic() + START_CLEAR_S
+        flash = failed = None
+        while flash is None and failed is None:
+            try:
+                flash = flash_geometry(self.cam, self.render, page, self.gain, log=print)
+            except CalibrationError as exc:
+                if self.geo is None and self.args.table and time.monotonic() < until:
+                    # at the start, things on the table cover the markers: wait for them to go instead of quitting
+                    print(f"pattern flash failed ({exc}); waiting for the table to be cleared")
+                    if not asked:
+                        asked = True
+                        self.render.say("Please take everything off the table so I can see the markers.")
+                    time.sleep(1.5)
+                else:
+                    failed = exc
+        if failed is not None:
             if self.geo is not None or self.args.rotate:  # a saved calibration was solved from an unturned page
-                raise
+                raise failed
             saved = load_calibration()
             if saved.page is None or (saved.page.w, saved.page.h) != (page.innerWidth, page.innerHeight):
-                raise
-            print(f"pattern flash failed ({exc}); using the saved calibration, unverified")
+                raise failed
+            print(f"pattern flash failed ({failed}); using the saved calibration, unverified")
             self._adopt(saved.H_cam_to_page, page)
             return
         r = flash.solution.residuals
@@ -1083,6 +1133,7 @@ class Play:
 
     def _table_step(self, frame, poses, now: float, dt: float) -> list[str]:
         fired, say = self.table.step(frame, poses, now, dt, detect=now >= self.zone_pause_until)
+        self._tile_exposure()
         if self.listening is not None:  # live words on the table while you speak: it is hearing you
             text, t = self.listening.get("text", ""), self.listening.get("t", -1e9)
             if text and text != self._shown_heard and now - t < 3.0:

@@ -580,13 +580,13 @@ def test_rps_draws_every_state_with_unique_prim_ids():
     assert seen == {"wait", "count", "shoot", "noread", "result", "over"}
 
 
-def test_menu_has_six_bubbles_whose_labels_do_not_overlap_and_starts_rock_paper_scissors(tmp_path):
+def test_menu_has_seven_bubbles_whose_labels_do_not_overlap_and_starts_rock_paper_scissors(tmp_path):
     from itertools import combinations
 
     host = GameHost(state_dir=tmp_path, seed=1)
     host.start("menu", 0.0)
     menu = host.game
-    assert [b.key for b in menu.bubbles] == ["helper", "catch", "follow", "draw", "rps", "objects"]  # OBJECT BOARD last
+    assert [b.key for b in menu.bubbles] == ["helper", "catch", "follow", "draw", "rps", "chess", "objects"]  # OBJECT BOARD last
 
     def boxes(b):  # the ring with its dwell arc, then each label line (10 % wider than Bubble lays them out)
         x, y = b.c

@@ -269,12 +269,21 @@ function drawLinkLost() {
   ctx.textAlign = 'start';
 }
 
+// The screen going off for a moment stops requestAnimationFrame, so scenes go unacknowledged, so the server stops sending
+// (it keeps at most 2 unacknowledged), so there is never a scene to acknowledge again: only a new connection gets out of that.
+let lastRetry = 0;
 setInterval(() => {
-  if (!linkLost && performance.now() - lastMsg > LINK_LOST_MS) {
+  const now = performance.now();
+  if (!linkLost && now - lastMsg > LINK_LOST_MS) {
     linkLost = true;
     scene = null;
     ackedSeq = 0;
     requestDraw();
+    lastRetry = 0;
+  }
+  if (linkLost && now - lastRetry > 3000) {
+    lastRetry = now;
+    sock.reconnect();
   }
   if (!tap.classList.contains('hidden')) showDiag();
 }, 250);

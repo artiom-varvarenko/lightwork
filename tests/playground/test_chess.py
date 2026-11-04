@@ -89,7 +89,7 @@ def test_passing_square_counts_only_when_a_pawn_can_take():
 @pytest.mark.parametrize("fen,want", [
     ("6k1/5ppp/8/8/8/8/8/K2R4 w - - 0 1", "d1d8"),  # mate in one
     ("rnbqkbnr/ppp2ppp/8/3pp3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3", None),  # any sensible move: must not hang the board
-    ("3qk3/8/8/8/8/8/8/3QK3 w - - 0 1", "d1d8"),  # a free queen
+    ("q3k3/8/8/8/8/8/8/Q3K3 w - - 0 1", "a1a8"),  # a free queen
 ])
 def test_engine_finds_it(fen, want):
     board = Board(fen)

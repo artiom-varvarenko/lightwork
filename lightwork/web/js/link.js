@@ -33,5 +33,9 @@ export function openSocket(path, { binary = false, onopen, onmessage, onclose } 
     get connected() {
       return ws !== null && ws.readyState === WebSocket.OPEN;
     },
+    // Start over: the connection looks up but nothing comes (the other side waits for something this page never sent).
+    reconnect() {
+      if (ws) ws.close();
+    },
   };
 }

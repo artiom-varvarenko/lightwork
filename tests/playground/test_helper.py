@@ -114,7 +114,10 @@ def stepping() -> Helper:
     ("I want to catch the drips with a tray", None),
     ("help me build this Lego", None),
     ("It's a rock", None),
-    ("help me play chess", None),
+    ("help me play poker", None),
+    ("let's play chess", "chess"),
+    ("start chess", "chess"),
+    ("a game of chess please", "chess"),
     ("what can I cook with this?", None),
 ])
 def test_games_start_by_name_and_ordinary_words_stay_a_job(said, tile_key):
