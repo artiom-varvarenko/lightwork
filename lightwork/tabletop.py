@@ -2193,7 +2193,7 @@ class TableSession:
                 continue
             by = "" if reply is None else f"({reply.model} via {reply.provider}, {reply.ms / 1000:.1f} s)"
             g.answered(ask, None if reply is None else reply.data, err, now, by=by)
-            if err is None and ((ask.role == "model" and g.wire is not None) or (ask.role == "place" and g.place is not None)):
+            if err is None and ((ask.role == "model" and g.wire is not None) or (ask.role == "place" and g.map_place is not None)):
                 self._keep_model(ask.subject, reply.data)
             if ask.role in ("see", "locate") and self._look_view is not None:  # before SAM gets the boxes
                 for t in g.want_outlines:

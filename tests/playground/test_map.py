@@ -149,7 +149,7 @@ def test_saying_it_needs_no_look_and_a_retake_comes_from_the_cache(tmp_path):
     prims = rig.ts.scene(rig.t)
     assert [p for p in prims if p.kind == "map"]
     rig.ts.hear("stop", rig.t)
-    assert g.state == "idle" and g.place is None
+    assert g.state == "idle" and g.map_place is None
     rig.ts.hear("take me to paris", rig.t)
     until(rig, table(), lambda: g.state == "map", 1.0)
     assert len(brain.calls) == 1

@@ -661,7 +661,7 @@ class Helper(Game):
         self._drag: tuple[int, tuple[float, float]] | None = None  # (hand, where it was last frame)
         self._zoom_from: tuple[float, float] | None = None  # (distance between the hands, zoom) when both pinched
         # a 3D map
-        self.place: Place | None = None
+        self.map_place: Place | None = None
         self.map_at = (0.0, 20.0)  # lon, lat of its centre
         self.map_zoom, self.map_bearing, self.map_pitch = 2.0, 0.0, 0.0
         self.flight = 0
@@ -774,7 +774,7 @@ class Helper(Game):
         """Have the model find a place on the map."""
         self.epoch += 1
         self.request, self.qa, self.manual, self.job_name, self.job, self.wire = "", [], "", "", None, None
-        self.parts, self.reply, self.things, self.want_outlines, self.place = [], "", [], [], None
+        self.parts, self.reply, self.things, self.want_outlines, self.map_place = [], "", [], [], None
         self._clear_answer()
         self.subject = _clean(place, 40)
         self.state = "placing"
@@ -788,7 +788,7 @@ class Helper(Game):
         if place is None:
             self._failed(Ask("place", "", {}), now)
             return
-        self.place = place
+        self.map_place = place
         self.state = "map"
         self.map_at, self.map_zoom, self.map_bearing, self.map_pitch = (place.lon, place.lat), place.zoom, place.bearing, MAP_PITCH
         self.flight += 1
@@ -1278,7 +1278,7 @@ class Helper(Game):
                                              "placing", "map"):
             self.epoch += 1
             self.state, self.want, self.job, self.parts, self.reply, self.wire = "idle", None, None, [], "", None
-            self.place = None
+            self.map_place = None
             self._clear_answer()
             self.say.append("Stopped.")
             self._dirty = True
@@ -1326,7 +1326,7 @@ class Helper(Game):
         if self.state == "placing":
             return f"GOING TO {self.subject.upper()}"[:44], "MUSE WONDER IS FINDING IT...", "warn"
         if self.state == "map":
-            return (f"{self.place.name.upper()} · MAP: OPENFREEMAP, OPENSTREETMAP"[:48],
+            return (f"{self.map_place.name.upper()} · MAP: OPENFREEMAP, OPENSTREETMAP"[:48],
                     "PINCH AND DRAG. TWO HANDS TURN AND ZOOM", "target")
         if self.state == "modelling":
             return f"BUILDING: {self.subject.upper()}"[:44], "MUSE WONDER IS DRAWING IT...", "warn"
