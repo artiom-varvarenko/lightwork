@@ -22,6 +22,8 @@ TOKEN_PRICES: dict[str, tuple[float, float, float]] = {
 SAM_MODELS = frozenset({"sam-3.1"})
 SAM_IMAGE_USD = 2.50 / 1000
 SAM_VIDEO_FRAME_USD = 0.20 / 1000
+IMAGE_MODELS = frozenset({"muse-image-1.0"})
+IMAGE_USD = 0.01  # per picture
 
 # A hard cap must reserve a bound, not a pixels-to-tokens guess. Spark/Wonder have a 1,048,576-token
 # context (models.md). Reserving unused input capacity is conservative; unused money is released on settlement.
@@ -60,6 +62,8 @@ def estimate_usd(model: str, request: dict[str, Any]) -> float:
     """Upper-bound cost of a canonical (media-redacted) request, for the budget reservation before sending it."""
     if model in SAM_MODELS:
         return SAM_IMAGE_USD
+    if model in IMAGE_MODELS:
+        return _q(IMAGE_USD * max(_int(request.get("n")), 1))
     prices = TOKEN_PRICES.get(model)
     if prices is None:
         return 0.0

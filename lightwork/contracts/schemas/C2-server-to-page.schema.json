@@ -239,6 +239,55 @@
       "title": "Pattern",
       "type": "object"
     },
+    "Picture": {
+      "additionalProperties": false,
+      "description": "A picture the page loads by URL from this server. Scenes go out up to 30 times a second, so they never carry its\nbytes. Black in it is no light on the table. Drawn under the other prims of its scene if it comes first.",
+      "properties": {
+        "corners": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Corners",
+          "type": "array"
+        },
+        "draw_ms": {
+          "default": 0,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Draw Ms",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "picture",
+          "default": "picture",
+          "title": "Kind",
+          "type": "string"
+        },
+        "src": {
+          "pattern": "^/pictures/[0-9a-f]{16,64}\\.(png|jpg)$",
+          "title": "Src",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "src",
+        "corners"
+      ],
+      "title": "Picture",
+      "type": "object"
+    },
     "Poly": {
       "additionalProperties": false,
       "properties": {
@@ -438,6 +487,7 @@
                 "arrow": "#/$defs/Arrow",
                 "dot": "#/$defs/Dot",
                 "label": "#/$defs/Label",
+                "picture": "#/$defs/Picture",
                 "poly": "#/$defs/Poly",
                 "ring": "#/$defs/Ring"
               },
@@ -458,6 +508,9 @@
               },
               {
                 "$ref": "#/$defs/Label"
+              },
+              {
+                "$ref": "#/$defs/Picture"
               }
             ]
           },

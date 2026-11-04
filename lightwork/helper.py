@@ -47,6 +47,9 @@ MIC_TAIL_S = 0.6  # the tracker loses a still hand for a moment now and then, an
 UTTER_END_S = 1.5  # after letting go, or the last transcript: what was said is complete
 NO_WORDS_S = 6.0  # after letting go with nothing transcribed: say so
 MAX_QUESTIONS = 3  # then it plans with what it has
+PIC_W, PIC_H = 345.0, 230.0  # design px, 38 x 25 cm on the table: Muse Image's 3:2
+NOTE_CHARS = 22  # characters per line of an answer's notes: beside a book and a picture there is no room for more
+MAX_NOTE_LINES = 3
 MAX_THINGS = 16
 MAX_STEPS = 8
 MAX_CHECKS = 6  # automatic camera checks per step
@@ -128,7 +131,11 @@ BOX_RULE = ("Boxes are on a 0-1000 grid of this image, x to the right and y down
             "in view.")
 SEE_PROMPT = TABLE_INTRO + """
 The person said: "{request}"{history}
-Work out what they want to do and what is on the table for it. Reply with JSON:
+Work out what they want and what is on the table for it. Reply with JSON:
+- "intent": "job" if they want to do or make something at the table and need steps. "question" if they want to know or \
+understand something, about what lies on the table or about anything else. "model" if they want to see a thing in 3D \
+("show me a bicycle"). "place" if they want to see a place on a map ("take me to Paris"). "game" if they want to play \
+one of the table's games.
 - "game": if they want to play one of the table's games, its key: "catch" (catch the light), "follow" (follow the \
 lights), "draw" (draw and guess), "rps" (rock paper scissors). Otherwise "none".
 - "job": what they want to do in 1 to 3 words ("cottage cheese pancakes", "lego car"), "" if you cannot tell yet.
@@ -138,7 +145,8 @@ camera could check ("bowl of cottage cheese", "egg", "red 2x4 brick"). A manual 
 named "manual". """ + BOX_RULE + """
 - "manual": if a manual page, instructions or a picture of the finished thing lies on the table, what it shows, in at \
 most 60 words; otherwise "".
-- "question": one short question for what you need to know and the picture cannot tell you. You can count, so never \
+- "question": for intent "job" only, otherwise "". One short question for what you need to know and the picture \
+cannot tell you. You can count, so never \
 ask how many eggs, bricks or tools there are. You cannot weigh, so when the job depends on how much soft food, powder \
 or liquid is in a bowl or jar, ask for it ("How many grams of cottage cheese is it?") unless they already told you. \
 If they want to build or make something and neither their words nor the table show what, ask ("What do you want to \
@@ -147,10 +155,20 @@ and put it in "job": do not ask what to make. Never ask about taste or preferenc
 again what they already answered. "" when you know enough to plan.
 - "say": one short sentence to say out loud, at most 14 words, naming what you see ("I see a bowl of cottage cheese \
 and three eggs."). Not the question.
+- "answer": for intent "question", the answer to say out loud: plain, friendly, at most 45 words. If it is about what \
+lies on the table, go by what you can really read there: this camera can read a cover, headings and big diagrams, not \
+small print, so say so rather than guess at a page. Otherwise "".
+- "notes": for intent "question", 1 or 2 key facts to show on the table, each at most 22 characters. Otherwise [].
+- "picture": for intent "question", if a picture would make the answer clearer: one sentence for an illustrator, what \
+to draw and which parts to label ("A labelled diagram of a plant cell: nucleus, chloroplast, vacuole, cell wall."). "" \
+if no picture would help.
+- "subject": for intent "model", the thing to show in 1 to 3 words ("bicycle"). For intent "place", the place as it is \
+on a map ("Paris"). Otherwise "".
 Answer in English."""
 SEE_SCHEMA = {
     "type": "object",
     "properties": {
+        "intent": {"type": "string", "enum": ["job", "question", "model", "place", "game"]},
         "game": {"type": "string", "enum": ["none", "catch", "follow", "draw", "rps"]},
         "job": {"type": "string"},
         "things": {"type": "array", "items": {
@@ -163,8 +181,12 @@ SEE_SCHEMA = {
         "manual": {"type": "string"},
         "question": {"type": "string"},
         "say": {"type": "string"},
+        "answer": {"type": "string"},
+        "notes": {"type": "array", "items": {"type": "string"}},
+        "picture": {"type": "string"},
+        "subject": {"type": "string"},
     },
-    "required": ["game", "job", "things", "manual", "question", "say"],
+    "required": ["intent", "game", "job", "things", "manual", "question", "say", "answer", "notes", "picture", "subject"],
     "additionalProperties": False,
 }
 PLAN_PROMPT = TABLE_INTRO + """
@@ -414,7 +436,8 @@ def fmt_seconds(seconds: float) -> str:
 
 
 class Helper(Game):
-    """idle -> (mic) -> seeing -> [asking -> (mic) -> seeing ...] -> planning -> steps -> done. See the module doc."""
+    """idle -> (mic) -> seeing -> [asking -> (mic) -> seeing ...] -> planning -> steps -> done, or seeing -> answer (a
+    question: said, its notes on the table, a picture when Muse Image has drawn it). See the module doc."""
 
     key = "helper"
 
@@ -423,7 +446,7 @@ class Helper(Game):
         self.listens, self.thinks = listens, thinks
         self.timers = timers if timers is not None else Timers()
         self._clocks_started: set[int] = set()  # this job's background steps whose clock has started
-        self.state = "idle"  # idle | seeing | asking | planning | steps | done
+        self.state = "idle"  # idle | seeing | asking | planning | steps | done | answer
         self.want: Ask | None = None  # the session makes the call and answers with answered()
         self.want_t = now
         self.want_outlines: list[Thing] = []
@@ -455,6 +478,12 @@ class Helper(Game):
         self.parts: list[list[Thing]] = []  # what this step uses: part by part, the objects of each
         self.reply = ""  # the model's last word on this step
         self.reply_role = "info"
+        # a question's answer
+        self.notes: list[str] = []
+        self.want_picture: str | None = None  # the session has Muse Image draw it and answers with pictured()
+        self.painting = False
+        self.picture = None  # lightwork.painter.Painted
+        self._pic_rect: tuple[float, float, float, float] | None = None
         self.next = Bubble("next", "NEXT", NEXT_C, BUBBLE_R)
         self.back = Bubble("back", "BACK", BACK_C, BUBBLE_R)
         self._spent: set[str] = set()  # a button that fired waits for the finger to leave
@@ -550,6 +579,7 @@ class Helper(Game):
     def _new_job(self, text: str, now: float) -> None:
         self.request, self.qa, self.manual, self.job_name, self.job = _clean(text, 400), [], "", "", None
         self.parts, self.reply = [], ""
+        self._clear_answer()
         self._clocks_started = set()
         self._see(now)
 
@@ -616,10 +646,37 @@ class Helper(Game):
             self.say.append("Sorry, I couldn't answer that.")
         # a failed locate leaves the parts where they last were
 
+    def _clear_answer(self) -> None:
+        self.notes, self.want_picture, self.painting, self.picture, self._pic_rect = [], None, False, None, None
+
+    def _on_question(self, data: dict, now: float) -> None:
+        """The answer is said at once, so the wait for the picture is not empty."""
+        self._merge_things(data.get("things"), now)
+        self._clear_answer()
+        self.state = "answer"
+        self.say.append(_clean(data.get("answer"), 400))
+        self.sfx.append("answer")
+        raw = data.get("notes") if isinstance(data.get("notes"), list) else []
+        self.notes = [line for n in raw for line in textwrap.wrap(_clean(n, 60).upper(), NOTE_CHARS)][:MAX_NOTE_LINES]
+        prompt = _clean(data.get("picture"), 500)
+        if prompt:
+            self.want_picture, self.painting = prompt, True
+        self._dirty = True
+
+    def pictured(self, painted, now: float) -> None:
+        """Muse Image is done (``painted`` is None: it failed, the answer stands without one)."""
+        self.painting = False
+        self.picture = painted
+        self.sfx.append("found" if painted is not None else "error")
+        self._dirty = True
+
     def _on_see(self, data: dict, now: float) -> None:
         game = str(data.get("game") or "none").lower()
         if game in GAME_NAMES:
             self.start_game = game
+            return
+        if str(data.get("intent") or "job").lower() == "question" and _clean(data.get("answer"), 400):
+            self._on_question(data, now)
             return
         self.job_name = _clean(data.get("job"), 28) or self.job_name
         self.manual = _clean(data.get("manual"), 400)
@@ -886,9 +943,10 @@ class Helper(Game):
 
     def command(self, verb: str, now: float) -> bool:
         """A spoken command (``tabletop.command_of``). False when it means nothing now: it is then just words."""
-        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps"):
+        if verb == "stop" and self.state in ("asking", "seeing", "planning", "steps", "answer"):
             self.epoch += 1
             self.state, self.want, self.job, self.parts, self.reply = "idle", None, None, [], ""
+            self._clear_answer()
             self.say.append("Stopped.")
             self._dirty = True
             return True
@@ -932,6 +990,8 @@ class Helper(Game):
             return f"PLANNING: {title}", "ONE MOMENT...", "warn"
         if self.state == "done":
             return f"{title}: DONE", "HOLD THE MIC FOR THE NEXT JOB", "target"
+        if self.state == "answer":
+            return ("DRAWING IT WITH MUSE IMAGE..." if self.painting else "THERE YOU GO"), "HOLD THE MIC TO ASK MORE", "target"
         if self.state == "steps":
             return f"{title} · STEP {self.k + 1} OF {len(self.job.steps)}", self._hint(), "info"
         return "HOLD THE MIC AND TELL ME WHAT TO DO", "A JOB, OR A GAME TO START", "info"
@@ -962,6 +1022,8 @@ class Helper(Game):
             return [(line, "target") for line in textwrap.wrap(self.question.upper(), CHARS)]
         if self.state == "done":
             return [(f"{self.job.title.upper()}: DONE", "target")]
+        if self.state == "answer":
+            return [(line, "target") for line in self.notes]
         if self.state == "steps":
             step = self._step_now()
             lines = [(line, "info") for line in textwrap.wrap(step.say.upper(), CHARS)]
@@ -972,7 +1034,7 @@ class Helper(Game):
         return []
 
     def _shown(self) -> list[Thing]:
-        if self.state in ("seeing", "asking", "planning"):
+        if self.state in ("seeing", "asking", "planning", "answer"):
             return list(self.things)
         return self.lit if self.state == "steps" else []
 
@@ -991,6 +1053,11 @@ class Helper(Game):
         ring = self._ring()
         if ring is not None:  # ... and of the ring a counted or timed step draws around its target
             boxes.append((ring[0] - ring[2], ring[1] - ring[2], ring[0] + ring[2], ring[1] + ring[2]))
+        if self.state == "answer" and (self.painting or self.picture is not None):
+            if self._pic_rect is None:  # the picture comes first, and stays where it is
+                x, y = free_spot(PIC_W, PIC_H, boxes)
+                self._pic_rect = (x, y, x + PIC_W, y + PIC_H)
+            boxes.append(self._pic_rect)
         lines = self._block_lines()
         self._taken = list(boxes)
         if lines:
@@ -999,7 +1066,7 @@ class Helper(Game):
             self._block = free_spot(w, h, boxes)
             self._taken.append((self._block[0], self._block[1], self._block[0] + w, self._block[1] + h))
         self._labels = []
-        for group in self._groups(shown):
+        for group in self._groups([] if self.state == "answer" else shown):  # an answer's outline needs no name
             n = len(group)
             name = plural(group[0].name, n)
             text = _clean(f"{n} {name}" if n > 1 else name, 24).upper()
@@ -1013,6 +1080,8 @@ class Helper(Game):
     def draw(self, c, now):
         if self._dirty:
             self._layout()
+        if self.state == "answer":  # first: black in a picture hides what lies under it
+            self._draw_picture(c, now)
         c.poly("hp-strip", [(STRIP_X, WORK[1]), (STRIP_X, DESIGN_H - 10)], "info")
         self._draw_mic(c, now)
         if self.state == "seeing":
@@ -1026,6 +1095,25 @@ class Helper(Game):
                 self.back.draw(c, "info")
                 self._chevron(c, "hp-back-ico", self.back.c, -1.0, "info")
             self._draw_step(c, now)
+
+    def _draw_picture(self, c, now: float) -> None:
+        """The picture, or, while Muse Image draws it, the place it will go: its corners and a line going over it."""
+        if self._pic_rect is None:
+            return
+        x0, y0, x1, y1 = self._pic_rect
+        if self.picture is not None:
+            scale = min((x1 - x0) / self.picture.width, (y1 - y0) / self.picture.height)
+            w, h = self.picture.width * scale, self.picture.height * scale
+            ox, oy = x0 + ((x1 - x0) - w) / 2, y0 + ((y1 - y0) - h) / 2
+            c.picture("hp-pic", self.picture.src, ox, oy, ox + w, oy + h, draw_ms=900)
+        elif self.painting:
+            arm = 22.0
+            for k, (x, y, dx, dy) in enumerate(((x0, y0, 1, 1), (x1, y0, -1, 1), (x1, y1, -1, -1), (x0, y1, 1, -1))):
+                c.poly(f"hp-pic-c{k}", [(x + dx * arm, y), (x, y), (x, y + dy * arm)], "source", glow=True)
+            f = (now * 0.5) % 2.0
+            f = f if f < 1.0 else 2.0 - f
+            sweep = y0 + (y1 - y0) * f
+            c.poly("hp-pic-sweep", [(x0 + 8, sweep), (x1 - 8, sweep)], "source", glow=True)
 
     @staticmethod
     def _chevron(c, id: str, at, side: float, role: str) -> None:

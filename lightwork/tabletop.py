@@ -1712,7 +1712,7 @@ class TableSession:
     def __init__(self, geo: Geo, frame_size: tuple[int, int], *, threshold: int = 28, min_area: int = 400,
                  page_mm: float | None = None, state_dir: Path | None = None, namer=None, outliner=None, link=None,
                  asker=None, task: BenchTask | None = None, plan=None, brain=None, voice: bool = False,
-                 planner_model: str | None = None, game: str | None = None, mic_gate=None):
+                 planner_model: str | None = None, game: str | None = None, mic_gate=None, painter=None):
         self.namer = namer  # lightwork.namer: names each shown object once; None = no names
         self.asker = asker  # lightwork.asker: answers spoken questions about the table; None = none
         self.task = task  # lightwork.benchtask: what the job needs on the table; None = just name things
@@ -1780,6 +1780,8 @@ class TableSession:
         self._check_job: tuple | None = None  # (key, step number)
         self._job_n = 0
         self._pending_say: list[str] = []
+        self.painter = painter  # lightwork.painter.Painter: pictures for the helper's answers; None: answers go without
+        self._paint_job: tuple | None = None  # (key, the tile that asked, its epoch)
         self.mic_gate = mic_gate  # lightwork.voice.capture.MicGate: only the helper tile's mic bubble opens it
         self._partial_used = ("", -1e9)  # a sentence acted on from its last partial, and when: its final is no new sentence
         self.dash.voice = voice and mic_gate is None
@@ -2010,6 +2012,7 @@ class TableSession:
                 self.link.say("", "interrupt")
         self._helper_outlines(g, now)
         self._helper_replies(g, now)
+        self._helper_picture(g, now)
         if self._look is not None:
             img = self._look_step(frame, now)
             if img is not None:
@@ -2031,6 +2034,33 @@ class TableSession:
         self.log += g.log
         g.log = []
         return []
+
+    def _helper_picture(self, g: Helper, now: float) -> None:
+        """Muse Image draws what the answer asked for, on the worker: the frame loop never waits for it."""
+        if g.want_picture is not None:
+            prompt, g.want_picture = g.want_picture, None
+            painter = self.painter
+            self._job_n += 1
+            key = ("picture", self._job_n)
+            if painter is None or self.jobs is None or not self.jobs.submit(key, lambda: painter.paint(prompt)):
+                g.pictured(None, now)
+            else:
+                self._paint_job = (key, g, g.epoch)
+                self.log.append(f"helper: picture asked for: {prompt!r}")
+        if self._paint_job is None:
+            return
+        key, owner, epoch = self._paint_job
+        done, painted, err = self.jobs.result(key)
+        if not done:
+            return
+        self._paint_job = None
+        if err is not None:
+            self.log.append(f"helper: no picture: {err}")
+        else:
+            self.log.append(f"helper: picture {painted.src} ({painted.model}, {painted.ms / 1000:.1f} s)")
+            self.dash.notify(f"PICTURE BY {model_tag(painted.model, painted.provider)} · {painted.ms / 1000:.0f} S", now, "done")
+        if owner is g and epoch == g.epoch:  # they may have asked something else by now
+            g.pictured(painted, now)
 
     def _helper_look_done(self, g: Helper, ask, now: float) -> None:
         """The picture for ``ask`` is there: to the model, unless it only asks where things are and they did not move

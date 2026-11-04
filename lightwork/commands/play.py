@@ -364,6 +364,23 @@ def _voice(args, heard, control, listening=None):
     return voice, mic, gate
 
 
+def _painter(args, brain):
+    """Muse Image's pictures for the helper tile's answers (--table --voice with Meta's API), or None."""
+    if not args.table or not args.voice or brain is None or "Meta Model API" not in brain.label:
+        return None
+    from ..config import load_settings
+    from ..painter import Painter
+
+    painter = Painter(load_settings())
+    problem = painter.check()
+    if problem:
+        print(f"pictures off: {problem}")
+        painter.close()
+        return None
+    print(f"pictures: {painter.label}; calls recorded in {painter.run_dir}")
+    return painter
+
+
 def _brain(args):
     """Plans and checks for --table (--do / --voice): Meta Model API or Meta open weights, or None."""
     if not args.table or args.brain == "off" or not (args.do or args.voice or args.game):
@@ -465,12 +482,15 @@ def run(args) -> int:
     if voice is not None:
         hubs["render_hub"].on_tts(voice.on_tts)  # the mic is muted while the projector phone speaks
     try:
-        server = start_server(create_app(mode="play", voice=voice, **hubs), port=args.port)
+        from ..config import load_settings
+
+        server = start_server(create_app(mode="play", voice=voice, pictures_dir=load_settings().state_dir / "pictures",
+                                         **hubs), port=args.port)
     except RuntimeError as exc:
         cam.close()
         print(f"server: {exc} (is `lightwork live`, `calibrate`, `replay` or another `play` still running?)")
         return 2
-    tracker = namer = outliner = asker = brain = None
+    tracker = namer = outliner = asker = brain = painter = None
     try:
         print(f"camera: {cam.status}")
         tracker = _tracker(args)
@@ -478,6 +498,7 @@ def run(args) -> int:
         outliner = _outliner(args)
         asker = _asker(args)
         brain = _brain(args)
+        painter = _painter(args, brain)
         plan, plan_words = _plan(args, brain)
         if plan is not None:
             print(f"job: {plan.title}: {', '.join(it.name for it in plan.items)}; {len(plan.steps)} steps")
@@ -506,7 +527,7 @@ def run(args) -> int:
               f"screen view: http://127.0.0.1:{args.port}/screen")
         play = Play(args, cam, hubs, tracker, frame_size, gain, namer=namer, outliner=outliner, asker=asker,
                     task=task, heard=heard, plan=plan, plan_words=plan_words, brain=brain, listening=listening,
-                    mic_gate=gate)
+                    mic_gate=gate, painter=painter)
         # `systemctl --user kill -s USR1 lightwork-play` (or `kill -USR1 <pid>`): full calibration again
         signal.signal(signal.SIGUSR1, lambda *_: setattr(play, "recal", True))
         # `... -s USR2 ...`: --table debug snapshot under .lightwork/play-debug/ (frame, reference, masks, tracks)
@@ -541,6 +562,9 @@ def run(args) -> int:
         if brain is not None:
             print(brain.summary())
             brain.close()
+        if painter is not None:
+            print(painter.summary())
+            painter.close()
         if mic is not None:
             print(f"microphone: {mic.status()}")
             mic.close()
@@ -560,7 +584,8 @@ class Play:
     recorder = None  # FrameRecorder while .lightwork/play-debug/record asked for one
 
     def __init__(self, args, cam, hubs, tracker, frame_size, gain: int, namer=None, outliner=None, asker=None,
-                 task=None, heard=None, plan=None, plan_words=None, brain=None, listening=None, mic_gate=None):
+                 task=None, heard=None, plan=None, plan_words=None, brain=None, listening=None, mic_gate=None,
+                 painter=None):
         from ..sessioncal import CameraGain
 
         self.args, self.cam, self.tracker, self.frame_size = args, cam, tracker, frame_size
@@ -568,6 +593,7 @@ class Play:
         self.plan, self.plan_words, self.brain = plan, plan_words, brain
         self.listening = listening  # what the transcriber hears right now: shown on the table while you speak
         self.mic_gate = mic_gate  # only the helper tile's mic bubble opens it
+        self.painter = painter  # Muse Image, for the helper's answers
         self._shown_heard = ""
         self.render, self.preview, self.control = hubs["render_hub"], hubs["preview_hub"], hubs["control_hub"]
         self.gain = CameraGain(cam, gain)
@@ -641,7 +667,7 @@ class Play:
                                       page_mm=a.page_mm, state_dir=load_settings().state_dir, namer=self.namer,
                                       outliner=self.outliner, link=self.render, asker=self.asker, task=self.task,
                                       plan=self.plan, brain=self.brain, voice=bool(a.voice), planner_model=a.planner,
-                                      game=a.game, mic_gate=self.mic_gate)
+                                      game=a.game, mic_gate=self.mic_gate, painter=self.painter)
             self.table.learn_at = time.monotonic() + 0.5
             if self.plan_words:  # --do in words: planned once the table is up
                 self.table._pending_say += self.table.request_plan(self.plan_words, time.monotonic())

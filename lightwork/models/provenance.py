@@ -26,6 +26,7 @@ META_MODEL_IDS = frozenset(
         "muse-spark-1.2-contributor",
         "sam-3.1",
         "muse-voice-transcribe-1.0",
+        "muse-image-1.0",
     }
 )
 CHAT_META_IDS = frozenset({"muse-glimmer", "muse-glimmer:30b", "muse-glimmer:30b-mlx",

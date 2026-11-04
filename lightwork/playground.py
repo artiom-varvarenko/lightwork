@@ -131,6 +131,11 @@ class Canvas:
     def dot(self, id: str, c, role: str) -> None:
         self.prims.append(render.Dot(id=id, c=self._xy(self.geo.d2c([c]))[0], role=role))
 
+    def picture(self, id: str, src: str, x0: float, y0: float, x1: float, y1: float, **fx) -> None:
+        """A served picture over a design-px rect, its top along the rect's top: upright for the person at the table."""
+        corners = self.geo.d2c([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+        self.prims.append(render.Picture(id=id, src=src, corners=self._xy(corners), **fx))
+
     def number(self, id: str, value: str, x: float, y: float, w: float, role: str) -> None:
         """Seven-segment digits, each w wide and 2w tall, top-left at (x, y)."""
         inset = 0.14

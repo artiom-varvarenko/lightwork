@@ -87,6 +87,8 @@ def _draw(canvas: np.ndarray, prim, H: np.ndarray, unit: float) -> None:
         x0, x1 = x - stroke, x + LABEL_ADVANCE_EM * font * len(prim.text) + stroke
         y0, y1 = y - LABEL_HALF_HEIGHT_EM * font, y + LABEL_HALF_HEIGHT_EM * font
         cv2.fillPoly(canvas, [_fixed([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])], 255, cv2.LINE_8, SHIFT)
+    elif prim.kind == "picture":  # all of it: what is black in it we cannot tell here, and a mask may cover too much
+        cv2.fillPoly(canvas, [_fixed(apply_h(H, prim.corners))], 255, cv2.LINE_8, SHIFT)
     else:
         raise ValueError(f"unknown primitive kind {prim.kind!r}")
 

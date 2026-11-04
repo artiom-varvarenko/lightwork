@@ -74,7 +74,18 @@ class Label(_M):
     type_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: typed out when its id appears or text changes
 
 
-Prim = Annotated[Ring | Arrow | Poly | Dot | Label, Field(discriminator="kind")]
+class Picture(_M):
+    """A picture the page loads by URL from this server. Scenes go out up to 30 times a second, so they never carry its
+    bytes. Black in it is no light on the table. Drawn under the other prims of its scene if it comes first."""
+
+    kind: Literal["picture"] = "picture"
+    id: str
+    src: str = Field(pattern=r"^/pictures/[0-9a-f]{16,64}\.(png|jpg)$")
+    corners: Annotated[list[XY], Field(min_length=4, max_length=4)]  # the picture's top-left, top-right, bottom-right, bottom-left
+    draw_ms: int = Field(0, ge=0, le=5000, exclude_if=_unset)  # > 0: wipes on from its top edge when its id appears
+
+
+Prim = Annotated[Ring | Arrow | Poly | Dot | Label | Picture, Field(discriminator="kind")]
 
 
 # ---------------------------------------------------------------- page -> server

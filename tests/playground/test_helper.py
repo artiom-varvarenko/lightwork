@@ -535,7 +535,7 @@ def test_the_text_keeps_clear_of_a_timers_ring():
     assert x >= cx + r or x + w <= cx - r or y >= cy + r or y + h <= cy - r
 
 
-def test_with_a_game_the_microphone_goes_through_the_gate_and_without_one_it_does_not(monkeypatch):
+def test_with_a_game_the_microphone_goes_through_the_gate_and_without_one_it_does_not(monkeypatch, tmp_path):
     """The wiring ``lightwork play`` does on the rig; the camera and the microphone are not there in a test."""
     import lightwork.voice as voice_pkg
     import lightwork.voice.capture as capture
@@ -570,6 +570,7 @@ def test_with_a_game_the_microphone_goes_through_the_gate_and_without_one_it_doe
     monkeypatch.setattr(voice_pkg, "VoiceService", FakeVoice)
     monkeypatch.setattr(capture, "ServerMic", FakeMic)
     monkeypatch.setattr(capture, "find_source", lambda pattern: "alsa_input.C920")
+    monkeypatch.setattr(play, "_record_hold", lambda *a: None)  # no test audio among the real recordings
     args = SimpleNamespace(table=True, voice=True, game="menu", mic="auto")
     voice, mic, gate = play._voice(args, None, None, None)
     assert isinstance(gate, MicGate) and "rock paper scissors" in voice.keywords

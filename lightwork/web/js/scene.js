@@ -121,6 +121,19 @@ function ringPath(ctx, map, c, r) {
   ctx.closePath();
 }
 
+// Pictures come by URL, never in a scene (C2 `picture`): each is loaded once and stays for the page's lifetime.
+const pictures = new Map(); // src -> HTMLImageElement
+
+function pictureOf(src) {
+  let img = pictures.get(src);
+  if (!img) {
+    img = new Image();
+    img.src = src;
+    pictures.set(src, img);
+  }
+  return img;
+}
+
 // Draws `scene.prims`. opts: {map, palette, lineWidth, fontPx, t (seconds: pulse and reveal clock), outline}.
 // Returns true while something moves (a pulsing ring, an outline drawing itself, a label typing): the caller should
 // keep requesting frames.
@@ -174,6 +187,25 @@ export function drawScene(ctx, scene, opts) {
       }
       ctx.fillStyle = colour;
       ctx.fill();
+    } else if (p.kind === 'picture') {
+      const img = pictureOf(p.src);
+      if (!img.complete) { // still loading: keep drawing until it is here
+        animated = true;
+        continue;
+      }
+      if (!img.naturalWidth) continue; // it failed to load
+      const f = revealed(seen, `picture ${p.id}`, p.src, p.draw_ms, clock);
+      if (f < 1) animated = true;
+      if (f <= 0) continue;
+      const [ax, ay] = map(p.corners[0][0], p.corners[0][1]);
+      const [bx, by] = map(p.corners[1][0], p.corners[1][1]);
+      const [dx, dy] = map(p.corners[3][0], p.corners[3][1]);
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const rows = Math.max(1, Math.round(h * (1 - (1 - f) ** 3)));
+      ctx.save(); // on top of the page's turn, so the picture's own up stays the design's up
+      ctx.transform((bx - ax) / w, (by - ay) / w, (dx - ax) / h, (dy - ay) / h, ax, ay);
+      ctx.drawImage(img, 0, 0, w, rows, 0, 0, w, rows);
+      ctx.restore();
     } else if (p.kind === 'label') {
       const [x, y] = map(p.at[0], p.at[1]);
       ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
