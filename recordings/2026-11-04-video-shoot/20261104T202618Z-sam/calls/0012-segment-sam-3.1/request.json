@@ -1,0 +1,1 @@
+{"input":[{"content":[{"text":"<0f>4<|box;x1=29;y1=82;x2=113;y2=515;w=142;h=597|>","type":"input_text"},{"image_url":{"$frame":"0901bc95914068ed247b0d57132d801390d75e1a5d55ddaca80dae92dff89388"},"type":"input_image"}],"role":"user","type":"message"}],"metadata":{"include_confidence":"true","mask_encoding":"one_bit"},"model":"sam-3.1","stream":true}

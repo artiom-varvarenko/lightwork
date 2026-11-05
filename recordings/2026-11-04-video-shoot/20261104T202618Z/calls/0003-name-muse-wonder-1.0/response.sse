@@ -1,0 +1,35 @@
+event: response.created
+data: {"response":{"background":false,"created_at":1793828176.0,"error":null,"id":"resp_6aeba5505092e60bac3c4d46","incomplete_details":null,"instructions":null,"max_output_tokens":1000,"model":"muse-wonder-1.0","object":"response","output":[],"parallel_tool_calls":true,"reasoning":{"effort":"minimal"},"service_tier":"default","status":"in_progress","store":false,"temperature":1.0,"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled"},"sequence_number":0,"type":"response.created"}
+
+event: response.in_progress
+data: {"response":{"background":false,"created_at":1793828176.0,"error":null,"id":"resp_6aeba5505092e60bac3c4d46","incomplete_details":null,"instructions":null,"max_output_tokens":1000,"model":"muse-wonder-1.0","object":"response","output":[],"parallel_tool_calls":true,"reasoning":{"effort":"minimal"},"service_tier":"default","status":"in_progress","store":false,"temperature":1.0,"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled"},"sequence_number":1,"type":"response.in_progress"}
+
+event: response.output_item.added
+data: {"item":{"id":"rs_6aeba5505092e60bac3c4d46:rs_01a1a87dc1dd752a88966961b84d25af","status":"in_progress","summary":[],"type":"reasoning"},"output_index":0,"sequence_number":2,"type":"response.output_item.added"}
+
+event: response.output_item.done
+data: {"item":{"encrypted_content":"Q-PaDgE8wa5eaQhjHgUBYc01S6XfJ5rhFDhXgRdObBGDhOy4sZAo2uqt9P2Jr2JbHo7e_9Rc3QLgkdsMxZOIszttd0lkTmvaDgsapctZNWD_6U6D_0np9MvnYLUV8arjiV78IGygSJvjtmOPo5Ykc6j6zQi6N-ksu0NlS8An7KOBVnPuS5Jc-DZbJ4jtOCJRZQFrlzPi-2RalNoaCDSFzOrbIdP8e-uEp4jF8GbzW7_vVnSjjVsMMBmjC3zIrY6ckjU1vDJrmuFdfTqsi54GVOwT3JZR4EoxWh1IjA8urmC5QC8N1a6GbCMdUxAPP3KjukVjpTZOAWs_mNQxRNbuN8tw5Z_B6jN_BYZwEUIgbmtx8Gbkwm1-VHcR_E1K4Vkh-CBdcfNilO0UAM-e5rxW0RcuR4-Tl8MdntBiHoyYRTT9Lb_tTDnDYKo8fZrtl8UjP0_Bpza1OKpXCmTggB1iHwO949FoP_YDbkkccdyRVvi-GuHrWk6foHJPg6DfIYTgP4rteuYIYSBXLIoZ_6ox57NClLnTeeztG_HvpSFhKVFdqkrsiiUDXXmPzP2XzOv1Nz2uIRxahVZ-HCJbwPH7UvxDYmIv0lRR4tNhZbcebOr3PkDPDbJe_1rPjr1Hg0WhENXT3NCxctKxWpghK61PH6yfelKjfu3A6HOUXCejJHgPbF1_dhoOntB0sIrpeLyvn2TvkZZN4_13UjBRbInlXXhHxxe0f2NAiPLlwSyr21K2SB5YmUP_GwsZchttQ0CMYcVqg9PXx41ezBb3333fbijSgbPk7OwIGYxvGm1EVk-CIzXqLLfnpP042NbP3hPLxhj1qLdl7aWVyZxrBAdTpbNpxbDHDGi5ygIfbr5iEuT4X_GYgR9qjJjIjGPaYG8DsY_xKUsjHR8ogRsamC38B8A-QO-BGHvDRvPpoESFiuF3RPcQZ6wIgC6m8kPvZEOTVkZdj1xYb_Xack0zQRAEcoxxUpmEoTOYKtBb5A22jQw9t_h6jhj8JZR5O7ys2h_GHdwC_921sVcE_EFF88YqWItBH5uF_GrVcfbntMYrrPWqTTH4lGirbxC8M6RFsvmKcCLKK4TJfN05QkV_MBsqdFggCtcEmvqCA_9PeQr2wmg3Zztyc-Qt83xbj_Mlg6FEGDAu3q02sHlJX5IPkrAZVEMdzMnyyeZ0v_5yEsisqw-yW0MKam2iwgSzVJuyi8kSnkbOECsYuZhGe4fq_X1B4oBtlxlSSU-dumgVAsWeIplhER1h1OOwGlpRWSBhQVW2A0910FXLSqcCE5gXWYOv19SpMVM5Gu_6Lva2SIqStX8UUKI9z1X3l6sIy7UjLdF1lwSEiFZJGnucDkUUbUGUJrlNRKkbluEcyr0lyotakYKu49zmE6saKPqA3Toi-wCbjMS3tV9uDifXWMk_cw","id":"rs_6aeba5505092e60bac3c4d46:rs_01a1a87dc1dd752a88966961b84d25af","status":"completed","summary":[],"type":"reasoning"},"output_index":0,"sequence_number":3,"type":"response.output_item.done"}
+
+event: response.output_item.added
+data: {"item":{"content":[],"id":"msg_01a1a87dc8997394b0706f4ab7bdc000","role":"assistant","status":"in_progress","type":"message"},"output_index":1,"sequence_number":4,"type":"response.output_item.added"}
+
+event: response.content_part.added
+data: {"content_index":0,"item_id":"msg_01a1a87dc8997394b0706f4ab7bdc000","output_index":1,"part":{"annotations":[],"logprobs":[],"text":"","type":"output_text"},"sequence_number":5,"type":"response.content_part.added"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"Grip strengthener ring","item_id":"msg_01a1a87dc8997394b0706f4ab7bdc000","logprobs":[],"output_index":1,"sequence_number":6,"type":"response.output_text.delta"}
+
+event: response.output_text.done
+data: {"content_index":0,"item_id":"msg_01a1a87dc8997394b0706f4ab7bdc000","logprobs":[],"output_index":1,"sequence_number":7,"text":"Grip strengthener ring","type":"response.output_text.done"}
+
+event: response.content_part.done
+data: {"content_index":0,"item_id":"msg_01a1a87dc8997394b0706f4ab7bdc000","output_index":1,"part":{"annotations":[],"logprobs":[],"text":"Grip strengthener ring","type":"output_text"},"sequence_number":8,"type":"response.content_part.done"}
+
+event: response.output_item.done
+data: {"item":{"content":[{"annotations":[],"logprobs":[],"text":"Grip strengthener ring","type":"output_text"}],"id":"msg_01a1a87dc8997394b0706f4ab7bdc000","role":"assistant","status":"completed","type":"message"},"output_index":1,"sequence_number":9,"type":"response.output_item.done"}
+
+event: response.completed
+data: {"response":{"background":false,"completed_at":1793828178.0,"created_at":1793828176.0,"error":null,"id":"resp_6aeba5505092e60bac3c4d46","incomplete_details":null,"instructions":null,"max_output_tokens":1000,"model":"muse-wonder-1.0","object":"response","output":[{"encrypted_content":"Q-PaDgHu9LybNaREl5HUr7mSolyjURwN4-ONVBgv1ed2th90BWPgLeQBjM4Rj5RnDRmObfP_7wBzzWdG03ZUYXSJtlQ_Ib5UfwybYi7W3YD97uolvrcC8j3EQxpUrYMVNe4u3AGw0UsbZ8oLCpBGdmZjDC2FMOOMZsPin00U9vIuitT_hpxJb-LLDKC0jT7b_VpCAZeAv1ezjZRpUuugSSf85skTSM_JRDjwwtwqYywRTfsys47cwr3U9eWgO0t7wkDBXTZpw43aqbsescoCi0B3_Xpqp2ITXiDu1tiZsh6T-KRhxz2YIQ3FFNtQU4dxxsz4kSkQhgA7uXzFMDnlocmlYsE2oRbvKkVWofthJsWmqPStqsBXWY9OyDqDOEdYF9Ew2nbCAamuO2CdzJi6Si1gZmjiJKlAwYOt9E5MKl137tQvI2XNMZqFUM0LPFiGLpE6Q2u-q5mAT_CDSCEp7ZTKvZyo2dTTP9qWIfXVM-9tHdrtR333-awiWpvBAMc0SEJEsuAhfcnylx2VfRUn_KyHAIthKMrbcrivauHVRgk4bpIZ7hlndQKo02hQ4K5RGUuat9cTDnnGEE4vTF_mJHOr9XecVJoPmr-IdtgxgtGWhbStvoN5Tw4LvgwcoXIr7O8rGijMfBROjoN5LIFB_5gosYxQYvXLtagK_aCY0XZMWuRO8Dr7gnNrfE42AyJgatekXz67Z6sp-JwJyJGkcTNPdM7kas5jql1MKES6SHYNBIo0I6jo5r63I_l8W8GGVmEWIkqzn4giGbXfCfQiuEjXUIXK0xDKxODojz6XZlOJ_QqW9OgpUqqyHCITRoKn-3RXJoeZdhcMX2RlSHHakfPwaRTY35ukc6d9AaeAd6x8WqKC_T90tS-kn1-xN2-R2wPoNJouzeOIWKHEJ11l82NAR5JwDCo-cY3XPPPyA-6rE5aoSWZkAVESbyq6SvaX6ZLV-ANkwZCHmEC7A--SmC2wW9gcymckD__qfqtgCQ33AomMdKQie_CAGm-JsnA_WET5IEGlaN-2qZkpkOS1lBcjsyDhFq4JkfAEGpshcmdevtKHImzz7kbma89jRMCAhncOeLzovRx_yeevLySYKOIA64N3cOQwRrytHHWDiBCadwJWurSxke8mceabfInGq1rj-oMsyL0OT1-h63f2e3ps0lMx-I6WiykO1uofjiC820cHowEwTzwfSWZES_kpDrqY9KTTArF0BYVGxQBEUqec1wkq3GKPNN0xOGjLRazTcSFtzEoqd5C3OAPqIqPNeB4PtJ1KEAg4SHl8x_qU7Upo868QHrzlXDTOICHdPx9QQ3EGQmLWGUrAXQzXCoVc95Ff1lS9TsN66dR0Pr_iMvdZ_uR9X7CmfqnGZg1rmRnX82Ek-59aG72Dc_xxJHOc31EpHeMkOw0Ryq8eNA","id":"rs_6aeba5505092e60bac3c4d46:rs_01a1a87dc1dd752a88966961b84d25af","status":"completed","summary":[],"type":"reasoning"},{"content":[{"annotations":[],"logprobs":[],"text":"Grip strengthener ring","type":"output_text"}],"id":"msg_01a1a87dc8997394b0706f4ab7bdc000","role":"assistant","status":"completed","type":"message"}],"parallel_tool_calls":true,"reasoning":{"effort":"minimal"},"service_tier":"default","status":"completed","store":false,"temperature":1.0,"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled","usage":{"input_tokens":81,"input_tokens_details":{"cached_tokens":0},"output_tokens":177,"output_tokens_details":{"reasoning_tokens":164},"total_tokens":258}},"sequence_number":10,"type":"response.completed"}
+
+data: [DONE]
+

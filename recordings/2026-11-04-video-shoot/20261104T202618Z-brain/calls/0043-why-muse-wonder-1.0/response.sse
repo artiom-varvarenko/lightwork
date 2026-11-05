@@ -1,0 +1,1085 @@
+event: response.created
+data: {"response":{"background":false,"created_at":1793827519.0,"error":null,"id":"resp_6aeba2bf44a69079848341cf","incomplete_details":null,"instructions":null,"max_output_tokens":16000,"model":"muse-wonder-1.0","object":"response","output":[],"parallel_tool_calls":true,"reasoning":{"effort":"low"},"service_tier":"default","status":"in_progress","store":false,"temperature":1.0,"text":{"format":{"name":"helper_model","schema":{"additionalProperties":false,"properties":{"code":{"type":"string"},"name":{"type":"string"}},"required":["name","code"],"type":"object"},"strict":true,"type":"json_schema"}},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled"},"sequence_number":0,"type":"response.created"}
+
+event: response.in_progress
+data: {"response":{"background":false,"created_at":1793827519.0,"error":null,"id":"resp_6aeba2bf44a69079848341cf","incomplete_details":null,"instructions":null,"max_output_tokens":16000,"model":"muse-wonder-1.0","object":"response","output":[],"parallel_tool_calls":true,"reasoning":{"effort":"low"},"service_tier":"default","status":"in_progress","store":false,"temperature":1.0,"text":{"format":{"name":"helper_model","schema":{"additionalProperties":false,"properties":{"code":{"type":"string"},"name":{"type":"string"}},"required":["name","code"],"type":"object"},"strict":true,"type":"json_schema"}},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled"},"sequence_number":1,"type":"response.in_progress"}
+
+event: response.output_item.added
+data: {"item":{"id":"rs_6aeba2bf44a69079848341cf:rs_01a1a873bbed71c8be70f8826e7022bb","status":"in_progress","summary":[],"type":"reasoning"},"output_index":0,"sequence_number":2,"type":"response.output_item.added"}
+
+event: keepalive
+data: {"type":"keepalive","sequence_number":3}
+
+event: response.output_item.done
+data: {"item":{"encrypted_content":"Q-PaDgFmaPSO8BiJFWPh6ItRb_Aqi-eBRegHDcFNeBm_pMz1_SXTB4tVviUWcqYENYAWwxMD6RIYj74-Nf7a-aBghIb7PnaBNMAMBvaspEnzhcsykUOoMBSKLACDzcMhX3C7XQSiQWLU1Avgo-oLAIBIafvvvq-kUE3Rq-P2aWOM--nD-ln-48BfQvF8YthiOpbBVNt3ECbLKINom-KYQ9K7__1yOKzuCxxoAushKuY9L5npXe7xoF_8ae1bhl70P9S9A6l3DUC_8zId3Od0nNq1_q99Ff-M673EllVMctt2OQhGtzespjEvLEgiGYvzkNhghwUkptX1oZKN33ab0aSpGRkloM5mMzEzkEqOTiez-77BG_qDBnzwRx1-QD-BH-cigDIlpnVV5DLbclQQH3p36T3q3s7pOadZ6tYt3Nwoya1i43ftTpFvAmUe8XTCZsI1ASVDPmd3SC3zRwhDcF4btH4VnPGANB9nXtGmaNhdgjZV8Fc0COnydbvrFXxlSp5IClRtU07vCqHM52C9i1qdTZt6wb1Ep-b6uXcoabciIYtHpdR5La__B0Zlm1UHoZDbYJO_-wt1gzkfd9GEM0lgQWF5ocbtqPsgf9_Q0FtdVwE4J-dlZisLdrMNac91Seoz-AR9MmlA2Pm4pGgutr9miFPahqg80LbvGyIPwB34DjWH-1FPsyutSWv_LPiC4AorWPXzzbkNbrTKs9788wWNzIGCK49xS_TJ6Ok0dM3fuyxjK2JB3YL0IXeiG8-RqGLphMLIwBI3dvKp4rGrnc_3erEXZ21a127CPWXwI8Yd7TfPpBXkiZ1SXY9k52vgwKB25Q42Bx1yF0t6VLgByUODa86jz_H3zpuRLdznGOlUN4OLLjXlKnLoSakvGQpU1mZDBwQhr3eMZoot8O7OgJH6gzzu9dLFDS5IZM-ObhWDViW5iSvwmt1Ww-8Pc2IexfmjcXjMuFeQmfrWS5rUkD_Hg3ouA7s82ekyII1L1OlrOug7PnMgS02bzK8aNgxOd4wlXZctweek4IWS1Ah-2EJeqdtGs-_qnCUf73XAV2-SH5Qlh5-xol_ke3GNVV33HuHjPYprhQXdUHRib2W8iIDcrDtBK-lu4WO6YTQ3H2rb0a1Z4rzWWzIN5R6cIDgA1rm2MYqfxoswwunYsisiA25XFiogMFsy9OJlIPpDXhXP5_dDsWVBcQhhBJil-O0FDwTVueHUjtVAO3g-bHr0VZcKJwNaAZ4Vdn82s-dMf2CD8rNQKkdufE-P8yr9SOFJZIjhoXCTTJ2rI5cJwniRVkwFn2H9GamuL9ikwlAxDnp7M4aaq20EXu16pA7QpGPCVPsi6wL2VqALNhBemqfgJkUcBcMf5IqW5ys9heoYCcHope-VOKsXc5CqYc9tHbzgst9RdyOrJyqt_4XNo2dL6tZ-gMbSOBuon6qQUSh5vb6v7lQ3yIlE60AwfJ57erQMBPGoPvLjmPv3FteXcQco-xUDvjl6CdjWmcUf5mkmN5hpBQ-HuRduPyvF4Lp3TlDHNZl8e1QXdtIorVKIfF24aZAoSnhme9dyudF5koucjHWpCEZoQqPRsinRUz9MVyGCD-Q3C_m3VBR56_sT3lEhnfvP7fDk7vYT4BZS7NEB4pBBioTkZyWnn_qIFISBFLibFfxkrgqVZNneEvVta2O8yGjzvakq4UHR_-bBPbBNWco2JDUMDux0dUeDrlA7JbXnaEk_KN0xLz8OdU1-Y628-CHIjo-IZJUeoI7l0S1shuuR_5m00n2HIzq3eOLK2BQHcvziFO4933_BTx8Y4WQLTzraMder7bhsh70kbAT1iF-rAiFgc8XxTA8r9fLL9arG6xWEt2xHy__AZtI24qIyQ1Q604Ak-NnlUiXdIWO8MCGPD0T_xZH2tSEkEjuuDM2LRlbVDIySWv5YszWef5zTvJdpmMIfc4j_N23LZEOMCpvCDxA6iNZo6Lf_wlhjCDMb5xFDmjq-WFiipVvoLOHF2xPK17Q9DsLgTWHaTG_IrdoaJmxFJx-YA92KS2_iHy9-ne6fZweI8FjYSsdsiTcQRCpFxDC2ITC1O0YiRvWTt7FUwy4mXJQG2v4t2Nr3hT4hgEY-rO0tAtUtQheD3Zza__3vq4Z99DEEIzXu8Df6moTIcZUZBt3vKvHEFS9Mc4N_oNvY3EUSvGICE2PJ3sZw2GvxQoG1a339HJXgRrH6k3YHU2BkY3q4Zbi7ZM1mHz8_77EY1dV4ArnYlz5uzfCOcv0oCNGG4L1rtCbc8rc454vdKG8BvHTrjj2k4spIzNziqlIbdYNpftdtnV7sDF4TEqCUOin0T1ES8UjSrTThijVtjzY_pGkRkW18ppPhlJ9j8M4nxShcxA7-K0-ePByI_bTCy8ga6WyyodUXvLdSqlWOmInQUl65M-p1BJ3C-_Kx50mJAGgB_RRyDS5rdpr6QohIhjZg38NYGylGQMNirmCIISs_xLycStELkqUocP6UziTKYz7BXsWAtLxGkOHyYJMKdhrV_sfnHKWJ_CW30jVg_bC9j1HlOzHrkZCfa_-LMkRegC0pNxxwGSEKa1w9pZ5haqjwBX6VD7x7WRQdHSSIwTLdUPU0fHvhe72O8xXF2NjQGfJyZPkx5MRj6znOxbx3EBWxlgzGQXD_yCQkTPDgehoy-Ux6mbG9KR43oNnAtTsuCZkdvz-B9ach5fDZcaw3e68ChQ3-7pmzHkytrwHc6A2HzQXBi5XRXxWeMuVa6jeRPQO_s_-4z818WXxZTIMCvCb4ELQIVxxIxbdXAXBfCgoQlKhh_DPAck1BEjsToFBezsalumqZ4TxBktCiW7EvE3BNG_nBUWOp1XtfUqOmjnrTvelrtFiNG7j61KTd5Sjs6FuJldGaKVOuu8TD85yWdOG2fGNRD-0dZ8ooBW0YpsKqdvw1BNJeI5eu0eFBQKPF3odhDhbMIqynteqTBLxTDT15jShEGfNFGR0N0bQJAMdjQQU5BB9nDwm23pGHc5k9MWIPiLixPHujoEL8Y6opkzWC1MyNzqMrmIeiqO2poyeK4D8rtrj3DGwA37TMGJJ13NeRNv0-hbZKlpK0ErI12Cb4hWL7ljiV33o6EDzz-zb6mkLO_mFyFKwntalu_vJ_D3cbnIOdpUoWi9jmoUTE610SXqb_SPipVFR4xJmuIoHRSTGTtze73KPJKSVr8LugJakzInSd7EEfvdBW5uAN35Q1Oyp9HHr3D-tnDlbs4k_29SC5X5fgushPVcBJdQW-xXkL042H0_lzrHGlmK1nuV8crReDvJtJaG06FcV5PLjtRoDSnzDn1Yp1Zo_hL3UI8GIAXTI_Tee_0knAvGXIURBlkAeFxHl7oYK9EOfxwtUd6NAkpiBtRWdC2c2Dp4xXXNoD3aZ6eJg3l2VPlL2BGaV0eWh1dZbByU4SlBE-wXu37u8Qi4yGh9ThEEFD3K5F9GArvP66Csdk2c_o9J8MFdWFZ_96Iq5X7vPAlfzv40EJxX-9LR3DTRDSm6pULyzVAY1b-Sb2_O7JPObmkHVotCf4eLwY2wOYk80qyTShw2jk3EPHa9n2cicX-wGWS97ztxow4SUr-SMFeyRJXvO6LmdX1ooUWYf6MG7umwo2e5Ol_9WHbJrXWiasaphn_wuERvZCyPvkaoAMZITaFgEDfw-lPhb428s7x_PrYvDdygA7YWn5LJFpQdCEP0gAeBlXrw4H6hgJ3U0XLRXKbtmO02e1TrsAOQ-RGpQvDjp0Eo3WSQ0fWjpozssA3QVdUhiYE4gpB_N8WkgX3rJX028KiiPMTVkkN-zcOIfIOgECH0OI28K4lxQR1DoHOenKDexp3KGN85C4Eo_3b5ZbtBi1QKfEi0-bpGKF6_waawJY0rAkftIlpU3-FTKHTuu81HgYAOnkcOwCgV79t3sPryIyUCmxqwHZjk4brLpWH8etOfJOEFti_G09dRe-tOZWoawj0eQ8Dmb6EDz-ZkntkU_SKrY0t5KFmTNTMjSCjA9cJZv67IXTYIzr-jL00WVF5gH0UxJ_n8nvMWdUbxCYm0JC_6dnOBQpHwWYUlA9N6ZEMOFjIxDqpxnKiaLp49XCv6a9AKmJ1-gYpIWXZNNsLhS-OxCOijnF12AVPXdHzTscD_i-9SFiAZVefWrkEcWP_550Gv-KA3Gufr-OoNvBv3GsRO4MIGB8vcI14Lr8YFPYFhbxUyeceWQ9u9_dMZXtgxzszsKSrr2nQleZkZe3ROXPKZw5Y6E4OxcxHdjpqJxsQtYaIVswWBtiCUOKzqqqhdsrz18QAFWZxnW2CpCXegjSrnVOY_yStlMsCPBrQ1LLNcIhHIQ5364I_Znr6wh_IFwCO_de6zhMWS1-B_DlSc1bem04i6qSfRsbVTH1i-fZ59fNKkoWAqqbmnR4AVcvxceEs9cYnYdq3TfduJxiqMOIVgkANMBJP0IoL71bzhlEeyXRkBkfGueBBmC9AyeY-BSN4zE_SEE7fqvcV3AhgMcSdOM94DjHHFsHfIdXCtxBhyuMnmJ774a_G1Mrvsq1C97rwNqksyTmO9q67GE3ZF7NtJOeR28tuB7H6mMPg7GZRpl1ILIKlAjcxdXJ_MY0FQj0h_Dfkwucnp1sr5sHYtRkpiDSTpUZ-A_khgzDM-EylE2SHPjQB4kGTyekG_VQwDIF2Z9ftqqlcS0MKQ7ulr1YIxDBcgcA6nK-VbpSKe7AghfGnua1s4Rp0KXODu_ySP6FazETBwdZ5nehDOSixx_YapkGVRv7q7gNXSUT8jCkCvi_qrCC1bfcgGWgy8ZWIP5q0ZWQezME6CDFXvqTOtMvtcbD8JQOnv-D-i1vyjzt_Xqpvd_1kM5WXCvoVLkbR3CpkjhRfv7zEYoIPUsOgsgduW2ei4DM08fWGAoei7PeXsHvZly3yrwr0dQS8APYA0kjrmEvwAMK6M9IwSCK29pooUnWjnJ0ck0VGyzAhRzSieeKk_6VoijS2FuiVHitv9iNByXyQ7vl8BRwFWN6t-7fTbDgav3pVUN8V9q-tvz2vfTNQtL8aoZsIfCUrOs6xkLD6GE-O185sjPQ86gJF__bBCxSxjpAHIDFR8h5s9dofp-PUKYJQe6csCqmtD5qfGtp1h6Acp5KLtueHZB7gl69oCtbrITalLPvBHUb20OB2m6lZ34gbnsskB0MN12c7VWDCMTXqB1aFMk8pPGYhLl3z1fZooqT90eV5GBY8dU2WEzs5c-qbXnUPYdE45kBKoPqu-6xPl93UYaeYkgIwFJjtoXSpX-vh8YLcS3ZAAME_DMyz8CzYgpMvormxzWcFbXpJPMOdYcBU9BDm-p3bMjymZfIGETtzbL1EulPjLGQDbBgY4jhjUbjHRviMwOo34twhlCbUKtboHiYhRuUAKwCdrCYnyJ44eCoxaS7ZuK8J7vhArS7zpgbEvmJsX5Nn5dU__BdL2OvTmhFpiBDAdDyj5y1062Y61TdubC2Ey8ZvI2XWEzS8tM-EBr3hp3DCUsZdIUOQF27aFmg0_Ogo1jYmOEeMqpP5rsI-acJboLcFU0IAI-iyKj_H7vWqnLjbylB-4AvOKWyNzD6fcKzgacDaugxTP286AsXZTUTC1YsQpstIM935Lfrd4_6f5TEy7-72lg0xni8UtlI_-8YAORhzF8ziLFKfdaiPcZ_8dfiwIGDKQwvyFhmSvn5auNJXxR1W5KzTIsThiYWyR3mvZHxhzCYtck-Lbx34tNlCYwuxV5IZS-QGIe-9WSuCilHibrxaT0Iw9GB1Uu04mlI5vj1XGQQl2yWjBMjR0CagjjZhVR9WF-n7UqSszU4jFQzA8ndavHK4K6QU80KHFNitRgUWOJoo3HDwH33CPekjj612wzCnBuOPVX38emFo-1ny2yfT5IeyRbiaGKwjO0UBHB0i8srDOFwt6JxXRrBfOz_diT4VDpD38GhVnlBHQCYtQKIpuwaC7_IWprJTintV0BWsWi35XXmZIwILvpt3ZbTkigI8yMU_vSyXZBob9itt9hZdQ--mUaLG0ry1jAD2G0J9dz92-BxMLYAO4fEsj04IXSmgktCLbVH3R-WfTOClYfTxkqN6N-RaDQ1RHO7JEZbanBPwcblSD5gEzT_opvZfspx9-dIBMdOf4sDxTD3cRc1kGuWbIlUnYoOrk8TnAYtSc7hLMfAxeJmbFyJ6xTHlXOoabAFPBMqOs8LVJ1VRTW94ANb_VZVJo3upxu6450skjQeay0f97wHEN5uCuVoAzNMQJr5mpip26ZYDsJ_BghNsuu3n_HaCRxL3OWqlpLlYGnnhQcVPAiLhmIoiXEAexjkEgsS6w_GwyP-BMiTOzeKRLZ8iottI1UQYthLgHaWMQMDTUQl9AkyfRSaJyWE_2tlXM60wS_KCm1cdqyGn5fORt8k4sTGJMCPP0yF1thMPpo-S6UrNUyES1Sx4YVNUYpuHCWELqP6mpK8mdBMoeRXNR8sEUzqJkgyzJjQALn9Wxrek1AcpHn-ceU6f1j8FxoKbNNY42qInvACH-Oa9EnYC36MyHswZ1yyuzGXJnuZVMbdMoWuYdj8vZX15vIkOy3RXl7GXvZQzaBKMX3vu9j4vMnpqc_P0m49NThrqavceZNGNuX_HPaCn2uZRZDUdLWtHxNJ3iEE9HaMhLFnTmAb5Rp2SW1yB9u8dmTnu5Zym3uwZJK3wzipK7Uh5qpctnwIFvEemJ9goSKC6aJOxdXJaaHvSnkQfzi5q__2d5X29H-d1zpW-KK1bVLfLe8Mo87P12BwwIqWkLk1GjD79mXXRnBhmd8QJ5Ei7gH_ZmdTzvllozkL-AbxGZs9KwOvZA8173r_kwix33n9hkNjKCaMHuJTdF1Tx5TmQPUX2h9Af-26j8dEAMPhkolZNXW24QdbN7nFc8ZRj3kglQIoXMNjVBI24jNs3VpbuuLAOevjZTPoNxtJQ4qa2C4RaT9m-jEzlxIEQzMq4DxaE-23LDq4_n1_JPS7xYNHZDVLdY0gU3PbamMG_vT7Imo-2ZIacrnGPKjz94DHCPx1_nZNces5K5NtfL2RfFjZX_xOAZJIcN0uihTKaho9HFLxhVg5WvG6TwFoHfMOe0t6hn7hzvmaMtrIbsPcZ9yYzLg6ObeQ18hKdiZKN88KlRvhkFiF1xTmWVPBL6ysZqawAFoa-Gkmty2wLey_KC6ccQRVuZkKfsd5hl_l3zrI7EwWm4JiQFQss8kj-4TLidQ7h6q6Q7fK_wuqM3yZAvAzlrLoyi29OnCqdeT9IOQPxT3Nf49M2UcxEWv2Br9q8r8ViO-RFs8yl_R_exUhkzitdozfi37WjRjI9l2UB_7ZF3I8g-rUrcN2yZcwOrc2jhEGY6Ow1luxRoyaYSqkOZFWba7vho_RSOIWqk0EQTTWdAEdtXMUSqrDiT_SOs398urX6x-Fh1eIvS2X2KqKOZcrLnb_bWOdQQT0VIce_n9Bg-Hf5zYqCdUD5k8a8jAgXK4K5AbHL5LvAl2wh8J7wD9BBLX6J_Xqh9LhBxggGjeNFFIUivsJlapRVTEtPs9NdXFD6VU4m-qP_KCQ2mZyriyxn4MPQtk97NHc2eVctCldGIRCXtNk4tfFieE-PS20f7-_nPTfKwaKaboL_6HugOgKczdcRk37MFlEMaBZi4jxuEEehvMG2wwTRNFVwMTZUknyQKW3v6q0sBgWwMDj9oLwmNOEtXw-8fAVGfLKFvlfz-KiFM_cY47fuUuJ-Fyey5W8S2aB7UJXBd5DbNX06zX-YcZ_L4Ta0_jSZG5uKEouE7-Br3Ps2AeRo-hwnuxlwzMGcKdAX77fh6StStrO1_cBo-hjICw-QXWewYeyg5gNGKwlQDSag_e6Y8ZDaCSzSqaUjIZ80mgFga6KP5pTs63dtP5S-h0jLfXCN3dt1qVEQ1W-opfs9HfYltkOuwvHrNN9aFX1fYGAPNDF5qfrLrMyl__f71C1Ugga3Idg-aZJftm_5ZA76BKN4l_cuyg6c8BauwIigN2mZzORIDgnp9QPGjqzER39PEZEiV8MWX3RO9lEfV1XwK9H29uoipYcaX89JYaGblDViG_0ScrovjkKsvFWWoYu1mfvVVUvYIWN_rLHWU2oR1pkJIvAwT6QtnE5z9kkeQ9QIOYqf8Zmf6nFKoTpE3205K1OGHaY4jG0ELOTRk6Pwe9hQgWoaqbLOrLdCbykoRSxJgrOTxEDpL03-0wEGHrEerMMgPVrnLEfEUfPFoVjcIJGFZOLjVaXw-ruR9zM8hezWKz9xO-aO62UVV477atQyvYxH3Gbrj6-0wpnxYRLflJwNzdAkfgnCUhfZkgVbTg6XD1ik4CgRKISBrQhg1D3xV9Ukx7aGYDXq8bm5Ka1JdlMNRjdF5XzhB2uOzXPHt9qMnESyRH5ZWvfhMFEXE1algZ7WwXSPdHDakSniJqhB36YfixcVlID3X5is8Dw2MGR3WQwKu-qWkss7K8EtdxZNgIDbzhZiagiQwsOH0KrAWF8SMBY1_-vFeLEbtRuygdx_RtPLMsmFvgnUcEJPA0PJPIgYPBWcSbKwzIbMgTGsoW3CpnmbZCR2nhMVwqnI-qro-TgQ9ErigDJ0eA5G62esrWlhrHSKIzzK7EDXdhVNVK79JYAMhQyB2Y5abjNp0a3tlXtyAytEf-aKNAjtuVMEkhGBu5Q0S5wVVbENR4U1DKPFCMZIPSBJfuIcppuSe6dwTc1to8nUxMZ6Bz_aCxvEtlL31rbuzlEQLI3dsl5GVi4uw7VaO52XH9U8etPoYZN0pjKtxHLba0dwy9pAeuqut2Bg4Z7_JxoYkr65ZkIEkZila_b5-lFEw9cA3JFRpq5dWf2TVVy814zEERqpN4yDapjAao-M9XGBvVqUVssbqKjbi28ktLcEW7qmNIG5agg93bmo0meKNbIuzcsG6lgMRSQfSQ4BpI7BAo4RFUV77vGduapsoLQCgF6qkVgpzsx0bEHRQVkqL2mwPKBIt99nQ_TbJ_KPkHi87va_j3ZRzGnZiPnXuHVUDQs9W9NQtfs6MDHf4b4l_8B029OqUXkQD8VMIQaPg-yCZrzvVD04hgsA88Elm8lI-YYzx89YPU3ti9kdEidGk3zg5_Nodp5UVN8HoTKa8XrHdbmH3Ad4MSBJ7wtTtwtf0rivbLWVJBOT67G-qFKzvSj6_jmFNK7YtZchKPBv9RQUArTrDuQAEe0EGtiCWt4W4alaZqCEu22s8-hmqbkX1GIZJHdRMPyX4bCSeD09DNzLVyAJJ38yIpB_mMH1DyPiSaiqbjXt6UhzfagIrL-CLzZzMqfhqA4bncAeU5DUDLWonqEHxMv9bCS1ZpCwq1VrnCCwbaqA-EFkRO0iNoxzSQm0_JihEiGL2sVG-ceC6Kk1hqCcX25kpI9Y3fs_AdA3KyoqkFDk5Htf0bdk8hrpVHOxNtj6OY70Vcf_KqtMAVsyzwQqn_u07PrEFTFmBt9MCrPQAr7k9cjzzaT0h0hbOvVPytn-A5TWF9TG2wQ-BFWXrzgIt4u8NyOdiclOvcvMOJxhXfqAYLGUcKCARdIztyBfnx3AgbMrprF3NGDeFfsh2rpAqeD_2eIUWVmtRCjBkpOje9JWlXmg5L4CHFC5S395STBp4c_sKN82gwQFZxrJc7yGizRDFh7GdKZbK_mWEBF39dQqUBWyWmeCWkzjxIaRMv0GaLBs8oDXPx-MsJOLVIL4UQTzmQv5xYhMrfAcPOtoiTfI7tMak9lrMK42WjIwpB7-_gqlFQozhyIaXZhG3SznDe_UmSbRIEwX0gZfoomakFTLq4tI3mXY1GfZwWNBn3pC2pplxBYNBjbYmFyU43Jctq6Ifx2FKNQu1rnkAUPkJKqurV3PcFqVtt_ks93Pf6tUlvLduTL4FFhIThhZNqh6_GL_6yN4EYfJg08oqyRgUje5OO5VbgJ6yImNMb0FBl5PHtM8ub4YgzlGTD7xczufzlknJbudLpLYchp3lfrON4ik5oHu1EQKnHBNzadTo3OjSUdxd0Bb6-UOgXDGFs0HIV65fomcD-qHzqFXauD8FMUkKh6ZYh8PXWEnlIM-a8ivalE2GVWxQCIJ-yZGf2lYHQpa07jOwc4oCxUGOYvG29IqmAdVlEaxKUDp78pC3dP7z4C6D7vvF34DW_qodQ48-WQwvFJ0iZG84tXIiuSDfzoEQBBW5pWwzE5qqLlSEVjKQ9NytnyZjRXCMV3uMHu8ICqjKEOfELIpusDDQn7Al-Ys6y4O9cJHGSgMdyVImHsHMLefw6R-jvmQRGI6iYQ9tck_AMA9HNgGjFi2Iu4f65pP1_dfZ7JNKCv47ws38al05_0r4IOKgz9L5KsuRoFVOGRqFBPwdrIM66-zaD_QVvHNnFC-VnOl1b7ITCRFqVrSONtQVBLlWltJpw4tquVao9AAd30toZwfYugrlk2sKD6J258lf_Lghia-bGWcnmqsP8ih7iIhbJyOWusdD_psO9SMtX0gcvE9IpFb_pGYQwgFaVvPZVs55lU3qn4k5_JFU0svKsg09cHCLN0-fgR3AaH4zWtST3ckeRPeYeJpndVKidSo5JX9Ca-A_2JPCHg1n4RDxWekBVPQwXcQMB5fKf5yTxLgCK0gOlX-PolBIIAMVkAbQDxOgGw9Py7_VKX61hnMHI-qrxUMQjrA3xxkX09GkubZL2BWW4h-YBrkL6Fh8cxLyX3TP69dEtE_tFovbw1ZbFzBpanyG-e-LaFgtho8zOuNEXXWKPTnheVuABWSM2ItzAYRjc_Ig8VhdncJOs03HATk32MfTf4JvZrvyOdvdnb29Q7cSboRN9oUC2LQE1sEX6UY1Fjd9FrvvLMKJYN3dZ8Y1R-olvbl7K0wTmk3n4XtbikRUe-VKc5O4kGdHtW7zHbmHS6VqCc_wl0Q53dUe05pfk8b_cVAJU966jb_JFa2Pcric9SYL-1NFJzJd88FUGHD1HNb1DPYYwCnlBV3nUCk462ub294s1UkSgeIS19GGP8sVSJvezlt2cEMWwQTk6vNeWTfauLo46zOaeXbnyptc0nY0ClV44TQSl-S7Zp99lkGEIFMBxysSGTAUY5rWna4GdWzAU1JKvVbAZclYyaaJesnoYWcLFMTSEwV4V14S_mkTxEjlx3Ke4ni8MT23yhW2qvAzWY2WWMQ3M_rETE5ffNnVDHwCavg56ezC-UxgnqfyWBZEe3N75Q6P3-wLIVVSDWRU_Apgfbd1WXLWogRLlWp_Y4Op3tzpNTBcmMzmvn-6GciODSa2LO4jEm2i9WWwoEjN7BJVpacEuTtIbgO9Vut8a1Vxa-ID0vdTDSMVdV9hE9U-i5p8fZ1WfI0t1pr0VgvFM0ey4fRez8f67Fuzp3DB_mwpdnzTpMb2nEskIGY6xae9S54vCKijvAGwVbSqBmeox0QhNgcRNJ2CHAsE1CMb1-SR_KVvB8d3O7FDnNpbPosDb6kngRHFs5ObI9tnup-qOC9jaamlYShhFx_RKNc8OyeJFtSwkDglLUa9T8kafnzemjWrUTfyhrqr4fNbdU5XEfiI9q2X4QuM7q0COKjFBICboiuli4XT3196myb-Q1t_X7KCeBEGan8nuf4WX9tc_uEkqCI1mpMSpg-MZy0hxdgk5l7dHudyFK6Ksg0c3--CvhV5jl5PabaT0UcGrkl5uAH3nhC9SBzeFeCBt3N9nYt3S6o9ktCqwq47lp9sozZStobUZgRiLheKlD4RLfnUi3iV-g69CPmpVoXsBRyaS7hvbyljI5GiECnAZXK-eydrySQr3GGGPaq3PlJEDQQzsRQyAiBBq5NBdVzsi4DJqOG_spde6r1hKMeIZkjQI5k-qqQvBYmGXEwomJp-kVqF98nFcSx13PkABmjVL5YCmIS4DgO_pjYzoX7PXL65g9BnUI0XIHiJobi-igZs4gzrUeLzB62I-unIPEPUbqvtLeidkavswbzyIl87dObNtdO69ZvhbZxK_MeQnSSBQIYKMjE9lCiSzSJqvsGNU6Jtaya69CdVIYr8waSovHJB1tIWqqiCsl4iIWk4kQ36IC6J1EmjRY2KSSVUI-CpqQuY7VnINf5B0E-pqg6RNMIUYe1Pl4UY0MRiqo5scpWTzEcPM3bQcUu601o7nyPbDNY_q32BbdlqhjAgJ0p99A8ehg8bsgWhh7HHodcgOHxLoeyOjzdfnh3QznUyiiDmBUTvu-jLiINaYN4QLVqYsrM2mBkxzBxNEjYXGT92JWsHZMKkqn6_IpKc-RzWFNxPzsi4F3gbYJJztX7rHDpwk7UYB2UqwpUPXvWq8f_Zt9GmHiMn6HVvzA5sNwDFLhDIWkzRSbymsYLDhAFWcBzKHRTedrw3UtIYAc6Gf8A6pKTtz6svuDAoYVGSVDI6vkVuhX9pjbx630AsVZhn4wP-m3shSMwyl8jt1j0qX918hB8w2ee1u6VG0RyGU3llWXSUqkE2b9l01BmvOuvitVAsMeYLntJgXP6klKpFM3ULUfyEDulb16AKUumg1PPCXfiq81T2IkLXiwRt9KcIjxBNFUXZ0j_6em5TkSBh67k5H6pIGdLj9rOdXjHTN7HCIJm1IPqrG12x3cojlA3w5G59IfiDofncFIL7Nl7RdGtNsedhH4gNU8h-DeTUBdeUUE5D5fTgLONYwrxg48xo12LALZfDLgLziSyj9Y3SyDUGGeaX8U7OTiI2VvrGk2hCQ29OCrbRZRJnQkWoHHP1UUqZg9gtuuPXhMmMVzaxmgEslcyC9zq9K3FnRw40jUkfNNCC7DfP7cIzUGZnaFCZWjnIyZ6hk3gofIR9hUlzNGk9q582DA4j0oAgnxJo6VQxa-kPxtXK-WqCqW5QMJ0Iy43LTh97Q0pyqmdkJ7b59Et8wr9a_JQSUNAXRuQHrot_T3OL0xhOTO9gzwZHSWbvKykPcxQh40uzZ7-yXi9D1ywe_uH8Xz5l_D5CORQtorE0yqRXXL6W_XOuu399C9pqT505cv4UJdgjY6V0L4JiWJmvM48F0oo66PxaZhRmJ1HjdvjJ-D5T0wLpfcNiOlAdegJFPI3l1tulQ-pbrOKtY_a0KLT8rZR7GjKRgVjmMSfh5wWWHLV0Wf0b5pDZuEbh-ZI6YJkKEYGhFUhM8I_W4JgMJ0ilBHk_zv47eSFn1kfORwv_SpGEBxyGDILw1kNtxlzJpPS4im0VlwAonPB5yTz-bZgyVSGKEZ8EieDeN79qWG_qsio3VesUn4qqaGZN4h30G2wys_rilPAXU4lAyVhDcqnX4CGFjUh6ADyA9yEn5D5I_5Z0hSD-I4n2MvkZcO5Y7oNDj6rYDJJUWgVwyMdjJyjC8xJyUFjcztJBBLXk2IrJzggkMfARNVMxZCAQjwY-QbnYnliIFaatBOKIvJx1xVWzutctZbrb0DQ52piT-HfYPoaLN71b8FyBmQpEVVJlg3KpIHB_U-KTEeTbsqyqZhZOYK8suLOkSfiK5QfvdKrfsRoi_D8-SEcPorwt3e0n7KmRrtoiYmjfDxxlWEo_5eyeMfrTOhaj6iyolVNbf3YOu5Uk-khoGZ7mzEkGxSDqjsiMsJGucq68AP_KxbbKk6JOXk2jfXPlZ_-1SGP4tDdfGLB56SUgrfcP8QZIyQ4ZguZ68AwNdNXqNdzskhehFP0z2CzaVtow5H1vDPW67G2PmCu-BLlKmiqQVifPjHWtECDVU4V84WUUef3pUdp06zKqS-35rrRvu_V_N6jEk6FRcP0sXkqK2_nRlkiApG4pmzpQ7U5zZfce3RaFtw3mtkXpJGakUhXqRVeMu3zR-N149E4yhLp8WsnhrvAdIw99sJz6ahqRuimV6HZbYtHPC8BPzhsKvrgpoPNyvAg38huyyWXsZaNf3WemqYr_UdKQ7wexqvO2XtMZkfJMF97w1NXfRkVhu8u1d8TtwxPRNNIWsHXcc1njTvuD8Iz2X0-U-MqTFID0yHIQhKmWzBuFOHZ2C3aRnSlNrH5ggH876yVrvknkaQQkuKSI6E_bFpR9qSVkdyjR5W13ySgk21bIS1F7BUpoCMS7LrMdOV16l8KtjPr_OEkt_sdh8A1SOnZf0nliPFeRb7cqSWcZoJNdNI9k3bRXyAJQMkuGspwHsOcs2YXS4No5HU3BeKPytOChh0mBpaD7x6p3YZySfLJXstmxetmLBuxOENih80yXMMWUjne7uT-3ftdT_NMpACgvbfytq_fA0XqOT-8yr7SzD9TOW98osc2-xISbLyuj4w8rtoVg7QZsgPNuCG0EFckURUksdY6SZEjcQaX80VVnViOsDACiGON_DcSofqkPBbXijPGVNQehULuZ2_fLK7OoHhTs1605xhduoxLwvn0f4t6CoI1Qf-e3t82PNyslP6N5pCmaguZxVgDvaCzvMjeEifJ2CrTeymiEN4PkMTpz3Mrx542Bl6WdB_N3t5BYoAr7GYeTMjJtxy9xE5nMgWPLPWE62SwXT5EmBWUrZLxgWRBzS5Saf_JyHiT8Kde98EciC02tsIlAOPcGp-fd1H2g44Cu7IBb-zhdzrYfsQcf018HCW42aRFbS3Ux6G5Iw4A7Z97i0H8TUK26lmg-XtRwDM7dZhdrqHcAFzYCFWSpLnWmpr_YN8a-Y62Ltnp5QxtvZAMG41363NdtX-vCtwEk1aDhTnW-LYbgbELESsrVGe80A4DoMnWa3g_db3ck24uRGF4kxjpV3oHzhT7rFtJ_zRoHy7135iPGGGqQNJ-04MTDJHgkLZtwoGBpzrCWYTjMA3TGQ3kOee32iwcNVgHq6Y4vcO62T9FdvgxH96t29gFjQ4JGHQqoWBLXWPAZREoD-lHNyAUl0ykR0gRaBn4J0Z7myzYWReV_DBSf8IzUN8hJVzmySk0cDjexQcQaZKmeSY4ckMqcf-ufhqGH7fbUlcx0mvngTMA3zQhJUYOIVjkdyK55tM4LumbaniOQM8CaV6YZkWITZJaxkBVhmdV9yFboZsfMDhudYfT6d3bku83WaxnGh7VaOkaoyPgdQslGt24jLoBGuzNS9sMtXDA3JxfIAx2roEcwgozTOBWUpYaipzwScZGLjacYa9ia5txCXjhY2T-mtB5Q8ya6SFtGsaLZ7fonYydY81lYmMASBDDrVq8HSxzA47T75AdIbReHN1O_OYRQKQrPWSlEXYMhBvXN3EqiVvI2oZhPsTd_CUILZvK_bJsORoiHsTRYG4WH_nuDwFIKiFM2kU2PQV2M1jtDvYaVH1p3o5t6dpdTTrLJUXCgp01V9ZoZkTn8vafDQGz5qFOKlmIcRA_uQvB1Zp3EzdLwWdF1KCAzC2H1I45qNWznn30yirSDk5pOTxeV4qVifeMyP-YtAmcMG_Y8603zpT9ybW7NcYxwKH8YX4y-kHgwB2e-fpb3pkCTAoKZCgIivPZ1Jxr4wuNno-m5p2Wk9cQcro_p6GDpAh2p_Q9MdU6QnOBfGKFjzbXFrgjVLZGibPYwU1-ILBO24jj-LbGUBLtuJ7onn8onBEMIs6XsBYKpUaCSjJZ5dAwvdLgRxU6TMkMQIhYKNBistQvGAlYXjnlQH6_yfhUQPoDiEsTP1QNxVKXETfylxCgKtVJDCPIAgpdCbIH2AxS8iDQskypWWM4pRT8z2TUNrC4SguAR9nKx6mCtolZJ10OQbK_J6C43IBQDV8ipvoDZLCQ8Sz6wkdn79m40DPqpsKV9TLLvj2mTXdHwmcy6IadL4K6zZ1On4SHHY5Ty14rZb3XDL8oWGJN-KpyhKxr-WN57EiEgnh-SAdvdM3zz3e0SXn4LShMYjSrjb13nOd37JetEGXvjyS38GHLz7jsb3qmUJWxfjS7aOad_-mmHzO2h8aF5rtcNm34zK553jkecrYk7_XFZ-FNoQOWaanzoC3AE6kEGr8bhEvU2qcfkD0YN4j3D9AfLUw4ecsQEfsqo1EUmjQNoArrQclEXV5r8kwJ9Mr9o2Sh29YLYNl0hEW7IYP0q4dUkxQUwyugN1QXC2aMvPq4uhRWZBTH7NOzy6VHbfUS4Rz5zrjWwuYeFNnhljXReNoTa4nG9C__hPDXpvEJoIE64Yhp2WAR5jiswVXcd9CqK7vXlAMo6khGYLLysUDA9cAsGk7Cs1LhbkfMjvqtzqagkzebecmESchQX_Lh_G_eNVdZ57HiXYyDzs2yWKwCWa38IL5JCqqNTlw_uo3crRa51YYtaV7JBUEdgBB49Kr0296pDkIEkOqHDAXFAwXdPfnbQE13DFfplVsHDUl1wvMgDfrL9qDqdXwCrRgIawYWMaVEOtQeILnZkJoCoku03_z2MIJxRLkwcWW6eUo-CDEcrVfEpfZdunpG0bow_Hhnz2vbVSF5hqWhGPwdseKLnAunyxEWAj3QJekGR8DOub-6oqRmz7fa8Sg45w08bjewqpN2nI1gQ4yJMIr93BzlrY1joTbuY0NAtd6TrlbCDojHpfnx1Ixn1tlRm4bRO-lCDKh2TSVZlNmPiDvTWLW26P8i3VyPqsvO9r92ow-nIi2KVIUC2Z2E5z8aVJEY0El2HKu1jwxaoiLdgExkhMzy4ShLTBJXDiHoea0HVzICW-mLOKZhmFqO4n78Bf7jqbr9GgRnywhIiypmnVKXLprzEMcZ8PH7RhHffuvMTE_K-MIJvYabzoIGQBn54GQUgeflr4WqjHpmMj2s3wCS8R7m_giTX6bD6uIJSZd7WKKAVXoztja27ADr743XAknk2xSpQIakOFPZjbEV7h3OR6Pdimog0LMCHFzuIpyyJm1G3PozQBi2UrGH28OzUzfTuqygic95RRJnVkatykx8Upc9UrE7hD_XYv0HqMPui5B_wCS5TbrKZL67fTuQH3njzUdH8_nHakSRmf-MKpBTWSQU7Aanfvs1aTcPPfbWmsOWtqtK563npEii-xuoW_xnKMEwxerVLmoQxEiQD6RPk4BQoOxj2bEkzZAckJPc_DmTrD_VtrRPmwbJCh5eD-mvyVICeTgjnM5JNSNm9XCcz7SnYiZJkrQKoxoXju8OrO4cg213bdRk9lnhrsVX6BbMnrKU1E2Thh3ZJjj6IIM4xml2m9U-BBPVghRz0heyZDtvbw1BZX7cbFW4IUNLXHz5C3K45i1H1LoINNOz-mFAcIyCBaXCGDB4na0D3hs9N6YxK15U8fvQOgmt2B5mKksZ1tYG9pd83M2u6ivAwxb7xYmoV5hlKfdqyN2JYlb08-SqrdYDCaj6aWL52k5ekeIHuKN5G0ikmvjgre4uW5NYqiiuzZEkZ4CyGZfbqWNN9GPZf_MvoiaUjTypnybNp4cGUTUckpcTKHApT_A8R-GjUP-3ZS-bto5i2K8ixqiSCfcaOoC_6_q_mBHDTHVZMWwjcmXQKUwWG6Ym4Yycp_Esu6e-LdAN7RcoGzK2DEpSw9JM9p6NSdAKzNdJs7frvjdddmQv0Zd6BjNv9WMS2V7JlkWECmKDcwKLVk2dgcleT_sTGLq1fdJgwc0NBBqcKG6GER1oxB7yQna8JLzZA7caVZuWbGQ-N10i_Z3tRjfe0sEH7ThgnVJq7YvO2L1qdICZVM6YD6GNxiMonZ6P4sa6IzC2X2bj8uXYzZZTTL5612V58_Eal13sVdsPZ9UFP90PqTf7vWKE7f2j_pIBglcb_-c0MKC9v65ToJ9dAKQ7xl3kF30gzlfrF9AXb6vawoQB9ErTkjuE_ABNtqXhkFbqwsomK-MlGn1YcAgv5RUrRROZNeVR850L4zVh4He06_7IdYsa4TS6j_FZ6ea93wOUX5btEdCoonEYBjrh5MhhKK1mUEtrSNVpQaVDck2WNzP4I4zFNUL0iBuigngKKaVdycbryIEst12WUifHUZ-pQIrcvnUyXZaHny5LkH8S3JdLrn_ZFtEk-tw8w7JdlQIgSWuVatIqnBREZL9ApNlUlVN35tCRkljXQDju2m-Lo_5DWOEbnS1AEoV19gIeX1beNUgowwF5igsLBCZEVXJD1Un2wXcy_B2UJMaB37K1OJFWEbVXOI_nNjGtR_mUim0aoFoqQ9LH28cS0UHdajoO664DgTWcWNweFxOYK8bSnIoNaSyf4joKmx9w5jR_QtjI8JCRaOA-4Ld_Bc_D5E3v3U1EsKjHYlu2ATdu9yMIkYYNZ_OYVNJP2EdQGqSE31BYQLp7fW7RXoChk_5stU8rkfb0ts_yXswQPAnPCkmLjX9TdZqphpfWc9azDj21SO4swe-LqFscjEAKPytIenc29bCi8h399XLk9PnKv42SZ89AE2wyDqZ4JHw3sjtdxot24lHKv3LdqXbzAq2SwQyPfz4V3x83n6Si-8ERmGnDfPBFldE89CPfnrCR2eK_skwKUboMHOHYMufaKZM1Etg1wYJvQ5HI03laYxM9sjTmLk4PRXaIDhzGNMuFGKZOaWNHB-e7mQgDcKwuF-YjXLhhr47PH8AIVRghVkMDt8wrgQXqTVZZVYJoyJSvV6GU4G71r0_zuhV1HFR_n7KUbWGRyMH6wsIm3CcW0Q0WET8CZGwlUgBAk528GqknCz5fs-x1wk_VxLLvcg8sG22qSTscu7PUO-M80xyjgyCS4pVRaUP7MrvzMXFN-1rVARxort0xZI8te0ULg2ELUGb8Q3GvP3Su7PIKRp4KEqxZZ5gkacPsVfu21NLhJSqsKeA1aeXxe3c7rfuc5e5PXiF0GKXZPem8LpmrBNVnSeoE7pQ7ujRpRiBPlXhPEHOuhbW1uCQ8tUN7kVrbwY209CeEYiCHW-ZxCDFz9EYkk3diROx9SMq3mfXXo6J0XaECDVsAguKDxpz99tLsVP1dbZrFTUwOsmggV31dJ794agrPSCF3BGdkynhjsK-bNy0bxRhOsFaRVf6Qcf2lbxT2dm3azrTqQgIcbxjww1ay6g9GqRsgDoRqmuVq_wr5OmTEnC-0RV3f-AOixNAF8IkoVkre0GNPz57MHONwb7S0W1Fec0xTuH5_A63GqlyqlLCUdNs_jJMBAjjXJhcKH69mBDw7U95XqAOTITGtESX2zLOm6jelSDJs3ssSU-n1eMbmI81Xagsj0EamXl5DY2TgHv4mZdVZOnBIca-Qy-vZTezPtCNlI86DFgpuJoUSSZXBR9Jm5w1gxEzsWnks-70aZZ-Z-1yk_eFUfQeCK44E0q1q6ftMiXhU4mwC_3A2wu-bSP5QV1p-mEsIDO2Wf0gs4Xnrvvt2quxthNdV0wGt9O5cYDMIaTGo2vKUaXtqp3a5hhTo13QFTg_5XbJ_Qo6Iu5UZoy6m_IxS5STqWFhsHFwNAPPqVch3ah2uFNJtyVG0ihkg_uL6cdCFlkykTXvKt7oXxMTkDb7rF0OTD8XQcyKJtMtdhDK9FGzFyzuCrIYyDdNmHeIMq6IEf-qQ9MigGshvP20QIYOnNueqxfiWy71V8lYb__QT0zkao3a8XpxI_4B--Q-HiX-nU-ZXqDVCqffM_HS51Z5aRjYKvG3TFLFy7TQzzed5dbrE_z6wb5VFR-7AxXnkGJ9KsJx3PBkFLEU5UvbjEYfkfO8iCsOlCYqawjKRPZhrX-_XZzBDePZdIvUHJRcFXpF1gJeH4QM_o6vCsEH1kfwTSXrKm3TKJA7OqWZQAyxZoNxXSnaZYPHc-erOiQn8KSiUz71ZbBYLQR6juy3KPfIqOw9IJEU3pgVdjCaTA-KvJlbaXi0DjxJh6bcuZ-4zOQRGEbBhqlCssw55z08AMvwrTlrDtks87YSTc0u8j7oXwRk05ImNujdxVu0-A0NHGwpKUl8fK5jcuWcsPaWifrVs3QfcVVAv6eL1xzkRN_Avxqi187rnQdWdTP-K5iV6EA-Af_LnT5wDSbC0_TnAp7U9kvy8USnYhUyM_eCHqELmVmcUu2QuemhWEZUp_1yDJTHPOyZMKqNIvo_Es8_O3Kdlsa660sbJlAVeFhcnutfreG0wW7wF4vm6sXCKq-0q0vFHHIbdA3aCSCmrqev5hqCdfQZ-YRhfg-DmhjPTB8yEffwmGOMDitxPZlYtS9ELnA1-XnCLjvdA1eSbxcFFQbtoswP4ZRrv6Cp0FZQWzAMm3i5kFFQUb7v9-Tkz8pu8ZROvT1IR4swPxhYWC6Rv49GEclIQ6a4W29VPTdMHzHqUdMGT5wKfpttneQkEZDDsUb4q4oumyN9K6Qk_LE4lqOd01pCr5Vu_9cG8UPTzbcIpVsHqDWdedicRjcxJp-bdHy7nuyjVqey2Jv5GKmS4WDOzE_KWU8ORujkH9twxNWJ5pJ3hn2kuL0IqCTayDSQe0gsCtZDF2EkocWXGqmyCIJvxNa0mHaxvE08TucNHg9wDpGi9qqRr7cdtjH-RjcYwpfFBeLwo0gtNxSSK0QEOqPWnI73N-2sU1bTS4db_f_JOZ6ju2wvaRx-t0cRqH6R4-Z4enWRFUSygRzDOhEql9k7Zx0KCPvjmgaf0U-VYlGxWeQSN3VJEaK4q2XPGbeKaNxc-36DWit-cTpNEhBmQZ1kn9-UoUhozV_NdPj8po60sBn2FELLTYDT7ZAunS9ziiLSfuBEzYLw7DCnO_P96BOU3u4VYMi7qiWtR_mJ9YCGfGs10SGwVRnreFNWlJBheNfnvnxIBBsF1ilNBo11oku2vJH4HiFWfWpW616B3LAYHRPaB5zwIdIfPCRzGm2MsLSY9awaQllBlpN8RHGVGR1wyE8F5KV6uvbmeiRTwiLET8xxREFR0fHEtYIEsCc3lUqEouF-5iAl9u2Xs7vrX1uwEdl_XNe_lSvsjPtDLuQvNCHhu8tdRw1BFwooORGo3FKkaEw0fkNorlgAaLdQUnriumo60mJkSbxoVMr209DzSj0RWe73s4b3VmsUi-1HfpIRvZD2G4I46PcvfGk9ZiWocqrKNAdHIN7BpxM3Ow8XXqfzBKdTuCxYP-Onpm6gR-ZkOfIIOZC05p7IPUD6UMjl45ryzXBWA8ZlvNL74uDaoe8Ag7ELBjZoNsyp39m0Jonw4Z5hCOLat0OwPUzNbMRhg-4vn_IIZEbl38ZCPw109scHSWdXOELiFNdHHfYOtp9Qox8DBHgDBczHtxvN-m6VD4cySinvQgAOyL4cVJvzA8GjHn5_DLd-HgngQPFLSGKgBoCTHp-Bl0GbBGx020hsa5h8Nbq1hSLGkRJLzk-pgrU4XaVLKWT-7DrgAJi4BZiyssnBMbLb0zxGta0HywTKPHGhsjdgu-0__xK9o1z-LvDzwRpmMC3i_iwzr34s_-cYdoIMv_PsNY2EAgUb0O1x1ePxZFM-1Eh76WXt0VYUEevQu8w6-uWi4_cqb45I-rjKWsdbwy2nGPWMPGl8qMjy-iw23awdN--aCKAHSEzX3wdc5nUW9usK8J3yCAwuZFD9MS0CoIbNUL6puDov8pEE9iRwGfbePsd8UzLQS-xT-0vtyliUrWDBYuWhup8nbJi1YUzMrS36YUnSjC8zlr8SDVW21XOmJnTWMebE_b5SRw1Y-BaoMeKTX0zoZkX1rrhqIS5npskl7GrPtIp_iKGXPYYIbsNR3GP8xb57P1wOus_PVYWTssN-ZN_8gXw50-af5hx2JuEfeuwfqmuupKoHoJ1l9Wq5JXaH21a5ReubSke_NAXW5sMtt-e7wvphr04Cy2fivgECzmzpn-_0oao4lYTPqLEhCXXqyj4N2IEhEKgq9X1gyRdCN_6PeZC63yguXpNtHT-OZfcoXCOKhNwC2neXoQpIXbhleyO-MYpMlkVqqZXRywv9VWOMITspxHM2dqIkaXA9kC3z7z8bHLEH3kZlRHFtIr5Ih8i5Q6_3pGqAh3p5XT_gdPMZAhbbAYGD3sCZXRpZ2QkCkdTHCXUSoeAVIZMygq4qgOkGzEq0ZgNBQgZQcggfD8am87AMzV9ytCSoI91ogtEcOeoKxGbpTEl436fkpnjGVorU4HG4gg9SWdSgdaeabQ","id":"rs_6aeba2bf44a69079848341cf:rs_01a1a873bbed71c8be70f8826e7022bb","status":"completed","summary":[],"type":"reasoning"},"output_index":0,"sequence_number":4,"type":"response.output_item.done"}
+
+event: response.output_item.added
+data: {"item":{"content":[],"id":"msg_01a1a874401d71b990887456b4d14137","role":"assistant","status":"in_progress","type":"message"},"output_index":1,"sequence_number":5,"type":"response.output_item.added"}
+
+event: response.content_part.added
+data: {"content_index":0,"item_id":"msg_01a1a874401d71b990887456b4d14137","output_index":1,"part":{"annotations":[],"logprobs":[],"text":"","type":"output_text"},"sequence_number":6,"type":"response.content_part.added"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"{\"code","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":7,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\": \"def interp","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":8,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(z, table):\\n    if z <= table[0][0]:","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":9,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\n        return table[0][1]\\n    for i in range","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":10,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(1, len(table)):\\n        if z <= table[i][0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":11,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"]:\\n            za","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":12,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = table[i - 1][","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":13,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"0]\\n            zb = table[i][","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":14,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"0]\\n            va = table[i - 1][1]\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":15,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"            vb = table[i][1]\\n            return va + (vb -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":16,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" va) * (z - za) / (zb - za)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":17,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    return table[-1][1]\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":18,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\nofft","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":19,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = [(0, 54), (30","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":20,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 46","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":21,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (57, 37), (85","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":22,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 29","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":23,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (115, 24), (160, 19","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":24,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (210","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":25,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 14","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":26,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (276, 9),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":27,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (300, 7)]\\nwid","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":28,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"t = [(0, 7.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":29,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"0), (57, 5.0), (115, 3.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":30,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"4), (200","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":31,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 2.4), (276, 1.8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":32,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")]\\nzs = [0, 9","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":33,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 18, 27, 36","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":34,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 45, 52","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":35,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 57, 66, 76, 86","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":36,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 96, 106","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":37,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 115, 128, 142","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":38,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 157","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":39,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 173","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":40,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 190","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":41,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 208","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":42,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 227","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":43,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 247","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":44,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 262, 276]\\ns","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":45,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"igns = [-1, 1]\\","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":46,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"n\\npart('foundation', '#d","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":47,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"8d8d8')\\nfor sx in signs:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":48,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    for sy in signs:\\n        box((sx * 54, sy","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":49,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * 54, 1","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":50,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5), (22","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":51,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 22, 3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":52,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\n        box((sx * 54, sy * 54, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":53,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"4), (16, 16, 2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":54,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\n\\npart('legs', '#e","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":55,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"08","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":56,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"a45","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":57,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nleg","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":58,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"chords = []","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":59,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\nfor sx in signs:\\n    for sy in signs:\\n       ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":60,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" chords = []\\n        for dx in signs:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":61,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"            for dy in signs:\\n                pts = []\\n                for z","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":62,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in zs:\\n                    o = interp(z, offt)\\n                    w","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":63,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = interp(z, widt)\\n                    pts.append((sx * o +","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":64,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" dx * w, sy * o + dy * w, z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":65,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"                chords.append(pts)\\n                for i in range(len(pts)","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":66,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" - 1):\\n                    beam(pts[i], pts[i + ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":67,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"1], 1.15","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":68,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":69,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        legchords.append(chords)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":70,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\npart('lattice', '#ffb","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":71,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"060","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":72,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nfor chords in legchords:\\n    for i in range","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":73,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(len(zs) - 1):\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":74,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        for","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":75,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" a in range(4):\\n            b","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":76,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = (a + 1) % 4\\n            line([chords","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":77,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"[a][i], chords[b][i],","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":78,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" chords[b][i + 1],","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":79,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" chords[a][i + 1], chords[a][i]])\\n           ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":80,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" line([chords[a][i], chords[b][i + 1]]","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":81,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\n            line([chords[b][i], chords","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":82,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"[a][i + 1]])\\n\\npart('belts', '#","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":83,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"c","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":84,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"96","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":85,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"f","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":86,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"32')\\nfor z","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":87,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in [18","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":88,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 36, 57","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":89,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 76, 96, 115, 142","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":90,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 173, 208","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":91,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 247, 276]:\\n    o = interp(z, of","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":92,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ft)\\n    w = interp(z, widt)\\n    e","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":93,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = o + w\\n    for","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":94,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" s","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":95,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in signs:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":96,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        beam((-","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":97,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"e, s * e, z), (e, s * e","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":98,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", z), 1.0)\\n        beam((s * e","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":99,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", -e, z), (s * e, e, z), ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":100,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"1.0)\\n    for i in range(len","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":101,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(zs) - 1):\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":102,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        pass\\nfor","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":103,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" i","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":104,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in range(","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":105,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":106,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", len(zs) - 1,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":107,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 2):\\n    za = zs[i]\\n    zb = zs","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":108,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"[i + 1]\\n    oa = interp(za, offt)","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":109,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" + interp(za, widt)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":110,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    ob = interp(zb, offt) + interp(zb, wid","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":111,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"t)\\n    for s in signs:\\n        line([","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":112,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(-oa, s * oa, za), (ob","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":113,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", s * ob, zb)])\\n        line([(oa, s *","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":114,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" oa, za), (-ob, s * ob, zb)])\\n       ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":115,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" line([(","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":116,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"s * oa, -oa, za), (s","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":117,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * ob, ob, zb)])\\n        line([(s * oa,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":118,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" oa, za), (s * ob, -ob, zb)])\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":119,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\npart('arches', '#f","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":120,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"09","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":121,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"a50","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":122,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nfor face in range(4):\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":123,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    pts = []\\n    for k in range(25","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":124,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"):\\n        ang = math.pi * k /","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":125,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 24\\n        x = 52","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":126,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * math.cos(ang)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":127,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        z = 5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":128,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" + 31 * math.sin(ang)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":129,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        y = -(","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":130,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"interp(z, offt) + interp","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":131,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(z, widt) + 1)\\","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":132,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"n        if face == 0:\\n            pts.append((x, y","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":133,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":134,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        elif face == 1:\\n            pts.append((x","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":135,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", -y, z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":136,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        elif face == 2:\\n            pts.append((","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":137,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"y, x, z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":138,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        else:\\n            pts.append((-y, x, z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":139,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    tube(pts, 1.7,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":140,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 10)\\n    pts2 = [(","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":141,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"p[0] *","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":142,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0.92","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":143,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", p[1] * 0.92, p[2] -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":144,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 2.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":145,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"5) if","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":146,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" face <","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":147,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 2 else (p[0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":148,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"] * 0.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":149,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"92, p[1] * 0.92, p[2]","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":150,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" - 2.5) for p in pts]\\n    line","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":151,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(pts2)\\n\\npart('first floor', '#8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":152,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"fd","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":153,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":154,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ff')\\nbox((0, 0, 57), (72","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":155,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 72, 3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":156,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\nbox((0, 0, 59.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":157,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":158,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (58","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":159,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 58, 1.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":160,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\nbox((0, 0, 55.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":161,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2), (66","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":162,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 66, 1.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":163,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\n\\npart('second floor', '#8fd8ff')\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":164,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"box((0, 0, 115), (48, 48,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":165,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 3))\\nbox((0, 0, 117.2),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":166,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (36, 36, 1.2))\\nbox((0,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":167,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0, 113.2), (42, 42, 1","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":168,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".2))\\n\\npart('third floor', '#8fd8ff')","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":169,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\nbox((0, 0, 276), (22, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":170,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"22, 3))\\nbox((0, 0, 278.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":171,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2), (17","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":172,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 17, 1.2))\\n\\npart('pavil","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":173,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ions', '#fff","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":174,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2a","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":175,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"0')\\nbox((-","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":176,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"18, -14, 63","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":177,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (20, 14, 6))\\nbox((17","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":178,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 15","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":179,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 63), (18","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":180,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 12, 6))\\nbox((0, 16, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":181,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"120","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":182,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":183,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (16","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":184,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 10","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":185,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 5))\\nbox((-13","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":186,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", -12","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":187,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 120), (14","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":188,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 10, 5))\\nbox((0, 0, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":189,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"281), (12","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":190,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 12, 5))\\nc","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":191,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ylinder((-18, -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":192,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"14, 66), (-18, -14, 68","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":193,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), 5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":194,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":195,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":196,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ncylinder((17, 15, 66","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":197,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (17, 15, 68), 4.5, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":198,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2.5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":199,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\n\\npart('restaurant', '#ff7","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":200,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"f","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":201,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"9f')\\nfor x","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":202,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in [-24, -8, 8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":203,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 24]:\\n    for y in [-24, 0,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":204,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 24]:\\n        cylinder((x, y, 60","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":205,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":206,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (x, y, 61), 1.6","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":207,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\n        cylinder","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":208,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"((x, y, 59","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":209,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".8), (x, y, 60),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":210,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0.3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":211,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\nfor x in [-10","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":212,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":213,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 10]:\\n    cylinder((x, -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":214,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"8, 118","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":215,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (x, -8, 119), 1.3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":216,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\n   ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":217,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" cylinder((x, 8, 118), (x, 8,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":218,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 119), 1.3)\\n\\npart('summit","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":219,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"', '#e08a45')\\nrings = []\\nfor z","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":220,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":",","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":221,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" h in [(276, 10), (284","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":222,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":223,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (292, 6.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":224,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (300, 4.8), (307","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":225,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 3.6), (312, 2.8)]:\\","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":226,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"n    rings.append([(h, h, z), (-h, h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":227,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" z), (-h, -h, z), (h, -h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":228,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" z)])\\nloft(rings)\\nbox","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":229,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"((0, 0, 302","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":230,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (11","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":231,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 11, 2))\\nbox((0, 0, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":232,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"290), (15","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":233,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 15, 2))\\nfor sx","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":234,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in signs:\\n    for sy in signs:\\n        beam((sx *","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":235,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 9","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":236,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", sy * 9, 276), (sx * 3,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":237,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" sy * 3, 312), 0.9)\\n\\npart","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":238,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"('antenna', '#ffffff","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":239,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\ncylinder((0, 0, 312), (0,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":240,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0, 330","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":241,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), 0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":242,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".55, 0.18","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":243,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\ncylinder((0, 0, 318","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":244,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (0, 0, 324","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":245,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), 1","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":246,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".1, 0.7","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":247,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")\\nbox","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":248,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"((0, 0, 321), (5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":249,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":250,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":251,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":252,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5))\\nbox((0, 0, 326), (3","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":253,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5, 0.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":254,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 0.4))\\n\\npart('beacon', '#ffff","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":255,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"66","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":256,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nsphere((0, 0, 314","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":257,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), 1.8)\\nsphere((0, 0, 330","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":258,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5), 0.7)\\n\\npart('elevators', '#","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":259,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"7ff","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":260,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"fd","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":261,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":262,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nc","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":263,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ylinder((0, 0, 57), (0, 0,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":264,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 276), 1.6)\\ncylinder((2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":265,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".8","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":266,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 0, 115), (2.8, 0, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":267,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"276), 1.1)\\nbox((0, 0, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":268,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"92","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":269,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":270,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":271,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":272,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 4.5, 7","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":273,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\nbox((0, 0, 190), (4.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":274,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 4.2, 6","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":275,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5))\\nbox((2.8, 0, 250","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":276,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (3.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":277,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 3.4, 5.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":278,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"5))\\nfor sx,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":279,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" sy in [(1, ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":280,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"1), (-1, -1),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":281,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (1, -1)","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":282,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"]:\\n    pts = []\\n    for z in [","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":283,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":284,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 20","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":285,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 40, 57, 75","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":286,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 95, 115]:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":287,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        o = interp(z, offt)\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":288,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"        pts.append((sx * o, sy * o, z))\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":289,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    tube(pts, 1.25","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":290,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 8)\\n    oz","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":291,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" = interp(45","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":292,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", offt)\\n    box((sx * interp","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":293,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"(62","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":294,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", offt), sy * interp(62, offt), 62),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":295,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (4,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":296,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 4, 6))\\n\\npart('stairs', '#ffe","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":297,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"97","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":298,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"f')\\npts = []\\nfor k in range(121","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":299,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"):\\n    ang = k","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":300,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * 0.55","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":301,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\n    z = 115 + k * 1","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":302,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".34","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":303,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\n    pts.append((5","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":304,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".2 * math.cos(ang), 5.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":305,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * math.sin(ang), z))\\ntube(pts, 0.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":306,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"38","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":307,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 6)\\npts = []\\nfor k in range(61","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":308,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"):\\n    ang = k * 0.55","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":309,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\n    z = 4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":310,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" + k * 0.88","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":311,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"\\n    pts.append((interp(z","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":312,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", offt) - 9","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":313,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" + ","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":314,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"2.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":315,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * math.cos(ang), -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":316,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"interp(z, offt) +","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":317,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 9 + 2.2 * math.sin(ang), z))\\nt","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":318,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"ube(pts, 0.35, 6)\\nfor","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":319,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" k in range(0","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":320,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 120","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":321,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":322,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"):\\n    ang = k * 0.55\\n    z =","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":323,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 115 + k * 1.34\\n    box((5.2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":324,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" * math.cos(ang), 5.2 * math.sin(ang),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":325,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" z -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":326,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":327,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (2.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":328,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":", 2","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":329,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".4, 0.35","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":330,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"))\\n\\npart('railings', '#ffffff","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":331,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"')\\nfor z, h","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":332,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in [(60.5, 36), (118.","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":333,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"5, 24), (279.5, 11)]:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":334,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    line([(","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":335,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"h, h, z), (-h, h, z), (-h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":336,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" -h, z), (h, -h, z), (h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":337,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" h, z)])\\n    line([(h, h, z -","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":338,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 1.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":339,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (-h, h, z - 1.4), (-h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":340,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" -h, z - 1.4), (h, -h,","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":341,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" z - 1.4), (h, h, z - 1","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":342,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".4)])\\n    for sx","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":343,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" in signs:\\n        for sy in signs:\\n            line([(sx *","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":344,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" h, sy * h, z - 1.6","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":345,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (sx * h, sy * h, z +","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":346,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" 0.4","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":347,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":")])\\nfor z","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":348,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":",","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":349,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" h in [(60","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":350,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":".5, 29","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":351,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"), (118.5, 18)]:\\n","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":352,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":"    line([(h, h, z), (-h, h, z),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":353,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (-h, -h, z), (h, -h, z),","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":354,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" (h, h, z)])\\n\", \"name\": \"Eiffel","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":355,"type":"response.output_text.delta"}
+
+event: response.output_text.delta
+data: {"content_index":0,"delta":" Tower\"}","item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":356,"type":"response.output_text.delta"}
+
+event: response.output_text.done
+data: {"content_index":0,"item_id":"msg_01a1a874401d71b990887456b4d14137","logprobs":[],"output_index":1,"sequence_number":357,"text":"{\"code\": \"def interp(z, table):\\n    if z <= table[0][0]:\\n        return table[0][1]\\n    for i in range(1, len(table)):\\n        if z <= table[i][0]:\\n            za = table[i - 1][0]\\n            zb = table[i][0]\\n            va = table[i - 1][1]\\n            vb = table[i][1]\\n            return va + (vb - va) * (z - za) / (zb - za)\\n    return table[-1][1]\\n\\nofft = [(0, 54), (30, 46), (57, 37), (85, 29), (115, 24), (160, 19), (210, 14), (276, 9), (300, 7)]\\nwidt = [(0, 7.0), (57, 5.0), (115, 3.4), (200, 2.4), (276, 1.8)]\\nzs = [0, 9, 18, 27, 36, 45, 52, 57, 66, 76, 86, 96, 106, 115, 128, 142, 157, 173, 190, 208, 227, 247, 262, 276]\\nsigns = [-1, 1]\\n\\npart('foundation', '#d8d8d8')\\nfor sx in signs:\\n    for sy in signs:\\n        box((sx * 54, sy * 54, 1.5), (22, 22, 3))\\n        box((sx * 54, sy * 54, 4), (16, 16, 2))\\n\\npart('legs', '#e08a45')\\nlegchords = []\\nfor sx in signs:\\n    for sy in signs:\\n        chords = []\\n        for dx in signs:\\n            for dy in signs:\\n                pts = []\\n                for z in zs:\\n                    o = interp(z, offt)\\n                    w = interp(z, widt)\\n                    pts.append((sx * o + dx * w, sy * o + dy * w, z))\\n                chords.append(pts)\\n                for i in range(len(pts) - 1):\\n                    beam(pts[i], pts[i + 1], 1.15)\\n        legchords.append(chords)\\n\\npart('lattice', '#ffb060')\\nfor chords in legchords:\\n    for i in range(len(zs) - 1):\\n        for a in range(4):\\n            b = (a + 1) % 4\\n            line([chords[a][i], chords[b][i], chords[b][i + 1], chords[a][i + 1], chords[a][i]])\\n            line([chords[a][i], chords[b][i + 1]])\\n            line([chords[b][i], chords[a][i + 1]])\\n\\npart('belts', '#c96f32')\\nfor z in [18, 36, 57, 76, 96, 115, 142, 173, 208, 247, 276]:\\n    o = interp(z, offt)\\n    w = interp(z, widt)\\n    e = o + w\\n    for s in signs:\\n        beam((-e, s * e, z), (e, s * e, z), 1.0)\\n        beam((s * e, -e, z), (s * e, e, z), 1.0)\\n    for i in range(len(zs) - 1):\\n        pass\\nfor i in range(0, len(zs) - 1, 2):\\n    za = zs[i]\\n    zb = zs[i + 1]\\n    oa = interp(za, offt) + interp(za, widt)\\n    ob = interp(zb, offt) + interp(zb, widt)\\n    for s in signs:\\n        line([(-oa, s * oa, za), (ob, s * ob, zb)])\\n        line([(oa, s * oa, za), (-ob, s * ob, zb)])\\n        line([(s * oa, -oa, za), (s * ob, ob, zb)])\\n        line([(s * oa, oa, za), (s * ob, -ob, zb)])\\n\\npart('arches', '#f09a50')\\nfor face in range(4):\\n    pts = []\\n    for k in range(25):\\n        ang = math.pi * k / 24\\n        x = 52 * math.cos(ang)\\n        z = 5 + 31 * math.sin(ang)\\n        y = -(interp(z, offt) + interp(z, widt) + 1)\\n        if face == 0:\\n            pts.append((x, y, z))\\n        elif face == 1:\\n            pts.append((x, -y, z))\\n        elif face == 2:\\n            pts.append((y, x, z))\\n        else:\\n            pts.append((-y, x, z))\\n    tube(pts, 1.7, 10)\\n    pts2 = [(p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) if face < 2 else (p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) for p in pts]\\n    line(pts2)\\n\\npart('first floor', '#8fd8ff')\\nbox((0, 0, 57), (72, 72, 3))\\nbox((0, 0, 59.2), (58, 58, 1.2))\\nbox((0, 0, 55.2), (66, 66, 1.2))\\n\\npart('second floor', '#8fd8ff')\\nbox((0, 0, 115), (48, 48, 3))\\nbox((0, 0, 117.2), (36, 36, 1.2))\\nbox((0, 0, 113.2), (42, 42, 1.2))\\n\\npart('third floor', '#8fd8ff')\\nbox((0, 0, 276), (22, 22, 3))\\nbox((0, 0, 278.2), (17, 17, 1.2))\\n\\npart('pavilions', '#fff2a0')\\nbox((-18, -14, 63), (20, 14, 6))\\nbox((17, 15, 63), (18, 12, 6))\\nbox((0, 16, 120), (16, 10, 5))\\nbox((-13, -12, 120), (14, 10, 5))\\nbox((0, 0, 281), (12, 12, 5))\\ncylinder((-18, -14, 66), (-18, -14, 68), 5, 3)\\ncylinder((17, 15, 66), (17, 15, 68), 4.5, 2.5)\\n\\npart('restaurant', '#ff7f9f')\\nfor x in [-24, -8, 8, 24]:\\n    for y in [-24, 0, 24]:\\n        cylinder((x, y, 60), (x, y, 61), 1.6)\\n        cylinder((x, y, 59.8), (x, y, 60), 0.3)\\nfor x in [-10, 0, 10]:\\n    cylinder((x, -8, 118), (x, -8, 119), 1.3)\\n    cylinder((x, 8, 118), (x, 8, 119), 1.3)\\n\\npart('summit', '#e08a45')\\nrings = []\\nfor z, h in [(276, 10), (284, 8), (292, 6.2), (300, 4.8), (307, 3.6), (312, 2.8)]:\\n    rings.append([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z)])\\nloft(rings)\\nbox((0, 0, 302), (11, 11, 2))\\nbox((0, 0, 290), (15, 15, 2))\\nfor sx in signs:\\n    for sy in signs:\\n        beam((sx * 9, sy * 9, 276), (sx * 3, sy * 3, 312), 0.9)\\n\\npart('antenna', '#ffffff')\\ncylinder((0, 0, 312), (0, 0, 330), 0.55, 0.18)\\ncylinder((0, 0, 318), (0, 0, 324), 1.1, 0.7)\\nbox((0, 0, 321), (5, 0.5, 0.5))\\nbox((0, 0, 326), (3.5, 0.4, 0.4))\\n\\npart('beacon', '#ffff66')\\nsphere((0, 0, 314), 1.8)\\nsphere((0, 0, 330.5), 0.7)\\n\\npart('elevators', '#7fffd4')\\ncylinder((0, 0, 57), (0, 0, 276), 1.6)\\ncylinder((2.8, 0, 115), (2.8, 0, 276), 1.1)\\nbox((0, 0, 92), (4.5, 4.5, 7))\\nbox((0, 0, 190), (4.2, 4.2, 6.5))\\nbox((2.8, 0, 250), (3.4, 3.4, 5.5))\\nfor sx, sy in [(1, 1), (-1, -1), (1, -1)]:\\n    pts = []\\n    for z in [2, 20, 40, 57, 75, 95, 115]:\\n        o = interp(z, offt)\\n        pts.append((sx * o, sy * o, z))\\n    tube(pts, 1.25, 8)\\n    oz = interp(45, offt)\\n    box((sx * interp(62, offt), sy * interp(62, offt), 62), (4, 4, 6))\\n\\npart('stairs', '#ffe97f')\\npts = []\\nfor k in range(121):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    pts.append((5.2 * math.cos(ang), 5.2 * math.sin(ang), z))\\ntube(pts, 0.38, 6)\\npts = []\\nfor k in range(61):\\n    ang = k * 0.55\\n    z = 4 + k * 0.88\\n    pts.append((interp(z, offt) - 9 + 2.2 * math.cos(ang), -interp(z, offt) + 9 + 2.2 * math.sin(ang), z))\\ntube(pts, 0.35, 6)\\nfor k in range(0, 120, 4):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    box((5.2 * math.cos(ang), 5.2 * math.sin(ang), z - 0.4), (2.4, 2.4, 0.35))\\n\\npart('railings', '#ffffff')\\nfor z, h in [(60.5, 36), (118.5, 24), (279.5, 11)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n    line([(h, h, z - 1.4), (-h, h, z - 1.4), (-h, -h, z - 1.4), (h, -h, z - 1.4), (h, h, z - 1.4)])\\n    for sx in signs:\\n        for sy in signs:\\n            line([(sx * h, sy * h, z - 1.6), (sx * h, sy * h, z + 0.4)])\\nfor z, h in [(60.5, 29), (118.5, 18)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n\", \"name\": \"Eiffel Tower\"}","type":"response.output_text.done"}
+
+event: response.content_part.done
+data: {"content_index":0,"item_id":"msg_01a1a874401d71b990887456b4d14137","output_index":1,"part":{"annotations":[],"logprobs":[],"text":"{\"code\": \"def interp(z, table):\\n    if z <= table[0][0]:\\n        return table[0][1]\\n    for i in range(1, len(table)):\\n        if z <= table[i][0]:\\n            za = table[i - 1][0]\\n            zb = table[i][0]\\n            va = table[i - 1][1]\\n            vb = table[i][1]\\n            return va + (vb - va) * (z - za) / (zb - za)\\n    return table[-1][1]\\n\\nofft = [(0, 54), (30, 46), (57, 37), (85, 29), (115, 24), (160, 19), (210, 14), (276, 9), (300, 7)]\\nwidt = [(0, 7.0), (57, 5.0), (115, 3.4), (200, 2.4), (276, 1.8)]\\nzs = [0, 9, 18, 27, 36, 45, 52, 57, 66, 76, 86, 96, 106, 115, 128, 142, 157, 173, 190, 208, 227, 247, 262, 276]\\nsigns = [-1, 1]\\n\\npart('foundation', '#d8d8d8')\\nfor sx in signs:\\n    for sy in signs:\\n        box((sx * 54, sy * 54, 1.5), (22, 22, 3))\\n        box((sx * 54, sy * 54, 4), (16, 16, 2))\\n\\npart('legs', '#e08a45')\\nlegchords = []\\nfor sx in signs:\\n    for sy in signs:\\n        chords = []\\n        for dx in signs:\\n            for dy in signs:\\n                pts = []\\n                for z in zs:\\n                    o = interp(z, offt)\\n                    w = interp(z, widt)\\n                    pts.append((sx * o + dx * w, sy * o + dy * w, z))\\n                chords.append(pts)\\n                for i in range(len(pts) - 1):\\n                    beam(pts[i], pts[i + 1], 1.15)\\n        legchords.append(chords)\\n\\npart('lattice', '#ffb060')\\nfor chords in legchords:\\n    for i in range(len(zs) - 1):\\n        for a in range(4):\\n            b = (a + 1) % 4\\n            line([chords[a][i], chords[b][i], chords[b][i + 1], chords[a][i + 1], chords[a][i]])\\n            line([chords[a][i], chords[b][i + 1]])\\n            line([chords[b][i], chords[a][i + 1]])\\n\\npart('belts', '#c96f32')\\nfor z in [18, 36, 57, 76, 96, 115, 142, 173, 208, 247, 276]:\\n    o = interp(z, offt)\\n    w = interp(z, widt)\\n    e = o + w\\n    for s in signs:\\n        beam((-e, s * e, z), (e, s * e, z), 1.0)\\n        beam((s * e, -e, z), (s * e, e, z), 1.0)\\n    for i in range(len(zs) - 1):\\n        pass\\nfor i in range(0, len(zs) - 1, 2):\\n    za = zs[i]\\n    zb = zs[i + 1]\\n    oa = interp(za, offt) + interp(za, widt)\\n    ob = interp(zb, offt) + interp(zb, widt)\\n    for s in signs:\\n        line([(-oa, s * oa, za), (ob, s * ob, zb)])\\n        line([(oa, s * oa, za), (-ob, s * ob, zb)])\\n        line([(s * oa, -oa, za), (s * ob, ob, zb)])\\n        line([(s * oa, oa, za), (s * ob, -ob, zb)])\\n\\npart('arches', '#f09a50')\\nfor face in range(4):\\n    pts = []\\n    for k in range(25):\\n        ang = math.pi * k / 24\\n        x = 52 * math.cos(ang)\\n        z = 5 + 31 * math.sin(ang)\\n        y = -(interp(z, offt) + interp(z, widt) + 1)\\n        if face == 0:\\n            pts.append((x, y, z))\\n        elif face == 1:\\n            pts.append((x, -y, z))\\n        elif face == 2:\\n            pts.append((y, x, z))\\n        else:\\n            pts.append((-y, x, z))\\n    tube(pts, 1.7, 10)\\n    pts2 = [(p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) if face < 2 else (p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) for p in pts]\\n    line(pts2)\\n\\npart('first floor', '#8fd8ff')\\nbox((0, 0, 57), (72, 72, 3))\\nbox((0, 0, 59.2), (58, 58, 1.2))\\nbox((0, 0, 55.2), (66, 66, 1.2))\\n\\npart('second floor', '#8fd8ff')\\nbox((0, 0, 115), (48, 48, 3))\\nbox((0, 0, 117.2), (36, 36, 1.2))\\nbox((0, 0, 113.2), (42, 42, 1.2))\\n\\npart('third floor', '#8fd8ff')\\nbox((0, 0, 276), (22, 22, 3))\\nbox((0, 0, 278.2), (17, 17, 1.2))\\n\\npart('pavilions', '#fff2a0')\\nbox((-18, -14, 63), (20, 14, 6))\\nbox((17, 15, 63), (18, 12, 6))\\nbox((0, 16, 120), (16, 10, 5))\\nbox((-13, -12, 120), (14, 10, 5))\\nbox((0, 0, 281), (12, 12, 5))\\ncylinder((-18, -14, 66), (-18, -14, 68), 5, 3)\\ncylinder((17, 15, 66), (17, 15, 68), 4.5, 2.5)\\n\\npart('restaurant', '#ff7f9f')\\nfor x in [-24, -8, 8, 24]:\\n    for y in [-24, 0, 24]:\\n        cylinder((x, y, 60), (x, y, 61), 1.6)\\n        cylinder((x, y, 59.8), (x, y, 60), 0.3)\\nfor x in [-10, 0, 10]:\\n    cylinder((x, -8, 118), (x, -8, 119), 1.3)\\n    cylinder((x, 8, 118), (x, 8, 119), 1.3)\\n\\npart('summit', '#e08a45')\\nrings = []\\nfor z, h in [(276, 10), (284, 8), (292, 6.2), (300, 4.8), (307, 3.6), (312, 2.8)]:\\n    rings.append([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z)])\\nloft(rings)\\nbox((0, 0, 302), (11, 11, 2))\\nbox((0, 0, 290), (15, 15, 2))\\nfor sx in signs:\\n    for sy in signs:\\n        beam((sx * 9, sy * 9, 276), (sx * 3, sy * 3, 312), 0.9)\\n\\npart('antenna', '#ffffff')\\ncylinder((0, 0, 312), (0, 0, 330), 0.55, 0.18)\\ncylinder((0, 0, 318), (0, 0, 324), 1.1, 0.7)\\nbox((0, 0, 321), (5, 0.5, 0.5))\\nbox((0, 0, 326), (3.5, 0.4, 0.4))\\n\\npart('beacon', '#ffff66')\\nsphere((0, 0, 314), 1.8)\\nsphere((0, 0, 330.5), 0.7)\\n\\npart('elevators', '#7fffd4')\\ncylinder((0, 0, 57), (0, 0, 276), 1.6)\\ncylinder((2.8, 0, 115), (2.8, 0, 276), 1.1)\\nbox((0, 0, 92), (4.5, 4.5, 7))\\nbox((0, 0, 190), (4.2, 4.2, 6.5))\\nbox((2.8, 0, 250), (3.4, 3.4, 5.5))\\nfor sx, sy in [(1, 1), (-1, -1), (1, -1)]:\\n    pts = []\\n    for z in [2, 20, 40, 57, 75, 95, 115]:\\n        o = interp(z, offt)\\n        pts.append((sx * o, sy * o, z))\\n    tube(pts, 1.25, 8)\\n    oz = interp(45, offt)\\n    box((sx * interp(62, offt), sy * interp(62, offt), 62), (4, 4, 6))\\n\\npart('stairs', '#ffe97f')\\npts = []\\nfor k in range(121):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    pts.append((5.2 * math.cos(ang), 5.2 * math.sin(ang), z))\\ntube(pts, 0.38, 6)\\npts = []\\nfor k in range(61):\\n    ang = k * 0.55\\n    z = 4 + k * 0.88\\n    pts.append((interp(z, offt) - 9 + 2.2 * math.cos(ang), -interp(z, offt) + 9 + 2.2 * math.sin(ang), z))\\ntube(pts, 0.35, 6)\\nfor k in range(0, 120, 4):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    box((5.2 * math.cos(ang), 5.2 * math.sin(ang), z - 0.4), (2.4, 2.4, 0.35))\\n\\npart('railings', '#ffffff')\\nfor z, h in [(60.5, 36), (118.5, 24), (279.5, 11)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n    line([(h, h, z - 1.4), (-h, h, z - 1.4), (-h, -h, z - 1.4), (h, -h, z - 1.4), (h, h, z - 1.4)])\\n    for sx in signs:\\n        for sy in signs:\\n            line([(sx * h, sy * h, z - 1.6), (sx * h, sy * h, z + 0.4)])\\nfor z, h in [(60.5, 29), (118.5, 18)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n\", \"name\": \"Eiffel Tower\"}","type":"output_text"},"sequence_number":358,"type":"response.content_part.done"}
+
+event: response.output_item.done
+data: {"item":{"content":[{"annotations":[],"logprobs":[],"text":"{\"code\": \"def interp(z, table):\\n    if z <= table[0][0]:\\n        return table[0][1]\\n    for i in range(1, len(table)):\\n        if z <= table[i][0]:\\n            za = table[i - 1][0]\\n            zb = table[i][0]\\n            va = table[i - 1][1]\\n            vb = table[i][1]\\n            return va + (vb - va) * (z - za) / (zb - za)\\n    return table[-1][1]\\n\\nofft = [(0, 54), (30, 46), (57, 37), (85, 29), (115, 24), (160, 19), (210, 14), (276, 9), (300, 7)]\\nwidt = [(0, 7.0), (57, 5.0), (115, 3.4), (200, 2.4), (276, 1.8)]\\nzs = [0, 9, 18, 27, 36, 45, 52, 57, 66, 76, 86, 96, 106, 115, 128, 142, 157, 173, 190, 208, 227, 247, 262, 276]\\nsigns = [-1, 1]\\n\\npart('foundation', '#d8d8d8')\\nfor sx in signs:\\n    for sy in signs:\\n        box((sx * 54, sy * 54, 1.5), (22, 22, 3))\\n        box((sx * 54, sy * 54, 4), (16, 16, 2))\\n\\npart('legs', '#e08a45')\\nlegchords = []\\nfor sx in signs:\\n    for sy in signs:\\n        chords = []\\n        for dx in signs:\\n            for dy in signs:\\n                pts = []\\n                for z in zs:\\n                    o = interp(z, offt)\\n                    w = interp(z, widt)\\n                    pts.append((sx * o + dx * w, sy * o + dy * w, z))\\n                chords.append(pts)\\n                for i in range(len(pts) - 1):\\n                    beam(pts[i], pts[i + 1], 1.15)\\n        legchords.append(chords)\\n\\npart('lattice', '#ffb060')\\nfor chords in legchords:\\n    for i in range(len(zs) - 1):\\n        for a in range(4):\\n            b = (a + 1) % 4\\n            line([chords[a][i], chords[b][i], chords[b][i + 1], chords[a][i + 1], chords[a][i]])\\n            line([chords[a][i], chords[b][i + 1]])\\n            line([chords[b][i], chords[a][i + 1]])\\n\\npart('belts', '#c96f32')\\nfor z in [18, 36, 57, 76, 96, 115, 142, 173, 208, 247, 276]:\\n    o = interp(z, offt)\\n    w = interp(z, widt)\\n    e = o + w\\n    for s in signs:\\n        beam((-e, s * e, z), (e, s * e, z), 1.0)\\n        beam((s * e, -e, z), (s * e, e, z), 1.0)\\n    for i in range(len(zs) - 1):\\n        pass\\nfor i in range(0, len(zs) - 1, 2):\\n    za = zs[i]\\n    zb = zs[i + 1]\\n    oa = interp(za, offt) + interp(za, widt)\\n    ob = interp(zb, offt) + interp(zb, widt)\\n    for s in signs:\\n        line([(-oa, s * oa, za), (ob, s * ob, zb)])\\n        line([(oa, s * oa, za), (-ob, s * ob, zb)])\\n        line([(s * oa, -oa, za), (s * ob, ob, zb)])\\n        line([(s * oa, oa, za), (s * ob, -ob, zb)])\\n\\npart('arches', '#f09a50')\\nfor face in range(4):\\n    pts = []\\n    for k in range(25):\\n        ang = math.pi * k / 24\\n        x = 52 * math.cos(ang)\\n        z = 5 + 31 * math.sin(ang)\\n        y = -(interp(z, offt) + interp(z, widt) + 1)\\n        if face == 0:\\n            pts.append((x, y, z))\\n        elif face == 1:\\n            pts.append((x, -y, z))\\n        elif face == 2:\\n            pts.append((y, x, z))\\n        else:\\n            pts.append((-y, x, z))\\n    tube(pts, 1.7, 10)\\n    pts2 = [(p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) if face < 2 else (p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) for p in pts]\\n    line(pts2)\\n\\npart('first floor', '#8fd8ff')\\nbox((0, 0, 57), (72, 72, 3))\\nbox((0, 0, 59.2), (58, 58, 1.2))\\nbox((0, 0, 55.2), (66, 66, 1.2))\\n\\npart('second floor', '#8fd8ff')\\nbox((0, 0, 115), (48, 48, 3))\\nbox((0, 0, 117.2), (36, 36, 1.2))\\nbox((0, 0, 113.2), (42, 42, 1.2))\\n\\npart('third floor', '#8fd8ff')\\nbox((0, 0, 276), (22, 22, 3))\\nbox((0, 0, 278.2), (17, 17, 1.2))\\n\\npart('pavilions', '#fff2a0')\\nbox((-18, -14, 63), (20, 14, 6))\\nbox((17, 15, 63), (18, 12, 6))\\nbox((0, 16, 120), (16, 10, 5))\\nbox((-13, -12, 120), (14, 10, 5))\\nbox((0, 0, 281), (12, 12, 5))\\ncylinder((-18, -14, 66), (-18, -14, 68), 5, 3)\\ncylinder((17, 15, 66), (17, 15, 68), 4.5, 2.5)\\n\\npart('restaurant', '#ff7f9f')\\nfor x in [-24, -8, 8, 24]:\\n    for y in [-24, 0, 24]:\\n        cylinder((x, y, 60), (x, y, 61), 1.6)\\n        cylinder((x, y, 59.8), (x, y, 60), 0.3)\\nfor x in [-10, 0, 10]:\\n    cylinder((x, -8, 118), (x, -8, 119), 1.3)\\n    cylinder((x, 8, 118), (x, 8, 119), 1.3)\\n\\npart('summit', '#e08a45')\\nrings = []\\nfor z, h in [(276, 10), (284, 8), (292, 6.2), (300, 4.8), (307, 3.6), (312, 2.8)]:\\n    rings.append([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z)])\\nloft(rings)\\nbox((0, 0, 302), (11, 11, 2))\\nbox((0, 0, 290), (15, 15, 2))\\nfor sx in signs:\\n    for sy in signs:\\n        beam((sx * 9, sy * 9, 276), (sx * 3, sy * 3, 312), 0.9)\\n\\npart('antenna', '#ffffff')\\ncylinder((0, 0, 312), (0, 0, 330), 0.55, 0.18)\\ncylinder((0, 0, 318), (0, 0, 324), 1.1, 0.7)\\nbox((0, 0, 321), (5, 0.5, 0.5))\\nbox((0, 0, 326), (3.5, 0.4, 0.4))\\n\\npart('beacon', '#ffff66')\\nsphere((0, 0, 314), 1.8)\\nsphere((0, 0, 330.5), 0.7)\\n\\npart('elevators', '#7fffd4')\\ncylinder((0, 0, 57), (0, 0, 276), 1.6)\\ncylinder((2.8, 0, 115), (2.8, 0, 276), 1.1)\\nbox((0, 0, 92), (4.5, 4.5, 7))\\nbox((0, 0, 190), (4.2, 4.2, 6.5))\\nbox((2.8, 0, 250), (3.4, 3.4, 5.5))\\nfor sx, sy in [(1, 1), (-1, -1), (1, -1)]:\\n    pts = []\\n    for z in [2, 20, 40, 57, 75, 95, 115]:\\n        o = interp(z, offt)\\n        pts.append((sx * o, sy * o, z))\\n    tube(pts, 1.25, 8)\\n    oz = interp(45, offt)\\n    box((sx * interp(62, offt), sy * interp(62, offt), 62), (4, 4, 6))\\n\\npart('stairs', '#ffe97f')\\npts = []\\nfor k in range(121):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    pts.append((5.2 * math.cos(ang), 5.2 * math.sin(ang), z))\\ntube(pts, 0.38, 6)\\npts = []\\nfor k in range(61):\\n    ang = k * 0.55\\n    z = 4 + k * 0.88\\n    pts.append((interp(z, offt) - 9 + 2.2 * math.cos(ang), -interp(z, offt) + 9 + 2.2 * math.sin(ang), z))\\ntube(pts, 0.35, 6)\\nfor k in range(0, 120, 4):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    box((5.2 * math.cos(ang), 5.2 * math.sin(ang), z - 0.4), (2.4, 2.4, 0.35))\\n\\npart('railings', '#ffffff')\\nfor z, h in [(60.5, 36), (118.5, 24), (279.5, 11)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n    line([(h, h, z - 1.4), (-h, h, z - 1.4), (-h, -h, z - 1.4), (h, -h, z - 1.4), (h, h, z - 1.4)])\\n    for sx in signs:\\n        for sy in signs:\\n            line([(sx * h, sy * h, z - 1.6), (sx * h, sy * h, z + 0.4)])\\nfor z, h in [(60.5, 29), (118.5, 18)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n\", \"name\": \"Eiffel Tower\"}","type":"output_text"}],"id":"msg_01a1a874401d71b990887456b4d14137","role":"assistant","status":"completed","type":"message"},"output_index":1,"sequence_number":359,"type":"response.output_item.done"}
+
+event: response.completed
+data: {"response":{"background":false,"completed_at":1793827566.0,"created_at":1793827519.0,"error":null,"id":"resp_6aeba2bf44a69079848341cf","incomplete_details":null,"instructions":null,"max_output_tokens":16000,"model":"muse-wonder-1.0","object":"response","output":[{"encrypted_content":"Q-PaDgGE1l-9xlrqdEiesnHP0vzEpWzUmygLsF10OFTXx2ECs1KluPssPwNreqeUdUVhUX7e9ZImVK52vNS9oEwNL3tlPC0BEAdekFHfhJhX1Qib6oYX-p72MzhbUr6hIYADTN7zxayUIUoAU4L2Oo8MF3yv8ljTY--QLv6O9XRFncWTEz3UcKc3UJ6slXE08lwo064KX1SvVK-hWw7nQbEPx8q7csIHO-VCObuPA7wi0kY0TZrGfKRNLIHC68axEDMcvboHKk0jCrzbXYxE1A94_8ANnHtTrbf5xctez7iSU05C2Hxcv3XQi3g41FmPG5fEzt1fZ8rHDxef9Olh6ZJnCdpNuryPRLrdQb2pz4o39pnifWZfPxchLh_fBI1MEYmNNs74b-xk64agGNFc6DeYyPgz-Q93KD2uugrma7Rzev3KwJIQgQdV-rixJwvt9eQk6xJlLtaz32e_6EzX-1eOMUP1431CpSw6T0YocHSJ59uBFkDC-nnjpPiPCNO6lJCbMZVwtcDPrQJWazU2u52LJDMfzsjvaVxz-s8bEQYYGAPj3dgN1JFQK-T-LGuKuZ1GL5ug5T4VRlYSEoqmEZHuaPUJZvFn9I3gKiFUCbB8NJmNOwlyJrUyqKan2KCHA8vlyV6eHmnS0Lap97QZQG1N6y3ZPjuj-rMs3leAmys5ECvHKJCJz1nkb8RAjX2GgAEOVcTYU-cHqAQvhMgXnw8PUD0w9ZdY8toHSI0cqJrmwPKrOVMApyyrG5EVm0IhmUPGzRHqcSuloq_roGz-tO6MEe_D0NUAU_GUtqXz8YliWdu0juKX80Sa6-VyDkx-zr5ehPVZJOTceau0CkW9JMbGyb7V4dg5MztZhH_Fo3usaxarVf3STWcieKZ2O2bcRqeY7fWrufSrmmFFcgG0ng8OxS1tJRN1QJGjwAKD6ZEr3gYWG7LknOB1uFXhH2RyK8bTrZHicUO7nmemhxJO9I33fwKgiL99jzTTKUmpSuYZDpWQ-9mkfggT4YGo6Xp4CJZXGxCQz2Mjtj8BCC155W-_w4e6z6QKe8QXU5BT-tR8CSAKH3_3oJJZbD9U1RHG_FIe3Psf_bZEHVL_KlnxmiU5R0cBA7uwTn-AqeOiWtwffhFU8zTmp56CUCmVByx-gpy3ty-6KiDjagAuVHHLdZRExBut6O1H0iXzfMhi95gateMnbIktZa-CHz5XRuueC19MC32C5zmyjbybFWwBo2QS00-o0ArZDyMkh8F87MAYKjxuPGIg4AOWsj17VH48PueJNAq_-ISxURf0x_hC4-9jCz16dCV4GHNIZa9loqBgeidoyqEmT2Z_LEk2wXNTQZFPOcE_x1sSLlowbnniWW9iZNbYcZNvavsKwI-FbCG3zA6WEA3WwsC-8QxieWff0cx0uhGAntcJqs0odBK4erNtHau6bRXD3cbgtgKQVL3RIFpXG1Z6qd5hwfjcddDL9vw6HcPzX8vQzpWXbSRKIIxvQ8D1dJujKbzftCXBuS1KguaQBTtSu_E4rkF59bzaJEYmk96AK9x2fF0cd_zRPhzYTVphV6drbynML-CyIHs4Ssljh8hPqyaGLNcOtqnIRZkgqOBbSS819lNQ-nfKhTIvvLve_AS4ZSR-QOfIEswF3TGm6Ioq7fYDGrJmwbD5NfzixYoHTDvKTvZUc2hI4IK66fF4MvU23NLcZchBBbwnwDk6zNlG8HThXWDnv4y8nU0kfQSfltioAJxJCti-485bezkmfN9pJx80_RrgL8NZti5bDTJk4orhZbThTPu9Em6B80KuBDjuOZU_ojJlYFXYvj6Il-5JHMOVGZoF9QLI4_m7sd2jriju1qod_L-VUSEuPZrhgxQfQjl4wKqb3n_rJOc39I7XJ4EqgXQfK2iP2ZMqZvoPHXZxFYMMBZCC0bTm0J3U-mATJNLpbRO3JHtLt1vaSKL6usmI8ljskUBqX0VEokl22G6TvntyfjAeQJnVLYZXVkXOYxBoxSxCmzZ0NzFC_u2Qf7vwy93b8N26XcsskZ-ObOvfuXIQLSgO38_cQNzoCs4pwPYqQtW9aFLlECo6xIlD3P5TIFF9q8gF-Bq1nyiLBvjo5Ne7YmS4iOfQjo6R6kmLInH0tB_uIC3S04lL2IBN4-874KkJa4bZrQtjQaBn6zRs3las6Jk538tgbw9NOrl2Li_LdhfC9HN84lNRYP2Yj162j5wpjRXRka7bSy43ACpqSUyMednMHcsOtBCsaZTFcq2KzoyrUpwDfRoS5FbNbg71WtyiHyxrXpUaCBIzwE5N-0aRXRAvOMUKeaqMCewPPVjTgNl72wEWG0JaEiWxJH1oB4cd1XX_dFlt1JUq_phUodmrqJtr2vJg36V8E3ataR8wCm8krUtsICA_cDsddG_6_fuBbcTZDp3lxW5CWgDReR1hiAz4jCyW5bWPJO_BVntvcnnkwPLyDTSKeiJCyAZ-k71rtdUKAk6Fo_FuMyPgEFz-W2nO_d7scFpk0TZMlUdZedJvORgLR-LzEC4oo9-3OYbG6WwAS3AjtjiMbEaHyFJe_AAdHdMJOQdFW9rcW2fv66FVHmlUuEY7X5XPAEldZn9iDA9HBgLdckD__eQ1nWftNmSKhYLkHNkgM0Euc0ErK87X77Y_8CVlezWIbwzN3QwqFVExdvjg_4vUoihMGdKXaYSXsZnvAtcH8RY4fxnGK_yUo_cNNSpi7h5DZ9z-Iin6Gle4O06JmvfRjpY9qGO2MJpdMLGgQasUZg-_d_ufBGJkSgJ7Q4O8hCm_Ur7i7v3-_yPK2R0nBrPfMUnvr6R58qmndixXzvDaMmrEevGvltmBpcI9KOrGSgzpyrybb_5DCsiNaekrfEddGADae6Bw5oTIv2FnGa2rxO1wiNnqqY9WnyJDrAcBALxl5XJUuQzNjI_W8tJVVQIYBGdBTQBJq-XTBXB77l9EfZexQR6jYoSK0iwu8CS8gTiFB3-FwarYtYyHr4clC3uH-4pCN663czGdQKCxA5siA3wzJm4Gl4jneiqTr2cJU81nE90CmEYRlCg1j38LY4tFwerlOInDxtdY18VMUFmOwOmhT8KFlpClqDjQUWKHCF2GsUqjmwhzE-UU4PaLWJuRCmyLvpeDXS6e_HeDT2_5c_EXQYUAWFdEFPQwnY2DCrM2WA2cP6k659IfbQ5GirM-5WynCv3KPs9Dd1WURcsURGtm0Vso37iQN5ZuW8AMhYcOcetbx06hdrc2ckYxxsnZpBmYdmqdpVoQPMeo5jvAVJpzrePczzLPnXe-P6NYmIKyDP0lSqJuohC-y13Cm1_Hk7RjvIAdeAUAAKioxWTMFrkXIwLkJkwuLgZM-eHf3Oe8RaE9jYT7-P9a9xLSjv_rvzdmXxEBFOvDfljDxSbnNRpocOTuvqTQEmaHaaM4GuXzXlhjJ7EHjHX_jCUzCjKXwRXpa-jKE4VoRSJ59qrQByK9ZG_xwIxhcRC8ckDwcgELH09Hy4dEQwKmUDxV73PpK2uJG0E6cil7LsHinb5ISddUyFIo5_KzTV8wYatc930J3NqNsZ7oUzkVL840JvuO-cghBEmkMsonFzKu_wbnspk7fNXOwHo8R3u0YhYpYIdReBHSi8ZnKoTByYyvMxdTWaq_LaF8XIVNkzWOBnfID07WjMhiwFHTH6zRIALicZetdegKOyKjxl6jumaqyYT04StisPioD_1htvEqNDamAI6Xhuq97CzEtv_hBd3M-DojJ50Nj_mLBsI3RooXHSw_EII3HM9AkrHGwTiQOt_7RY6csqTtjhPwssL9peVYWgSGjtstW4NaQ4Y5PeXVccZqcCTUTtUsJKkUadsKkTgxw-3ct1ZyCCygZUAekJxd03K1ic_SsX3EDX6eDWjriWvfvv-C7TtzbXZB4qx3QzlKv5jKg50zWo0TYLezG9CJw3Z-r1855L7QYaRtJ4YxuT_tVRU8qKX6KNoqiDdK69TFdpsQnInV9zD_BBRoVG-Adf9163eawOWpGYIlgRsUyPeUfl1slwFWb69sltVmmRUA2WLcp2t-xQD5fqrhn0a4vM63t6uozK79Ctf3wWobM-TdjU2y58f_UF89r_oJZthGxTP32P7dAmOlZXN_u95IxUru8nxYNkeN-d8HNmlMhlhEbOaByos1a48uMLhhugz9RnkfLVda-95ibwW6DFpm5ohygTfHZGf1iKwfBzta9zT6SlZHri6Le9cCDsmDKVSX3l7meGF_3ioM4TUAcLI9YDZ4ycGqFzvhYaHmal8vOOvPl9Ne5bIiXiUANWH_jhVR2okH5LZkdLsWjW6xeW-1Am_bwajKE6ft2w7HvQvcKIDMq-s3NmtZ-FOn__sRnUI8z27CtX6W5_wqtww9N7sSp0KxbF2G3SMzxNMO6194HNGvyng3FZkBAGq2FUW4rTrPVSyvjQAbH8Ije8RfQN4WQBI8dXI1UhQnaM6zQv8nM49HHpJOXYVX1wMXVhHQdh-B7-MP_2yhjC_9S7ItzSU9It4pQHTrufFcZtYNrYCEb6wKvUD5tnTZsc8Zsbk4cXcBDoS9YaV0lxnjZvIlkDJN-XTJUtBXdBezx4TDx89DEmxdCOccY-P5HiZGk-7-3w5iNi5rciSuHtJx_8srkBECJWeeD5qirWstPC0DaRMmc67bGlS_mprn2Z88OvZUpyKVOuxO8egTB4hacxxc46cJOWen0BZmKTZr2xl73cTm20_nhx-WpI6vtkkIetWbjXDL0QSiEUY-RBtYdM2uswMY6fxIF5O2onr-lBFiA9Rcnn7LiJGr-Hp7LNEspCB_jothsMOzQ3oiCBSvBZwKaDxi8zH94yoaQWxLsbuc0IM1DkGm2e9wRIU99VO0OMKFhG0P17ksfVIZBa-AoYwtvPcUVIYfo0Jto7HKBUp1d-42uaf3Y-sVmXVYgQmJ8MVema5benGRuvvo_noZ2uvHdoRZRBOJWpxMo0FcMGOBAxvzlCD196byaHyMAw6XbMiX6sCwOOBmagld3S9SZC13aV8MDD4gpRJkc3zbOhd1NoS5gt6VfzA39D9wWysQsho149R3KtvQRu2oslu06Iof_-nN9HEEJGz9tgCdSBtlHKKTKkI2WeLqVExDuNUIP_9w1nsqi-EjOsgTaygdn7LaZ_n3ZMK39M4brcBOjTZPiAS2tCzSFNWFHWdnfBmw9AQgKtjQGHIQuQGH3u8FYab7DzCM9_iG6jr1dQ_ZKmRuvTpMDI5q8PsaeC5Vv06_wxAYV0chULPagOjeW8eXCECIn7iu3NCL62qPal8nsA9yt619g33s3tHYuWf6IT87ETSO1MSb9vn4RNopesFtAwmKl0IfM8PMrFmYgUObrgXnkhMjsTlhTpwcek5hreXxuz-Zq6MLgypFAl4qlotOQrcf5bEqvvwIDsePI-6qCX2qBQf5-j8-fSeFAnvdn8QdrdDOEse3czoRFnglIAK9ijhdtOgT0bsunikUq-pcqS4n_nNJwK-W6aMRGobIeBNWW8QeRj3hI53dEF9aNklQQeO7DYlwmrqUP0TUnwHatwMS0eh1Zd0_GAB0mmZQ1Bu-Lx-AbVWEkgpZgyn91ik4SZgQXVES2XjECzOa0ismMIj3jxioG_Liz6aOS8-rNizf1Rq1FU2qD_aXDKNo0-ahkj_l99RAGMbpgSlT_N6FMT8LYl0Ad_3sgr6ROCiBXfrkC0U251yOhRNTAU6MmBdqyZHaU5DGS-n2ZJUsfqMY5PwKIgZ0q_9DO9aPh-EDzpZsOkqBVMVlnQBtrFCUD9EPS7AuFDJIuQQ7qCnQuzR5WFbiS7pve3UITCpzCRe74BG8cvoV7yUmI3Jv38_2oyiICV6I1Coc80NjrSiVJihlmj35vmtoSPZztdRKc305qBBkE9G28pp9Llgmb359IgF105aVcPwZy__PLt2ECGa41N4CEuaspwm9txP2TGFknAK4BTenf11iOV6tnIq5QHstmH4dYf1Y-MhgerCJIef9HN8hW_7yJYLOdgwnU13XCpQS6JxSgErTfc0zLBngaZqDtd0JtemxXu3P3hC5znRLxiQyqSXme5Q1gcT-hThmwoapobMLtdAXzzwVmapJF9Gi2WZRbAlA0hP5Yln6RKZAyMnuTkjuIWdtd4grqrkUERHwwfgQyKdqIpJCjevn31nk6vYtU5dlayuNHF0jce9GO2oqy4jcdER_xjh3Kin6UVw7lA1UfLp_Xlns3Apqhts0X6yAq3xjkYuuH2ENUMb0g2S4Ueywr3GIMzoS-NJgVnPK1j8W5ol4S-Ff-tiNDkuVLh0_BGzPm7DwAPOkhjZnsewpen4DMgTIlBEwTsEoYCWP1R1LKugTnhcXI4AydoRIArOa8RBDRZNhBe0hQ7f70Q9mCIgl3wEE0OONrfzA0FgmQUdQDgC3lh6cf3x5OllE61SQu5AC5T-h3J50vlei_127BBQ6lebVnPwR36anvhIg-Mal37WH-rg59xIaETI9xTCNV9KY6SFT_Qo-hM6Pj1afoYGelen7PjKLvx7Ftol2VKAzBRmRUcs8Fe0wApnSbG_QxL0I9g_9OmDc6RcyyM4nIHXyIdNP6378Hr9VHmLdSs3wmzI4uC34qEUTmhbwyeONADglA182BHvFAJgWjezesGj8FaLAr18tiyR-WabZHcTTbePtvkiQ967ODpIOLcIs6szTc6_BeG0RyG0AtyatQ1Q5lOTKvf5coK8fT8BB9MZZyRmmPBmE1UObIy2RHqfqFE3a_CLTt2SsJJqWzKweQI9Gl1ZERhjJsSyZJ2gznX4C3IWK8j8PHsgSXuexuzDF1ifSQ12MQQnS0lrxzgPpdJcaIXGf5RAeYBHIswyG_rPzVawA2i7VB3L3NYDLgRNMzqAGrwhuqPUO3L4Z6r989gxBYMGe7LaNBc22951oHJP0bvvMYQk5V6ABRyp-SLeBDfw2ew3p2VcjK-Q5iCMrbv9mFP9pNiOdInuJCa__Tos6f1_HspSdH93J_UEYn5G_J9Pbmiik_ezMlWotCmwCkgNADh9aplvN9AiveFQ0ymZUSksV17ykcxPV0gDPP9kLsCsFjlEEhF3O0cYli3U31XNQKn3_gPv5OMZmw84lpH4eJh8K3O8y6OFi2YNytZNxWWSseolzccdvA4pW00uB3cHTHIZ7-9n8Emx29mFjUKNqrrYjKwnabRlgJL1jRkKKxeWuqCvS5sgt6_QdK9dsGKKxVWXjLy77mpioeCWgd-iNsSDfJlt70_Q9R2-YpUU1wrYXy3iBTz067Rm266wVGgU-AP8fi43JexYFHY7McBI5c9ArYJroJ9nFAjMU8Kcygesj4KTDM8YKT8WkLdoqCikljOiXdacntMSnsXASejdFx3tLGG_1Shk5mdBJJTv7BP0Nw4Cu-L2dWBHEmaIH4wQGVuPswmsWqnghhPNRU9hoB1F8Xdjn_qCsisUVvLJkQ_r0eopm2nStgCgLIM29jXo5Q1XFCBUfI3gXRS3IYnANlCeC6hdY3zCBsrliws6fig_ctxYotT_qxv63RjtBqkscANDs0SJlAIzHPIe5q9MmBdGbCq2sQOYBO4NqoXTDj1y00Ox-Z9ejOysQhxUJJMWs9rpH72irzklRl0pxIQGd13l3lWKNHoYa4d_5ugVckegYnmWivSNH-MfjlVlXKBKKEKBCZw7iOg5gzj-Owh7mTWgZZ5KOvkBJlxoR17sojsvPzRXQ8miRY6x04SPZNMFGT5q-AW0GIzjcGbuamFj0Y7I-7f7eMoKs8-2gXbG2JUrMmtlBfpXrJwKHLvpwQ41d5VDwSzqNffjPSsaY5-AaUmgKW18IhQCqot4MVuOxOOm4S4M0RC7fYIveMIFqtwiLuy4-CGagTe9uPFhhh8qOdC0I7LXbZsr0AY8rIhAoaPBS6H8PmdMOf69BOGxlEQ5oZcj8jp6RwdMslXNfmLhgpp5vc47t4_qSjYzUrm5vBrESvCKUOiuZ8tBO_jPbym78WqGBi8hJmhenTyGscfFIiad0vaXmcVLQYdhAOINQfbxOeWV2ula76tzWkLlqr1QQnaUTZtJg_WBC8KbsXTmJdz6Q54-58Jk2eytSgkRUilj3aSoi2QzjlhkJX4JwgZ1eFSDyoNbs3PbdiNY7m0VcWqLjKtKI_mABwGrpSIBOQDhgRvPzK1z7OWGQuLgpAQ4rE2zm-3PxoQ_II-_l66U_wNLPhUvR_5tpk8wjk5UMnHe7bcmMg6vL0tnTVGgIWv17PX-BVh-KkpLxEbM4nOCIq9SJJdarFW5J0HTctwF5LRWr-9FU7Rp4iSJcHWSnB0s_f2IKMdAjxhTDv3aDSHC_LVAVgn5-lqzpqKXy5j0yxtoxCZiiX_-p2cWG4Zitk7WlMkILk30TO7i36bnpS1z2iFcoOYEQFOnzLLCCawEJDVuYe-zftLqcWtu3CS9s4jRNrHkClBzMXkdlGNxNQ7sCsMuEUrLWqGG7vjKacVmSnl-W2O_znr-BcUFe4_awpIosm7dZFZFvDyb6DpJfvpUnYUm1x1Hd-ttwBzQreQNNFgusmjnpt6OOlnTcL1llFO2VJOVCRBnQMo9Q4pZ2VwOXYn_nnw0Wp-GoMBtF-ts9Ti0bYB538HFpDYLkzkcUdwJGdJdq9CgzVksiY4rmTowDg9lWQTDlLeGSq1IRucXYFru4X2Quo5z-5IsSEfKMw8SGh_ZFdUpxy4BUIYsjPgJso-3gFFYw2jvTnoQ8j76S_oVUpQBTeMc5XArlTT5SFeC6OiLUV4iTZSbq35AGf8H4_zmPNmbS74U0WDXuugEeuXQ8lUVRcv9VdfIdwdmuoJXbRkJ-Kc4gFROv3owaHSPeg_smF3wM0-QWlRkiO51-0YXS1z5dLDvY5TIg2IarpkBwaNJFX4LoZP0VzWj6MWwb-3tiLLvIqXXVCPUUTYW8ZNwxvoYqvUriLFuQX-WFd7eeDvWT0G3zszfLVv-LoLk2sOZvi965Z7fedMdJnuEXNNLfWRapdicfxKELsW2cGgWeRjedAUX9NeFRE7Ghm5PM8DjEHudcX5BYfNuotVSv1snJsN6IbXMmEWA-hR1HZdJNDKqc-mQ_iDP74Y-33EwPemI-0msrbM2UwdFME5YbGuns2U7iy4qCLW0Mf_IbArPA-0bJDQh3H4Zk0tvT8FEZZxB3qV3OZozX1cTbV4ZHqtPKpXeamMnT4xUfV-s436yqGhb2ocA53Ofylo3msIshm2-oQT4QazNuoprg2I9_5UnkOIZ_c2YLL2QcCaa8TbdIUA1VcasYNhQH-eJ756AhjQUy5hBuSpLW57iUbZYSYZ7kXge_-Kpb9vtu-6GfUNuWZWXetTASeaQvMs6hNRqYEky5Ob-OXmu7PVYsM4iOQebZmw4GyJn7frMowWPJGkZ5stEZ9uObK4VPGH5X4kKRdJ8Ls70Iil-WIqVAeMptl23zKoEgAzuJKGz8tBM55Oycc3bgzlPYJNdyUIy5lHdhPbK2jrqCP0EjrB-NALeKhzEa8uPMVcijw-t8tfrvF8_-qZTbN8YEcOpE-w1bYI42ZWUiDGtwlfQnllsizuRVKIuPOS1ymvdfak419rI4d7xGoklRAuVrEs0ecz9gVdtGY4GYL0D-zFHdLI9Dr6gtt1Qz-qlWZ0fzpkd_ck3lEq4VvuEueNe0etFaAvPOmNdIUjdRl_pDZq_VR2WlLBwUe5ZLOFdqK8FeGAwpaKBugOZfVa79RZ06zvbBOUG4HAkXCP48Gh3f7vS98e5Sedg2557gB-Nb90vaiOaHpoTjDFwN2HGzYD93AEtE9b7JXSbnC2iHO_-ZzdvWLtL0bX5EnKFAa8Z-njni5gLu0egkTEbAFf2tZ43vHBMfPO0uYfdNg0RwcOvYR9-f1t6u_cwLkoLYOCkZ-AqXvkxrUEU_kYwqFOYDjPMDaVn9yXNoIkAoBxc6Y5uPzBQQQdUhtoFjq39PnQkBeZ8OcZvpbk02Zs7a_AA91-iWvPe1vUXIAOKudNM8OmWZZqUtpaqgd7sdU3HJYPWTc8AI6-t_wkz1WC1n0fwOsshMJkJ8vk85Kv6dSe22nPe3tAmUd7gJsVZtdQa8L1QMKKqTPTXSRGtbThQl5BiqIRdTzIspJgvNQYv43VUQJv4Vj8qQ3jZ9r8smtWunmECqyvt9dKKQblWMIOfU_qVQbk_Q4g4_jcTEWGWVlHYRjG3le_umQulqBIe-BGgJ6603aPZXE6_ETwgEf0GUUjlsZ7z_Gm4sGDoeVlHzJI7Qsulj88f9vijV9aieVINi-22_HyGCBFBqk1Ht8Z-SwFIEW9c6-OCUcAKBiKWTCiZ5nJtxJsXmCv_6YcQyip4hCsH9P70RnVlddHTG8T50TXhD0hdSXsdlVHOJnjnSD54rS1VtndbzYNZhgJg0giUHniByIh8jAMNmfOMDxTzUQUPnpZd-PkIHKIeP7XN_6vGpJSA8RI0Xw_zbqX5jKa9QUaJoZL729S_Vkn_L-Q7z0632LCHVtF6CNH9E_hv8thmC7et-CcMs5vnahymvmAq4_shLG6Qa8q0GTxtDDhnh0JK1wdV1KhXuqsKzYFuLm6f2FiRiOqXlnKds8AHVVcQKQL0Isa7sRCmbLh8N7aTstg_DZiXCK4qdBqRhtFyF8EaGYPbT8zq9mrL_X0qhZmQ5-3kYMs8ujHJ4QxaNpvbt3qtWkVKZSeBQMlcf-So9JiyXwxsrnbMbY4GncT48sIqbLBwIHIkmep4ea0cowCHBUlleiXHpgYtmDHa27S0GvuMZ1I193-aRSpqTpb2fRRDtzbF4-tK_OrLYUkxrJGIEt6ZGo3mwCLRR6M6aAqLFZzVnVL1t3isgXY9r8m7ufhgCaSxC4ZcqfXhAjHCecx61J4cL9ie4l8Ws9C_HK0hKE55SnkN4hU2JMZSGw5cZxvMulvWThcSqx7LQcpNiAfqkK3JGDLp4bEEwAoYxc8Ii0TfqsAN5JS_C1_bwQkn9tmyPwAKAw87V84ibV8GPTxsIaJO0Y5C4Sf8rQuIR6ChnURzKdwg4Nvztg64Z3TH2GuZxujCN-6zpmtHWL3ClZo-BW8O-S37U_LgR0-mj6Flyb3P3Trj1w9Ju09wtXIYVSCKYOMv59QbPsRckxogucGA4YSMI32fj7gNslgpPvUqOmvi0pxVbuljX4HDOM3qd6BwIXG7kjRIl4SBFxGyrAUirWOB6LlChoBA_dah7S2cYMZ7EjKDee8UDbTnQ7IYqYm1_LZjBXZSGpSk_8CfTpDLj_aXx4BPytZngVddk_Oqx1oKz-nVneY4uJVer4eo0M8mwqg8GDqMSY38gmyu3jc91eEyU5u95aJeciq2xsdDx-J1_yY8-QNqxA0ffcBOqvkqwb-0lDzyimOBYC7FGipNwRHkcVVnxzlD-b-X0q4aU6JIHuDbKPalRCufenrbx7k4ui8MliwNWW5XbWiq82X8vBLJ2bVdqQ67yjIv7Pry1yxgzz_qjXWzOWsz126jmMt7N5VWDuvqUwWKoUnSpZnUW6lFYkZj6bd8WCRBXdg905ZqzBkicXdtc5XnyWmg2UxKjic_nWBAdoPlANQvm78ijTlZy05SP0Ny_fJ-JMWI5S5w1ViuS9oeRA_6Z4P6Kay3i05CJnXJQAZlkyowx4Uu43nGwvT0CHVF8NRJf---rMGbLt7BvqFjZoDin37_LoWMYBVVTg4_XGVgIFHubvJnZcuj32Fjl5b9qB2lpWVgLhzXCy3Kq_aX546aaPACURsDTd_3nWTrPpIxnXH1drh6Ri70J1MfsN8eWK_6BEwb0yFPRvehlmpNyTE-TpOJ-T_jO1fMgbl7vSAFSVtrcv6_ghl8zP28tZULBc1CLzI8v9sV7Ych7tfmhvutUkQh1S7UQMGCy9LJ37l1bLiC2JQUudN_6mNHCEsGLquAXq0sNK801PibjXZ94DoY9Vokv07nvcEqqHPA6s_S4CUooj0U5tj7ywSZBnF_4s4PxU6fQNiqsEEvUR782pScovFqNND-f4CcIPP8wAxAPSWc6S60kx8rW3ET6IuMnJTsin9moD7gggJ9YTf4UM2KuaS3PbXFbvRN4HPUOMGAR6xQyiMszcthp8dXnDudGbfci9xnBUGCXvKepv9W__3j8BZj9y0ngIV02EDX6dYLFTGrvsdYzjMhhqvIKnC-0bTVo8AIbXmevL1SC0Qxv6weiUbitVJbkdtpmmXSXH_4vxJwBTFXAmBQObPszwhWD0CkalFyQqVE5LZ0R3QC0LAr7TLJyeTDME9chH2y66erp5IgPMS4o7byQPAoenIz9-OfahUM9DVW7yuARTdqNzmoaBm-XgsKkj0wffUfNf0rLQAGjk69BBjggNbGbGt90756u-S3jNimtXs-AXIhRwez3sxoz667oseIMSIjVz28adpxVaRWZoF9rqnM98JO-4QvXbO8ERFL2wQie8g7pIP42AcbGs6yqoNTJ1EEckhMPg8wwVnvpH8R7osBi9NvkWUSI0BsLyzMCng-WuzWeVLxpmOH5GSXsLFPiaaWUwUYpOMQMiXVnhd1igcYHj0wrOLALTV1SIpN1jzTgpWZ-z8m8Xz1lVX6JebcAXU7_Nr9rFC5khvowhbd864cfYHtAIbVnKE3C4jjbq58wWoL1EobBGRWx3NOECq95F-EuLAUVJmMb9QRdlnJYg7F9RymkA3Vo9KyV7-BhGJb0OFgj5DNYbfSQb9ItY7aPEyYUhYDn_hBm27O5_srztaBerYgL__rhQ3VbwCjVMUBIszEcId6TK3dsS97e_XX4vVSjWCbvxJ2MO41n3RI0VWDVDthRNvqrF3avw9meLDaDUgnM5bZlCs45pQ91m76ibli5cpxLm8vh1EQqJ-sCeh1mm5gomRedypTJK7wx16C6u-8o1RMrqCI01jc8xNjqx7T8spQloIF8dJIbQTUBZGEUURQ5s6-BVUeq4vx_qZV1V2nm0CFD3at5ZQGlRXOk_FDzKDP52xprUkQMxzfZp6-0y4D21QvHiPQHtK-z9mapqKI4ybJTBgTuVeA_H1ec27Q1ajL1mn1IX-_klZla6EH5rVMc0ttrtRr2Fm_yC52U0IKDXgtwBWEkzEO9ReN5m0lRORr1L7gv7wPN-AZQUv5qnN4B32bCkdlKOM8TMNtCcG_KtDoleERYpG1g9_YcpQthffgXv1hRbMUYrfraea6gQMfj0gOB-orvMcsWWsgcJFyeF2kjpbIdHgbdMRtperXz2rQpWXB3DsajaJCVySqP6-WPoQzeRCUGRzz8OpVWBgYejwgCSICYv4rNfdfLAVaoWum5PmuE_pNbzup5FXkbt3HQakBrhIIAi9mp3p-3gSiC2TNmkfBEH9OvAhaeRA7jAfYoVZRcA9D97jRjmGomxQwXZhU27S6yMg2Hk72QtMGTln8FZx5q2zPWa8YH7uD2nd6A1QCe66LA-juw_BvkEuYtqOZhyV5SIEXbsIAnLgQdDkfljQnc54qf9cYdhltjAEAVhN6A4Mn1ninYMK-2_XtTrC_Q0ad4pFMTHSCq9u_Ra20_2tXMXoLMeTbZ41zb5SfjUax2ev9s7JkTqoahoRVqjuedgh3hKedNmyUQyYui-2fnODj5aHvK2F6FPTi45NPrfAe97sWn8QIdbhiUucBPVG2Ln52vAqCZg0GqTWpG_2N7VDZKStJ1Ezy5IvV6cRZyTvzN3k4xBGuBpxqMfKNCAzXdx3w1lWVOSiEM6kI2RNsU95FGAmnMYs1topa3lZs0Rk_zD9hozyEODy5GrgAsiO0vTEceT2YWSyF7X3vuotmndvP6xUsEMkpHcHDwy2oBXKNceaYmtB2wqUqx1ccrznVzoyPsl1HV_96CSGPvImjgA1Mo4BOtOM-WgfwRxE8mp5XNEgHhksvCZsL1lvp-eweZh7K7OHHFVO2WC2BSDlGz9p5aEseX7_sNSSGszB31C9Rbfw4RD5R3IkqfMFyxVZ2gJXWL7zUUR4uG3NP4_unJjYVxHb7jeuMIlyTR1QpoqWO1Qay-uODc8hvIFw9i8tH-PucJSOxmRPuARAMmDO3z4OTGa2K5M1oTblXhOEqPNV4Y8V2gB7OgMDYEbIaB3VYf-lVNPVlYCnfdWrB2Jen0CtoMFx6n0ORhzDaMY3P5a_ZyFxfrMHDvVHx4pi0i505rvx7eQ_VmbYO-IrAk45Z2LT8kL4oSFLkvAlVRtjQh4WG94tlsSJu--SQGkAEdibJ2Ei4folnylNH4lCC8I49OiaGGqdh6-4ALKhpMElsZBNRZFjoR-DUBg5ILBZHsLJOuAdLRnSHg_9nmI4IqV5iK4Y4BJbFcndi-ekHrgP6GeK8dWPNCDNp1vtgki7mvaFKzsRR2YNyDI0GAB5y6rXNptkc-10jk57bSEmgtVe2q_gqusJu4cstNwhSKCFz9ouEWP5vJCrNqWiJYXwmHQ_DbqrEe-D-bPSN6s8cHh10R2FwEgQvRjQKkigMlZqafKpKGFiexCY_XX0fKMsMBgbCwJf9ApzY5mOC8rENq47Rjx8_iCDdm9BzpliVGr8nlurr9b8nspfNJNoz82QhaMikeY7aIutD9GLa75-S2-PUycdX0Ch_g5qw3PtifDO1VkGUrtYaAcQHDsBtVDW0E8UPskz-wQgfAdaTYMHDmQDZu3T3_rNyOSOdP7s0IAd-CDMQELRxyK2gtTARq2Y_IH43zoLJEt9kY0s4c8rPfNRZRxu3JPgh7iHm9_eeT4PWMfedpi3prKsEDkmbYoyf2KgJWkFngKwh_3KmD346FaMhiFEWDlJ_JU6JXpP7tZrjzYwwMne_omas3UDPMu8dZg3dtS8uhhkIWoCyy6zF7sJSGCFkPfuIRO0HrDANjQQYahrMtLSw8Y3KAPkpNzcBmOlLquoizKydIgUayMGzXVjqXF_oQIVSdUezDL1if6sjvOLmu3lN4s2X6OAt4QmNQF-AJEGPgW8SvpKBRxdTVFeSTte-l5b5G8HyJ09VmiMiWBgxHPI9CXzctO1wsKUxv54QdXzqhz3UCZB9aI4MHQQ9rL4VzpB71PbvcFvZm1NkRPK2NJr6lLnCpACmy0iUVFmvCScs25Toh3nsL7CFO-3Fnz_SVNUK1p3dl9RsDvtEqNLlGlqSmi3sB7MfmX41fxKDYBNHjXEHErkzr5g1Culd1sbOa-jhdeNOJqbStnPypWrbD0u3U9ZqyP00cc_99fXUP8-xCeQ47iOMfhg_A1bkRGhpQwGj5GD4A89g_ZTojcg3JFuhXvhLRWAWtEMbb7-SbPzTNZEP0R1Ifk1Iw6pHbEEEjC14hKHMv-cmk_snMv1KTjGFq7z6d-XfzeKqAmRC-YlkUtEa1SNxH5JQNpRLzlEUBXg3VjYcFd2qe0NX5Z2jwLlBJ59ipDVN28DiMWmSJEsLeEwPUNBU6LQcUGHWL4OPy562_ClMjP1CFDWQHcEDwT3zPbwLnH-9BgQgUcF3qaIko0zTmAqp0AFxaijY_zPn3vSPnVvC0VCEl-Yx_cMxbk2U6vqV2B1-kmEvJiPdlg-FADlmkmeP3mjKy8LKQHhTfkW8TbeoPhtB3JKd0bHErCh8wUGBCylvPo2Yayzmr_kQj1Lo2rMdeS-Ehnq_BTatvdI6IxH5ShQ2Y40kmoO3x9DynfWu8CDp8F3xm1KRUzEyn7nK6d8xYizs4FDURdZKBI-pKItFjqLeXWlaBgD0cSRci5ANaxGm44d59NG0FuBNAnTRsgs4zPuvvLx-oO2M8XRiSdceXULxaAqftsV_TN_2SlHGHuHxTj2kXwlavwxiztREHTGSGNeGZwB8FO7P5YxOhYueXn-L7vup50VW_bMD3Mo-hvgjUSGCTDk-X5ereFahGxnSkVsW40IppMM_9CGeQe-ztTb4K66WZVCkXdOD3iB753-iCMHnIWtDbuOvKkL-r0HowhPgF3a80CBfMnrkNQJ6RzSawd9DLW0Sg2yauPvQxirLTp_l-JQIEiA0DbdzabD9Ws3Xj_IMGq0AuhDwUDLtjUwO9I1UU_pUGofjMX13s_tuv4JC1NOk6MdmJeMOLqOA-Ncs9gN0mylaomFV71aK9eb_rkl20olsfT8JIawlHpM-cytZ2E0CMNQED0Vu7HuKFx8Fy7_GPZEz7agUOnniMm4Z1isrTkHkGap5Mw758j9EEk3w1ow_OWGiq8UQspsZ1ELVDy4ucqsIodcRIKpb3_MjHjX8jj3EGc_Z0lLMnbPpMPeD99F-RODMID_Unqga39fNrIwWzYqQpIbOZF4zNhsqQQUG19fdhePhmHDn-d8Gw4FIrNpUmvOOyaXaizmhEviXqF7f2x96tr_pL9elXrn9B8OX_HRvo_akzAlqDBZs3two94wbqECZNQ35HIdbao7SywpZNK-74uPmp5OCyWmBb2TzP7eCWaS74XGv4K1_0x8qPOhh6QGaRnnpPfgYUeYTdGJMFKKZRUbgr4qglnkhf_nuStH_8AoZ4GPL3WyMRK7mhdV1aUJlctz2ykoz8VFTavn3zyOUQ2DEzQgcayJlgsaLpv2fYxA9h6Hwbd6lwAC9aBgFCCoUPLrjcXv9Bhp6G83haUBaeTGm-2USEalVv_FAE2OV-_GARYIr8WAjg-T7lxdmp7s6e5e7VkHsERZvU3uffBy_4SUPNATNvRJLLKfw_RvBRLORWU5bl5yR72S6TCNWYtFKG6UgTOChe_nr2zXI7hIwksvUGpo0nbdRyAzau-QbT5Vv0pvUTJFzJj0bi4L-kpaBbTbBsBZWOR11d7jz3muGFk2O13tk7mvn3T6nweyBeIoZZCJnV7PRqZ9666ax1M5TcURBon-u1qtbg1CHcEZM7jZHgIV6MfieCb0_51JuyNHx_cjLi1w9sNiigX6RIMOjXQUQxABW-DLEtqMEEBcwZ9zuuU0jACYZ1fw7oZpPtYbF2yOB2H52MOew_QhGmUdcTsvDy0R4df2rzMrg3L8kI7WWk-Yq0OQeqqEh3iN8C-2UVQxYMWT61PaBU_ow7NVT-1aMEVWXFFlDuDZ8YPotRxBgACQ_bbqRyz8iWijpiBhKUF1jxpb1OWg8vlSKKPuFVazVjfrld3A8J3mVqTla9kWP5jEocSEQWdrRFD7FNXJ9NzmMSP9uNm0bP6BuO1hyjEQ068mQ2VecV_AyGRLLFMwWMS4h7B5Z2qCe_HEQyxTGzCIzWCTvA_D6KoLfRwZtzWmTjLuiEaR4VEOrR9cTvClVQZtp1KeM3RCwBewIj-l_9-hlvr3u-I_b7U7nqXv-XX3JJRobLYfaaODgqmAjbAKgqlpiMBwclGiYXOZEB0zmsL4ZtuvaXFJcV_jPjAMlyFhyrBKZGyQm0MTYjr4YMhHsK7_apuMyVMPAjDK9NJuxEzQI2-2uUny1A1VyOCJz-R4H7ypIrr4RfvEiUCi8dAwyIqO0jINa6qtN-THJ2P74v9ZCDw6oWNKaGwjHjEQJ2qLsnj8GF4PdfOEf3YbjMFJZ2EmJ6xvoPjuX9-HfIZpKfbfpYFwToIuH-RImWykyTZGJr9vodukugt0xnCKIhZLywCb9xT6Btvc6AIHtNm5Um83bje3KpQDSMCI-jHtyhEkNL6NQ4g5GVwbNgUHzPOJaPpFKgyEtLXFdkEapbbhKYDdVVEXTBOav52U01-vaRNnV_R22EVOvCGG8G84scbikhVfLNSHWahoqefvBuxqg0U7SS7BfVYuD6ePLTKmlbzoRNyixxQlIFxMLuYgy6lIsEhbuowwCo4T3fLLhgpvVGeS-8CBBu-Xc1zVmeOrgdR9fhfVmX1dlLLKoNv40Mjx6tXF61zSuCV7chuwlTke1uDvyAeRdcXGHo1m9_faEkSnZN6rBX7JfE7cAzJT_pLoi03Q44b6L4OmB9bMU2Jzq380glzzhm2DDHg933rd90wyB_YoVUmR0Y-ctsgLSIcuS-9JpxgLRebCU2s0l18Hk_495fpTn2XPT7-OrWmacM9FvplgX3hzz2XxwhKXNb-D4EXDx2z_92NxNrSfqT7KOvHHg-UZT7lTg7VMRBKPtG11T0ZsR3onZhBURQTVAfjyOlT0MQ_qaaQndfm6GyQ5VTxFBK_SLzmlgHGylpRdSZqdlovUnFdwOuBDMM0aMvxDPDKU7Y4fUEH9T5Gne5wJt9K9efFmPBDkdwhRWhgK54Z4-CMFVG6tZB3_LtboQOKqHjaHuCT8qTqIkhKN4tD_ko4qYqpUGh8yFMBTnwDUJe1THkNSVR6yTM-dqT4eU0Deha2uQHd4nkhUc04WBvje1uS2XluO-3iRR3GrU2lXxc_Fp-06wOc4kif5CnWWjAn3DcU4hvVXrsGBFmIFsw9jikyFgCb2OxUHJdxTwPRugrMPIrEWJDMxpdj8u40LMnN79LWmikAGWlgLvEd2SY3QNwXEatBf6fxgNxFUIIvXsJx9_fsBHKuTqx_gE3bSjZ1EUZp6eZJqv4XPn67S6Hso8aHfMBaqVanrnLp2Zx7X1DDpZCAKCtH0ZD8CbgyN9dpMHanmXQaDSwualQ5a-VTUSclHNwsotF-PiKSvGgCq1ClMM7oBPbuAc-xadEmVP-xvnwpjf5n0NtHS096Ng5nBmftujFUEhHH3Z6C0Set5FUeMjIdqVbB11sFpHN0f7SRCloi89e39NrDJF6I5g9l-n13ZcLR5J0bF775UTycSfk3Q2veljIvaYb0UhtcJnP6EMbgVQhTqdAe-x7REQgiIsRNO8fyn_Ylu-4F9OCLKtpY2_xg8xj7fO6qXN_C6Dv5nGjDQ2imV2Ads27Yamo3_zfG83gdqYbOi_N7Ee3tnZmIl5zXmO_pczMvxXaP89SsKkmp9UwdV1gBtdsWOncz8d_BQggMTvDK09u6aXyEGjqsCAd24AWLsWq8w0jf8pUHc5WAKYq-PMBXNIxM58VgqKOxsQ_yvN7XlNyL6NvJ_LBXqYYFnXBkPqxGeRti-y6dYz29m5bLTLKk3mqqK2ylojCeSvr4ZGQI7ufLWJaVLkBofti0WE4OfIsLxVM2w8pkFxmBTvPJyZvnxra7Ox4uapwLNm2vmZkW8h14Tlyj3rWxnzNCp_vdS2-wFKKFFF3s1K8OB0LTnIAnvaRGHfh8IfZnTbVu8CDbOtRO7ACbZcxkF1yE0bnz4pGmw2_sk1mHPXe1QUELx9EgXi1dm1gc4jcrvGJCShxBI_wXBQADFXDYPr6nFnbQ0BU9VUODFQccXku7DjLqaM9rYRNx3Q6jLPLpM0ZvgdURrWkqmXWlFtlAvKM5eciLys9vZdcofXIWufYguZEwXx9ORcaAQXeCFKWvnYk0GNr3vt65Kl7O4_dkPmA2ZrO6zqlNiwRrYa3f2dz_Y7mhzJLLcTV8icKPpGjxzHpfZK4AmEvgd9LgBl9-e-NSe9Jnt1vy-RIvuIciYD2LapBg6PChwOQUwP9ErZeJAjH15UYPqJIJHMiAAXIgIzCIsa4zUmlu3-LQO3Boim665R-sxx2XwUbUpmbZroxkzPqxY367HLV10bb6XKikzlRfxaR3mNu6gmZsQLb1dynAZN73JjSp_Bba0ynpXwP0zJghXYeNlOQewvArz3y2NfPlt2VXw9H9ATwlyZHuxuCYfBcoNJH-Wx3UxNIby6lEhHIbW21vRtxABMpVLOtKZ6S3wZp6yD8Fztj4oHUT3Hppq7YlNL89hM4l3_9wSx9D4VeWmMzbWoRBqFGeIyD8k2Y1cpTV_IcMnUabvMqksD2dPGCjuIi0RRTzEa279Otbz9WaUtTotf7KaGZw8mBc8f28xZQLurW-HAGJqhHAGCfCJObmkMuclEM4g8DZP0AyUp33Wvs8OyRlkZTi5kHYt9wH3cpMzBsGGn2jW2nwD5aYLj17T7Nj3dvJtac_ZjN84-oukJTXY3gVsBabjPWnyC2atVgPLt0inFbsfM6M9Rh_JkSTV2O9zz3KIJR3Z0Eo7oO8q23HIT7DDCDeOibawIcEaBLT2JFXEAKzjOEcMuV4dTEVsh8HPgYpupo7pkYMXGlyA08CSPOsfHGa4yuchuYH61Sf1_imT9Icai4dm57dRdiYu_ufvYGcUk1BW0XgWsZZf7dRBLjNc_UVhRg06ODpmbEX0KaMIR0A363vZbT1W9f_br45ZJ67G_W012YzIlC2ehnewnRUbBRpnQTiZX1mDn_coSMXJNL1x668CN19Lvq-Fb3LkABZfjMZCxEFTpMmd3gjIfvnDXb9xW5gw4AfxLRX3uiORxSbmTL1idlj-k77g2d7ndLu6Tw-UguSVoX6IUfmZr25VVfITFRNL8oEU-0QtLEQ5CWdy9OeJluXXQH_zKNsv38-4uDsoEFx5jGiFc-BO6K4CWmR6mGP44kM5t--5a-ZZWPVPNL-K6r5FmeJAlekPGt2WAvT2RmVjALfIgBV_ghf1rRZz_XZKh4_n4Pe025yAKIdgueDJvlMEXZuo3nwxn0UcMwVE3XB30Q3Xkm04afwa_kGrojfIyKAda0BYW5CWEZA_9zEVKeL9F4U62CPJ9fc8oqaoCfL3vsLJpjmGmBakNYOBRCgBgK4whCevSTuy4_VyLq8NLjHuPsQ9gaMsXUn_134icnUoW7z1FTXd_FW_m3IEqNSAVqwcorVOVnrYeB1m_qsDJ6CUZB9rnMxNEe52WQatJBiyQsb5rSL8Hh0HH2O2ghMZWp_wKyGmYV5OVSAd10hOdUc7ZMPaf6mklxPix7IST1gUsR4rU__haOz0ypbC5hw_Jzh8d-qDAhIiQEfjl3iuLaKIjbk-jDf0hFEaaT6YdZe4FQq4o14sVfq2G1-lcWCZW5RJu64rQIVC2qMRd2fV5WcpZFCfkrn3hFD-tCtd31BAi5pOis0JUw27qH7Hiumaaf6StmZQYCUJdqK55RceYylVVvCmEVlRytJguUUyXYj41BGCmgy5rgVIvFIfVbblLlOavru37DnVvAxN2x1zwydETxMw02kuXSlaUTF5SjZBuxY3ZBJHDwCmjnGcpivB2CVhNvmqsI5bnfUxz3xpCDmdVdhQXioaV_Ct7C0800c-z6jx6XIeE_-O_Fe_yM7LX6LPeQFrfHfBxAL3cliVU7Z_nECGjA6yOW-CRgAYWk4ugFhRstumiXDGOlkyfjctuGoYstL39EzKwlAUoOy7IzTpfkaczKuNKZ8p_DcqOicrEh4HDkidMWZoPNQYL3sWApglnMdUjCbKErmsC6DMx7xjiRAf-DFRYw_xdD0TPAiYtRDTSLeh2RmbZoTBXhZSaQ-ahgoRfUn8dtE3ad7fANbtQpXvWE6uSLKXXmyOzPoSv9f4fExpw9QYYSSYdJ5esARYMdVPWOFNW5muqUBbwQxpdxpPR3MkFCJqWZsLa4JDY0GVmWbAFayKQ1GO4P1qX2pczqR2EvH_rlrChhrFSYB3IlVhSCy1VZGixSzIIeIToVCYjX3Y079_sjuYuH6eE4mZBZNWJS1U1kv_VXsbYcjBk8u5y_F9-1tVR4KcVZI2_PKsk5acP9ObtM8f4O5xcbYnJ8jET-bIvPv-MQdw45jLQWnBVaJgKmMXV1AgljbHLXXG9QYg-08gnGmK_9aXtcBrpGCYgz2nA7A0uO_di_MR19Thlfudsw9Jdiv-kLj_6zIL7s_BZaum4mGu9RBSW_yI0PESu5QRJtm_ORYGz9vjfDuTX7Yg43cGoj4zJrfzagHGnOod8qJWY1Hzmlukp_QbPTICo8FqpsiCN7z70oI0iLNqPmtehZdvEndwcTSMTBqme5WsE4KNAajvbu2P-63229iPnjEXR_yDkRvTYQ36ExlrFF77u5lBypkJ8Lre3o9moowLIlkdDChjEcnYI14F2YAFJ45EdDRBz2GB18En_rUjgUX81UTcez2nWph_7rlRFsGLlis7zUvu9SldioJIT_EWn_lV7Q_1DMjXBVSSwoWPGWIwwB57-ccJT6cgz25V9X7tnujA","id":"rs_6aeba2bf44a69079848341cf:rs_01a1a873bbed71c8be70f8826e7022bb","status":"completed","summary":[],"type":"reasoning"},{"content":[{"annotations":[],"logprobs":[],"text":"{\"code\": \"def interp(z, table):\\n    if z <= table[0][0]:\\n        return table[0][1]\\n    for i in range(1, len(table)):\\n        if z <= table[i][0]:\\n            za = table[i - 1][0]\\n            zb = table[i][0]\\n            va = table[i - 1][1]\\n            vb = table[i][1]\\n            return va + (vb - va) * (z - za) / (zb - za)\\n    return table[-1][1]\\n\\nofft = [(0, 54), (30, 46), (57, 37), (85, 29), (115, 24), (160, 19), (210, 14), (276, 9), (300, 7)]\\nwidt = [(0, 7.0), (57, 5.0), (115, 3.4), (200, 2.4), (276, 1.8)]\\nzs = [0, 9, 18, 27, 36, 45, 52, 57, 66, 76, 86, 96, 106, 115, 128, 142, 157, 173, 190, 208, 227, 247, 262, 276]\\nsigns = [-1, 1]\\n\\npart('foundation', '#d8d8d8')\\nfor sx in signs:\\n    for sy in signs:\\n        box((sx * 54, sy * 54, 1.5), (22, 22, 3))\\n        box((sx * 54, sy * 54, 4), (16, 16, 2))\\n\\npart('legs', '#e08a45')\\nlegchords = []\\nfor sx in signs:\\n    for sy in signs:\\n        chords = []\\n        for dx in signs:\\n            for dy in signs:\\n                pts = []\\n                for z in zs:\\n                    o = interp(z, offt)\\n                    w = interp(z, widt)\\n                    pts.append((sx * o + dx * w, sy * o + dy * w, z))\\n                chords.append(pts)\\n                for i in range(len(pts) - 1):\\n                    beam(pts[i], pts[i + 1], 1.15)\\n        legchords.append(chords)\\n\\npart('lattice', '#ffb060')\\nfor chords in legchords:\\n    for i in range(len(zs) - 1):\\n        for a in range(4):\\n            b = (a + 1) % 4\\n            line([chords[a][i], chords[b][i], chords[b][i + 1], chords[a][i + 1], chords[a][i]])\\n            line([chords[a][i], chords[b][i + 1]])\\n            line([chords[b][i], chords[a][i + 1]])\\n\\npart('belts', '#c96f32')\\nfor z in [18, 36, 57, 76, 96, 115, 142, 173, 208, 247, 276]:\\n    o = interp(z, offt)\\n    w = interp(z, widt)\\n    e = o + w\\n    for s in signs:\\n        beam((-e, s * e, z), (e, s * e, z), 1.0)\\n        beam((s * e, -e, z), (s * e, e, z), 1.0)\\n    for i in range(len(zs) - 1):\\n        pass\\nfor i in range(0, len(zs) - 1, 2):\\n    za = zs[i]\\n    zb = zs[i + 1]\\n    oa = interp(za, offt) + interp(za, widt)\\n    ob = interp(zb, offt) + interp(zb, widt)\\n    for s in signs:\\n        line([(-oa, s * oa, za), (ob, s * ob, zb)])\\n        line([(oa, s * oa, za), (-ob, s * ob, zb)])\\n        line([(s * oa, -oa, za), (s * ob, ob, zb)])\\n        line([(s * oa, oa, za), (s * ob, -ob, zb)])\\n\\npart('arches', '#f09a50')\\nfor face in range(4):\\n    pts = []\\n    for k in range(25):\\n        ang = math.pi * k / 24\\n        x = 52 * math.cos(ang)\\n        z = 5 + 31 * math.sin(ang)\\n        y = -(interp(z, offt) + interp(z, widt) + 1)\\n        if face == 0:\\n            pts.append((x, y, z))\\n        elif face == 1:\\n            pts.append((x, -y, z))\\n        elif face == 2:\\n            pts.append((y, x, z))\\n        else:\\n            pts.append((-y, x, z))\\n    tube(pts, 1.7, 10)\\n    pts2 = [(p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) if face < 2 else (p[0] * 0.92, p[1] * 0.92, p[2] - 2.5) for p in pts]\\n    line(pts2)\\n\\npart('first floor', '#8fd8ff')\\nbox((0, 0, 57), (72, 72, 3))\\nbox((0, 0, 59.2), (58, 58, 1.2))\\nbox((0, 0, 55.2), (66, 66, 1.2))\\n\\npart('second floor', '#8fd8ff')\\nbox((0, 0, 115), (48, 48, 3))\\nbox((0, 0, 117.2), (36, 36, 1.2))\\nbox((0, 0, 113.2), (42, 42, 1.2))\\n\\npart('third floor', '#8fd8ff')\\nbox((0, 0, 276), (22, 22, 3))\\nbox((0, 0, 278.2), (17, 17, 1.2))\\n\\npart('pavilions', '#fff2a0')\\nbox((-18, -14, 63), (20, 14, 6))\\nbox((17, 15, 63), (18, 12, 6))\\nbox((0, 16, 120), (16, 10, 5))\\nbox((-13, -12, 120), (14, 10, 5))\\nbox((0, 0, 281), (12, 12, 5))\\ncylinder((-18, -14, 66), (-18, -14, 68), 5, 3)\\ncylinder((17, 15, 66), (17, 15, 68), 4.5, 2.5)\\n\\npart('restaurant', '#ff7f9f')\\nfor x in [-24, -8, 8, 24]:\\n    for y in [-24, 0, 24]:\\n        cylinder((x, y, 60), (x, y, 61), 1.6)\\n        cylinder((x, y, 59.8), (x, y, 60), 0.3)\\nfor x in [-10, 0, 10]:\\n    cylinder((x, -8, 118), (x, -8, 119), 1.3)\\n    cylinder((x, 8, 118), (x, 8, 119), 1.3)\\n\\npart('summit', '#e08a45')\\nrings = []\\nfor z, h in [(276, 10), (284, 8), (292, 6.2), (300, 4.8), (307, 3.6), (312, 2.8)]:\\n    rings.append([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z)])\\nloft(rings)\\nbox((0, 0, 302), (11, 11, 2))\\nbox((0, 0, 290), (15, 15, 2))\\nfor sx in signs:\\n    for sy in signs:\\n        beam((sx * 9, sy * 9, 276), (sx * 3, sy * 3, 312), 0.9)\\n\\npart('antenna', '#ffffff')\\ncylinder((0, 0, 312), (0, 0, 330), 0.55, 0.18)\\ncylinder((0, 0, 318), (0, 0, 324), 1.1, 0.7)\\nbox((0, 0, 321), (5, 0.5, 0.5))\\nbox((0, 0, 326), (3.5, 0.4, 0.4))\\n\\npart('beacon', '#ffff66')\\nsphere((0, 0, 314), 1.8)\\nsphere((0, 0, 330.5), 0.7)\\n\\npart('elevators', '#7fffd4')\\ncylinder((0, 0, 57), (0, 0, 276), 1.6)\\ncylinder((2.8, 0, 115), (2.8, 0, 276), 1.1)\\nbox((0, 0, 92), (4.5, 4.5, 7))\\nbox((0, 0, 190), (4.2, 4.2, 6.5))\\nbox((2.8, 0, 250), (3.4, 3.4, 5.5))\\nfor sx, sy in [(1, 1), (-1, -1), (1, -1)]:\\n    pts = []\\n    for z in [2, 20, 40, 57, 75, 95, 115]:\\n        o = interp(z, offt)\\n        pts.append((sx * o, sy * o, z))\\n    tube(pts, 1.25, 8)\\n    oz = interp(45, offt)\\n    box((sx * interp(62, offt), sy * interp(62, offt), 62), (4, 4, 6))\\n\\npart('stairs', '#ffe97f')\\npts = []\\nfor k in range(121):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    pts.append((5.2 * math.cos(ang), 5.2 * math.sin(ang), z))\\ntube(pts, 0.38, 6)\\npts = []\\nfor k in range(61):\\n    ang = k * 0.55\\n    z = 4 + k * 0.88\\n    pts.append((interp(z, offt) - 9 + 2.2 * math.cos(ang), -interp(z, offt) + 9 + 2.2 * math.sin(ang), z))\\ntube(pts, 0.35, 6)\\nfor k in range(0, 120, 4):\\n    ang = k * 0.55\\n    z = 115 + k * 1.34\\n    box((5.2 * math.cos(ang), 5.2 * math.sin(ang), z - 0.4), (2.4, 2.4, 0.35))\\n\\npart('railings', '#ffffff')\\nfor z, h in [(60.5, 36), (118.5, 24), (279.5, 11)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n    line([(h, h, z - 1.4), (-h, h, z - 1.4), (-h, -h, z - 1.4), (h, -h, z - 1.4), (h, h, z - 1.4)])\\n    for sx in signs:\\n        for sy in signs:\\n            line([(sx * h, sy * h, z - 1.6), (sx * h, sy * h, z + 0.4)])\\nfor z, h in [(60.5, 29), (118.5, 18)]:\\n    line([(h, h, z), (-h, h, z), (-h, -h, z), (h, -h, z), (h, h, z)])\\n\", \"name\": \"Eiffel Tower\"}","type":"output_text"}],"id":"msg_01a1a874401d71b990887456b4d14137","role":"assistant","status":"completed","type":"message"}],"parallel_tool_calls":true,"reasoning":{"effort":"low"},"service_tier":"default","status":"completed","store":false,"temperature":1.0,"text":{"format":{"name":"helper_model","schema":{"additionalProperties":false,"properties":{"code":{"type":"string"},"name":{"type":"string"}},"required":["name","code"],"type":"object"},"strict":true,"type":"json_schema"}},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1.0,"truncation":"disabled","usage":{"input_tokens":651,"input_tokens_details":{"cached_tokens":0},"output_tokens":5862,"output_tokens_details":{"reasoning_tokens":2807},"total_tokens":6513}},"sequence_number":360,"type":"response.completed"}
+
+data: [DONE]
+
