@@ -6,6 +6,8 @@ import subprocess
 import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'prepare-public.sh'
+# The release script stays in the private working repo; the public copy is its output.
+pytestmark = pytest.mark.skipif(not SCRIPT.exists(), reason='release script is not part of the public copy')
 
 
 def git(root, *args):
