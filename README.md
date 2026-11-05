@@ -18,7 +18,7 @@ You hold a fingertip on the projected mic bubble and speak. The microphone is op
 | "Show me a cargo ship" | Muse Wonder writes a program that builds it part by part, inside included. Pinch and drag to turn it, pinch the bar on the left to slice it open, use two hands to zoom in and move through it. "Show me the engine" fades the rest and flies there. |
 | "Take me to Paris" | Muse Wonder gives the coordinates, then a 3D city flies in under your hands. Pinch and drag to move, two hands to turn and zoom. |
 | "Set a timer for 10 minutes" | Spoken timers and a stopwatch, with no model call, on every tile. |
-| "Start rock paper scissors" | The table's games start by name: rock paper scissors, catch the light, follow the lights, draw and guess, chess. |
+| "Start rock paper scissors" | The table's games start by name: rock paper scissors, catch the light, follow the lights, slice the fruit, draw and guess, chess. |
 | "Let's play chess" | The table draws a board of light and shows where each real piece goes. You play White: move a piece and take your hand away, and the camera reads the move, animates it and the table replies. It has no hands, so it lights up its move and you make it for it, and the camera checks. The moves run down one side, the clocks stand on the other. |
 
 ## How it works

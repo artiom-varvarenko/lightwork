@@ -6,6 +6,8 @@
             take your hands away and Muse Spark guesses what it is.
 ``rps``     Rock paper scissors against the table: 3, 2, 1, SHOOT, then show rock, paper or scissors over the table;
             the camera reads the hand (3-D landmarks), the table shows its own move and keeps score. First to 5.
+``slice``   Slice the fruit (:mod:`lightwork.fruit`): fruit is tossed up from the player's edge and falls back; a quick
+            swipe of a fingertip through it cuts it in two. 60 s.
 ``chess``   Chess against the table with real pieces on a board of light (:mod:`lightwork.chesstable`): it reads your moves
             with the camera, animates them and replies; you make its moves for it.
 ``helper``  General helper (:mod:`lightwork.helper`): hold the mic bubble and say what you want: any job, or a game to start.
@@ -35,9 +37,9 @@ import numpy as np
 from .timers import Timers
 
 AREA = (82.0, 74.0, 738.0, 410.0)  # design px: where game things go (right of the button column, under the status bar)
-GAMES = ("catch", "follow", "draw", "rps", "chess")
-TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "draw": "DRAW AND GUESS",
-          "rps": "ROCK PAPER SCISSORS", "chess": "CHESS"}
+GAMES = ("catch", "follow", "slice", "draw", "rps", "chess")
+TITLES = {"catch": "CATCH THE LIGHT", "follow": "FOLLOW THE LIGHTS", "slice": "SLICE THE FRUIT",
+          "draw": "DRAW AND GUESS", "rps": "ROCK PAPER SCISSORS", "chess": "CHESS"}
 DWELL_S = 0.9  # a fingertip held this long on a bubble picks it
 TOUCH_PAD = 20.0  # design px of slack around a target: hands are tracked, not exact
 EM = 14.8  # design px per character of a label (bold capitals, about 24.6 design px high), for centring
@@ -49,6 +51,9 @@ WORDS = {  # spoken: game key
     "rps": ("rock paper scissors", "rock, paper, scissors", "rock-paper-scissors", "rock, paper and scissors",
             "rock paper and scissors"),
     "chess": ("chess",),
+    # never "fruit" or "slice" alone: "it's a fruit" answers draw and guess
+    "slice": ("slice the fruit", "fruit slice", "slice fruit", "slicing fruit", "fruit slicing", "cut the fruit",
+              "fruit ninja", "fruit game", "slicing game"),
 }
 GUESS_PROMPT = ("Someone drew this on a table with a fingertip; the lines are the drawing (the light trail of the "
                 "finger, a little shaky). What did they draw? Make your best guess even if it is rough. Reply with "
@@ -175,11 +180,11 @@ class Menu(Game):
     def __init__(self, now, rng, best: dict):
         super().__init__(now, rng)
         self.best = best
-        far, near = 110.0, 280.0  # two rows: seven two-line labels side by side would run into each other
-        left, mid, right = 180.0, 406.0, 632.0
-        self.bubbles = [Bubble("helper", "GENERAL\nHELPER", (left, far), 36.0),
-                        Bubble("catch", "CATCH\nTHE LIGHT", (mid, far), 36.0),
-                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (right, far), 36.0),
+        far, near = 110.0, 280.0  # two rows: eight two-line labels side by side would run into each other
+        self.bubbles = [Bubble("helper", "GENERAL\nHELPER", (150.0, far), 36.0),
+                        Bubble("catch", "CATCH\nTHE LIGHT", (310.0, far), 36.0),
+                        Bubble("follow", "FOLLOW\nTHE LIGHTS", (470.0, far), 36.0),
+                        Bubble("slice", "SLICE\nTHE FRUIT", (630.0, far), 36.0),
                         Bubble("draw", "DRAW\nAND GUESS", (150.0, near), 36.0),
                         Bubble("rps", "ROCK PAPER\nSCISSORS", (310.0, near), 36.0),
                         Bubble("chess", "CHESS", (470.0, near), 36.0),
@@ -197,8 +202,8 @@ class Menu(Game):
                 self.sfx.append("press")
 
     def draw(self, c, now):
-        roles = {"helper": "target", "catch": "target", "follow": "source", "draw": "warn", "rps": "error",
-                 "chess": "source", "objects": "info"}
+        roles = {"helper": "target", "catch": "target", "follow": "source", "slice": "error", "draw": "warn",
+                 "rps": "error", "chess": "source", "objects": "info"}
         for b in self.bubbles:
             best = None if self.clocks_below and b.c[1] > 200 else self.best.get(b.key)  # the near row: clocks go there
             b.draw(c, roles[b.key], f"BEST {best}" if best else "")
@@ -217,6 +222,10 @@ class Menu(Game):
             for k, (dx, dy) in enumerate(((-13, -13), (13, -13), (-13, 13), (13, 13))):
                 lit = int(now * 2.5) % 4 == k
                 c.circle(f"ico-follow-{k}", (x + dx, y + dy), 9 if lit else 6, role, n=14)
+        elif b.key == "slice":  # an apple cut in two
+            from .fruit import fruit_icon  # fruit builds on this module
+
+            fruit_icon(c, "ico-slice", x, y, 20.0, role, now)
         elif b.key == "draw":  # a squiggle
             pts = [(x - 24 + 4 * i, y + 10 * math.sin(i * 0.9 + now * 3)) for i in range(13)]
             c.poly("ico-draw", pts, role)
@@ -956,6 +965,11 @@ class GameHost:
         if key == "follow":
             self.game = FollowLights(now, self.rng)
             return ["Follow the lights. Watch, then touch them in the same order."]
+        if key == "slice":
+            from .fruit import SliceFruit  # fruit builds on this module
+
+            self.game = SliceFruit(now, self.rng)
+            return ["Slice the fruit! Swipe a finger through it as it flies."]
         if key == "draw":
             self.game = DrawGuess(now, self.rng, ask=self.ask_guess)
             return [("Pinch your thumb and finger together to draw, and open them to stop. "

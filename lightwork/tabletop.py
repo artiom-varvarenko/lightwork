@@ -52,6 +52,7 @@ import numpy as np
 
 from .benchtask import BenchTask, match_item, spoken_list
 from .chesstable import ChessTable
+from .fruit import SliceFruit
 from .games import GUESS_PROMPT, GUESS_SCHEMA, DrawGuess, GameHost, Pen, RockPaperScissors
 from .helper import Helper, _with_article, asked_for_game, asked_to_go, asked_to_show, parse_place
 from .helper import _words as _words_of
@@ -1916,6 +1917,7 @@ class TableSession:
         self.sfx += sounds
         if isinstance(self.games.game, RockPaperScissors):
             self._shape_log(slots)
+        if isinstance(self.games.game, (RockPaperScissors, SliceFruit)):  # what it read, for the terminal
             self.log += self.games.game.log
             self.games.game.log = []
         if not self.games.active:  # OBJECTS picked on the menu: the object board

@@ -103,4 +103,38 @@ const SOUNDS = {
     note(t, g, { f0: 990, dur: 0.27, attack: 0.003, peak: 0.45 });
     note(t, g, { f0: 990 * 2.76, dur: 0.1, attack: 0.003, peak: 0.06 });
   },
+  // a fruit thrown up the table: a soft low "whup", rising
+  toss: (t, g) => {
+    note(t, g, { f0: 170, f1: 340, dur: 0.12, attack: 0.012, peak: 0.3 });
+  },
+  // a fruit cut: a quick airy swish, then a soft wet thud
+  slice: (t, g) => {
+    hiss(t, g, { f0: 1800, f1: 5200, dur: 0.16, attack: 0.008, peak: 0.7 });
+    note(t + 0.03, g, { f0: 260, f1: 130, dur: 0.1, attack: 0.004, peak: 0.35 });
+  },
 };
+
+// Noise through a band-pass gliding f0 -> f1 Hz over `dur` s, enveloped like `note`. One buffer of noise, made once.
+let noise = null;
+function hiss(t, g, { f0, f1 = f0, q = 1.4, dur, attack = 0.004, peak }) {
+  if (!noise) {
+    noise = ac.createBuffer(1, Math.ceil(ac.sampleRate * 0.5), ac.sampleRate);
+    const d = noise.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = ac.createBufferSource();
+  src.buffer = noise;
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = q;
+  bp.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) bp.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const env = ac.createGain();
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(peak * g, t + attack);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(bp).connect(env).connect(out);
+  src.onended = () => env.disconnect();
+  src.start(t);
+  src.stop(t + Math.min(dur + 0.02, 0.5));
+}

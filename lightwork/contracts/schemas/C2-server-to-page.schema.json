@@ -640,7 +640,9 @@
             "gone",
             "error",
             "listen",
-            "answer"
+            "answer",
+            "toss",
+            "slice"
           ],
           "title": "Name",
           "type": "string"

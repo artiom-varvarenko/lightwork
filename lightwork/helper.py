@@ -89,6 +89,8 @@ GAME_NAMES = {  # the name alone is enough ...
     "follow": ("follow the lights", "follow the light", "follow lights", "follow light"),
     "draw": ("draw and guess", "drawn guess", "draw guess"),
     "chess": ("play chess", "playing chess", "chess game", "game of chess", "start chess"),
+    "slice": ("slice the fruit", "fruit slice", "slice fruit", "slicing fruit", "fruit slicing", "cut the fruit",
+              "fruit ninja", "fruit game", "slicing game"),
 }
 GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manual" is no game)
     "rps": ("rock paper", "rock"),
@@ -96,6 +98,7 @@ GAME_WORDS = {  # ... these only with "play" or "game" ("help me follow the manu
     "follow": ("follow", "memory", "simon"),
     "draw": ("draw", "drawing", "pictionary"),
     "chess": ("chess",),
+    "slice": ("fruit", "slice", "slicing"),
 }
 BOARD_WORDS = ("object board", "objects board")
 MENU_WORDS = ("menu", "go home", "go back home")
@@ -192,7 +195,7 @@ understand something, about what lies on the table or about anything else. "mode
 an empty table). "place" if they want to see a place on a map ("take me to Paris"). "game" if they want to play \
 one of the table's games.
 - "game": if they want to play one of the table's games, its key: "catch" (catch the light), "follow" (follow the \
-lights), "draw" (draw and guess), "rps" (rock paper scissors). Otherwise "none".
+lights), "draw" (draw and guess), "rps" (rock paper scissors), "slice" (slice the fruit). Otherwise "none".
 - "job": what they want to do in 1 to 3 words ("cottage cheese pancakes", "lego car"), "" if you cannot tell yet.
 - "things": what is on the table that matters for this job, at most 16 entries. One entry per separate object, each \
 with its own box, even when they are identical: three eggs are three entries named "egg". A short plain "name" a \
@@ -224,7 +227,7 @@ SEE_SCHEMA = {
     "type": "object",
     "properties": {
         "intent": {"type": "string", "enum": ["job", "question", "model", "place", "game"]},
-        "game": {"type": "string", "enum": ["none", "catch", "follow", "draw", "rps"]},
+        "game": {"type": "string", "enum": ["none", "catch", "follow", "draw", "rps", "slice"]},
         "job": {"type": "string"},
         "things": {"type": "array", "items": {
             "type": "object",

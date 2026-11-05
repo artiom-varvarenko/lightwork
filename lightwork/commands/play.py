@@ -82,11 +82,11 @@ def configure(p) -> None:
                    help="table: a job to walk through: a built-in plan (pancakes, serial-dilution, seedlings, "
                         "kit-return), a plan file, or what you want to do in words (\"pancakes for four\"), planned "
                         "by the brain. With --voice it can also be asked for aloud (\"help me ...\")")
-    p.add_argument("--game", choices=("menu", "helper", "catch", "follow", "draw", "rps", "chess"),
+    p.add_argument("--game", choices=("menu", "helper", "catch", "follow", "slice", "draw", "rps", "chess"),
                    help="table: start with a hand game (nothing to set up): menu, helper (general helper: hold the mic "
                         "bubble and say a job or a game to start; needs --voice), catch (catch the light), follow "
-                        "(follow the lights), draw (draw and guess, Muse Spark guesses), rps (rock paper scissors "
-                        "against the table) or chess (real pieces on a projected board). With --game the mic is open only while the helper's bubble is held")
+                        "(follow the lights), slice (slice the fruit: swipe through fruit tossed up the table), draw "
+                        "(draw and guess, Muse Spark guesses), rps (rock paper scissors against the table) or chess (real pieces on a projected board). With --game the mic is open only while the helper's bubble is held")
     p.add_argument("--brain", choices=("auto", "meta", "open", "off"), default="auto",
                    help="table: who plans jobs and checks steps: meta = Meta Model API (Muse Spark), open = Meta open "
                         "weights via the partners, auto = open when a partner is configured, else meta")
@@ -334,7 +334,8 @@ def _voice(args, heard, control, listening=None):
         _record_hold(recording, holds[0], pcm)
 
     words = (["Lightwork", "help me", "next", "back", "done", "repeat", "stop", "check", "menu", "start", "play",
-              "catch the light", "follow the lights", "draw and guess", "rock paper scissors", "timer", "stopwatch",
+              "catch the light", "follow the lights", "slice the fruit", "draw and guess", "rock paper scissors",
+              "timer", "stopwatch",
               "minutes", "oven", "Lego", "brick", "build", "cook", "grams", "cottage cheese", "eggs"] if args.game else
              ["Lightwork", "table", "object", "missing", "next", "done", "repeat", "start", "stop", "check", "undo",
               "help me", "pancakes", "dilution", "scoop", "play", "catch the light", "follow the lights", "draw",

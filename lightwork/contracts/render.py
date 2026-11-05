@@ -197,7 +197,7 @@ class Sfx(_M):
     """A short synthesized UI sound on the speaking page (projector, else screen); pages without sound ignore it."""
 
     type: Literal["sfx"] = "sfx"
-    name: Literal["scan", "found", "press", "gone", "error", "listen", "answer"]
+    name: Literal["scan", "found", "press", "gone", "error", "listen", "answer", "toss", "slice"]
     gain: float = Field(1.0, ge=0.0, le=1.0)
 
 
